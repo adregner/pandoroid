@@ -102,6 +102,9 @@ public class PandoraRadioService extends Service {
 	public boolean isPlayable() {
 		return currentStation != null && pandora.isAlive();
 	}
+	public boolean isPlaying() {
+		return media.isPlaying();
+	}
 	public void prepare() {
 		currentPlaylist = currentStation.getPlaylist();
 		prepare(0);

@@ -131,7 +131,7 @@ public class PandoidPlayer extends Activity {
 		@Override
 		protected void onPostExecute(Boolean result) {
 			if(result.booleanValue()) {
-				if(pandora.isPlayable()) {
+				if(pandora.isPlayable() && !pandora.isPlaying()) {
 					// play it or resume playback or something smart like that
 					(new PlayStationTask()).execute();
 				}
