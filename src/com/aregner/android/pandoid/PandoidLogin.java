@@ -3,6 +3,8 @@ package com.aregner.android.pandoid;
 import android.app.Activity;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -37,5 +39,18 @@ public class PandoidLogin extends Activity {
 				}
 			}
 		});
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.player_menu, menu);
+		return true;
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		PandoidPlayer.dismissWaiting();
 	}
 }

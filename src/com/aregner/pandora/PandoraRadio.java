@@ -11,14 +11,17 @@ import java.util.Vector;
 
 import org.xmlrpc.android.XMLRPCException;
 
+import com.aregner.android.pandoid.PandoidPlayer;
+
 
 public class PandoraRadio {
 
-	private static final String PROTOCOL_VERSION = "29";
+	public static final String PROTOCOL_VERSION = "29";
 	private static final String RPC_URL = "http://www.pandora.com/radio/xmlrpc/v"+PROTOCOL_VERSION+"?";
 	private static final String USER_AGENT = "com.aregner.pandora/0.1";
 
 	private static final long PLAYLIST_VALIDITY_TIME = 3600 * 3;
+	public static final String DEFAULT_AUDIO_FORMAT = "aacplus";
 
 	private static final Vector<Object> EMPTY_ARGS = new Vector<Object>();
 
@@ -47,23 +50,6 @@ public class PandoraRadio {
 		}
 		return result;
 	}
-
-	/*private String toHex(String sourceText) {
-		byte[] rawData = sourceText.getBytes();
-		StringBuffer hexText= new StringBuffer();
-		String initialHex = null;
-		int initHexLength=0;
-		for(int i=0; i<rawData.length; i++) {
-			int positiveValue = rawData[i] & 0x000000FF;
-			initialHex = Integer.toHexString(positiveValue);
-			initHexLength=initialHex.length();
-			while(initHexLength++ < 2) {
-				hexText.append("0");
-			}
-			hexText.append(initialHex);
-		}
-		return hexText.toString();
-	}*/
 
 	private String fromHex(String hexText) {
 		String decodedText=null;
@@ -157,6 +143,11 @@ public class PandoraRadio {
 		return formatUrlArg(v.iterator());
 	}
 
+	/*public static void printXmlRpc(String xml) {
+		xml = xml.replace("<param>", "\n\t<param>").replace("</params>", "\n</params>");
+		System.err.println(xml);
+	}*/
+	
 	@SuppressWarnings("unchecked")
 	private Object xmlrpcCall(String method, Vector<Object> args, Vector<Object> urlArgs) {
 		if(urlArgs == null)
@@ -167,7 +158,7 @@ public class PandoraRadio {
 			args.add(1, authToken);
 
 		String xml = XmlRpc.makeCall(method, args);
-		//System.err.println(xml);
+		//printXmlRpc(xml);
 		String data = pandoraEncrypt(xml);
 
 		ArrayList<String> urlArgStrings = new ArrayList<String>();
@@ -228,6 +219,16 @@ public class PandoraRadio {
 			authToken = (String) userInfo.get("authToken");
 		}
 	}
+	
+	public void disconnect() {
+		listenerId = authToken = null;
+		webAuthToken = null;
+		
+		if(stations != null) {
+			stations.clear();
+			stations = null;
+		}
+	}
 
 	@SuppressWarnings("unchecked")
 	public ArrayList<Station> getStations() {
@@ -260,6 +261,14 @@ public class PandoraRadio {
 		return null;
 	}
 
+	public void rate(Station station, Song song, boolean rating) {
+		Vector<Object> args = new Vector<Object>(7);
+		args.add(String.valueOf(station.getId())); args.add(song.getId()); args.add(song.getUserSeed());
+		args.add(""/*testStrategy*/); args.add(rating); args.add(false); args.add(song.getSongType());
+		
+		xmlrpcCall("station.addFeedback", args);
+	}
+
 	public boolean isAlive() {
 		return authToken != null;
 	}
@@ -285,8 +294,12 @@ public class PandoraRadio {
 		}
 		
 		public Song[] getPlaylist(boolean forceDownload) {
+			return getPlaylist(DEFAULT_AUDIO_FORMAT, forceDownload);
+		}
+		
+		public Song[] getPlaylist(String format, boolean forceDownload) {
 			if(forceDownload || currentPlaylist == null) {
-				return getPlaylist();
+				return getPlaylist(format);
 			}
 			else {
 				return currentPlaylist;
@@ -294,13 +307,13 @@ public class PandoraRadio {
 		}
 
 		@SuppressWarnings("unchecked")
-		public Song[] getPlaylist() {
+		public Song[] getPlaylist(String format) {
 			Vector<Object> args = new Vector<Object>(7);
 			args.add(id);
 			args.add("0");
 			args.add("");
 			args.add("");
-			args.add("aacplus");
+			args.add(format);
 			args.add("0");
 			args.add("0");
 
@@ -330,7 +343,7 @@ public class PandoraRadio {
 			return name;
 		}
 
-		public String getAlbumCoverUrl() {
+		public String getStationImageUrl() {
 			getPlaylist(false);
 			return currentPlaylist[0].getAlbumCoverUrl();
 		}
@@ -399,6 +412,18 @@ public class PandoraRadio {
 			}
 		}
 
+		public int getSongType() {
+			return songType.intValue();
+		}
+
+		public String getUserSeed() {
+			return userSeed;
+		}
+
+		public String getId() {
+			return musicId;
+		}
+
 		public boolean isStillValid() {
 			return ((System.currentTimeMillis() / 1000L) - playlistTime) < PLAYLIST_VALIDITY_TIME;
 		}
@@ -410,15 +435,12 @@ public class PandoraRadio {
 			// TODO Auto-generated method stub
 			return null;
 		}
-
 		public String getTitle() {
 			return title;
 		}
-
 		public String getArtist() {
 			return artist;
 		}
-
 		public String getAlbum() {
 			return album;
 		}
@@ -430,6 +452,29 @@ public class PandoraRadio {
 
 
 	public String test() {
+		/*Console cons;
+		char[] passwd;
+		if ((cons = System.console()) != null && (passwd = cons.readPassword("[%s]", "Password:")) != null) {
+			connect("andrew@aregner.com", new String(passwd));
+			getStations();
+			
+			Station station = null;
+			Iterator<Station> stationIter = stations.iterator();
+			while(stationIter.hasNext()) {
+				station = stationIter.next();
+				if(station.getName().equals("0 - Pandoid Testing"))
+					break;
+			}
+			System.out.println(station.getName());
+
+			Song song = station.getPlaylist()[1];
+			System.out.println(song.getTitle());
+			
+			boolean rating = true;
+
+			rate(station, song, rating);;
+		}*/
+		
 		return null;
 	}
 

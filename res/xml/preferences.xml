@@ -18,8 +18,15 @@
 <PreferenceScreen
         xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory android:title="@string/dialog_based_preferences"><EditTextPreference android:title="Pandora.com account name" android:dialogTitle="Pandora.com email address" android:key="pandora_username" android:summary="Email address (or other username) used for pandora.com"/><EditTextPreference android:title="Pandora.com password" android:dialogTitle="Pandora.com password" android:key="pandora_password" android:summary="Password for your pandora.com account" android:password="true"/>
+    <PreferenceCategory android:title="Account Setup"><EditTextPreference android:title="Pandora.com account name" android:dialogTitle="Pandora.com email address" android:key="pandora_username" android:summary="Email address (or other username) used for pandora.com."/><EditTextPreference android:title="Pandora.com password" android:dialogTitle="Pandora.com password" android:key="pandora_password" android:password="true" android:summary="Password for your pandora.com account."/>
 
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Audio">
+        <ListPreference android:key="pandora_audioFormat" android:title="Audio Format" android:summary="Audio encoding format to request from the Pandora service." android:entryValues="@array/pandora_audioFormat_values" android:entries="@array/pandora_audioFormat_text" android:defaultValue="aacplus"></ListPreference>
+    </PreferenceCategory><PreferenceCategory android:title="Behavior">
+        <CheckBoxPreference android:key="behave_nextOnBan" android:summary='Skip to the next song when you "thumb down" a song.' android:title="Next track on ban" android:defaultValue="true"></CheckBoxPreference>
+        <CheckBoxPreference android:key="behave_resumeOnHangup" android:summary="Resume playback automatically when a call is ended." android:title="Resume on Hangup" android:defaultValue="true"></CheckBoxPreference>
+        
     </PreferenceCategory>
                 
     

@@ -142,6 +142,8 @@ public class XmlRpc extends org.xmlrpc.android.XMLRPCClient {
 	public static String valueGuess(Object v) {
 		if(v instanceof Number)
 			return value((Number)v);
+		else if(v instanceof Boolean)
+			return value((Boolean)v);
 		else if(v instanceof String)
 			return value((String)v);
 		else if(v instanceof AbstractCollection<?>)
