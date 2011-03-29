@@ -3,7 +3,7 @@ package com.aregner.android.pandoid;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.aregner.pandora.PandoraRadio.Station;
+import com.aregner.pandora.Station;
 
 import android.app.ListActivity;
 import android.content.Context;

@@ -6,17 +6,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.aregner.pandora.PandoraRadio;
-import com.aregner.pandora.PandoraRadio.Song;
-import com.aregner.pandora.PandoraRadio.Station;
+import com.aregner.pandora.Song;
+import com.aregner.pandora.Station;
 
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.app.Service;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
@@ -44,6 +46,8 @@ public class PandoraRadioService extends Service {
 	private Song[] nextPlaylist;
 	private int currentSongIndex;
 	private HashMap<Class<?>,Object> listeners = new HashMap<Class<?>,Object>();
+
+	protected PandoraDB db;
 
 	
 	// static usefullness
@@ -160,20 +164,51 @@ public class PandoraRadioService extends Service {
 			media.release();
 			media = null;
 		}
-		
+
 		if(pandora != null) {
 			pandora.disconnect();
 			pandora = null;
 		}
-		
+
 		instance = null;
 		stopSelf();
 	}
 	public boolean isAlive() {
 		return pandora.isAlive();
 	}
+	public ArrayList<Station> getStations(boolean forceDownload) {
+		if(forceDownload) {
+			return getStations();
+		}
+		else {
+			// TODO : build a "fake" list of stations that the PandoraRadio controller doesn't know about???
+			HashMap<String, Object>[] stationsData = db.getStations();
+			ArrayList<Station> stations = new ArrayList<Station>(stationsData.length);
+			
+			for(int s=0; s<stationsData.length; s++) {
+				stations.add(new Station(stationsData[s], pandora));
+			}
+			
+			return stations;
+		}
+	}
+	@SuppressWarnings("unchecked")
 	public ArrayList<Station> getStations() {
-		return pandora.getStations();
+		ArrayList<Station> stations;
+
+		stations = pandora.getStations();
+
+		(new AsyncTask<ArrayList<Station>, Void, Void>() {
+			@Override
+			protected Void doInBackground(ArrayList<Station>... params) {
+				db = new PandoraDB(getBaseContext());
+				db.syncStations(params[0]);
+				db.close();
+				return null;
+			}
+		}).execute(stations);
+
+		return stations;
 	}
 	public void setCurrentStationId(long sid) {
 		if(sid < 0) return;

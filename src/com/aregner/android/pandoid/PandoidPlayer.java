@@ -1,6 +1,6 @@
 package com.aregner.android.pandoid;
 
-import com.aregner.pandora.PandoraRadio.Song;
+import com.aregner.pandora.Song;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -21,6 +21,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
 public class PandoidPlayer extends Activity {
 
 	public static final int REQUIRE_SELECT_STATION = 0x10;
@@ -32,6 +33,7 @@ public class PandoidPlayer extends Activity {
 	private static ProgressDialog waiting;
 	private PandoraRadioService pandora;
 	private SharedPreferences prefs;
+	private ImageDownloader imageDownloader = new ImageDownloader();
 
 	/** Called when the activity is first created. */
 	@Override
@@ -89,6 +91,7 @@ public class PandoidPlayer extends Activity {
 		ImageView image = (ImageView) findViewById(R.id.player_image);
 
 		top.setText(String.format("%s by %s", song.getTitle(), song.getArtist()));
+		imageDownloader.download(song.getAlbumCoverUrl(), image);
 		bottom.setText(String.format("%s", song.getAlbum()));
 	}
 
