@@ -16,7 +16,7 @@ import com.aregner.android.pandoid.PandoidPlayer;
 
 public class PandoraRadio {
 
-	public static final String PROTOCOL_VERSION = "29";
+	public static final String PROTOCOL_VERSION = "30";
 	private static final String RPC_URL = "http://www.pandora.com/radio/xmlrpc/v"+PROTOCOL_VERSION+"?";
 	private static final String USER_AGENT = "com.aregner.pandora/0.1";
 
