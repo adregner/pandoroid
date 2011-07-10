@@ -1,8 +1,29 @@
+/* Pandoroid Radio - open source pandora.com client for android
+ * Copyright (C) 2011  Andrew Regner <andrew@aregner.com>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
+/* 
+ * This is a Java port of the "blowfish.py" module from the Pithos source code.
+ * 
+ * Pithos is released under the GNU GPL v3, Copyright (C) 2010 Kevin Mehall <km@kevinmehall.net>
+ * blowfish.py is (C) 2002 Michael Gilfix <mgilfix@eecs.tufts.edu>
+ */
 package com.aregner.pandora;
 
-/* This is a direct Java rip-off of the "blowfish.py" file from the Pithos source.
- * Pithos is by Michael Gilfix <mgilfix@eecs.tufts.edu>
- */
 
 public class Blowfish {
 	

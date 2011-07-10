@@ -1,3 +1,20 @@
+/* Pandoroid Radio - open source pandora.com client for android
+ * Copyright (C) 2011  Andrew Regner <andrew@aregner.com>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package com.aregner.android.pandoid;
 
 import com.aregner.pandora.Song;
@@ -54,11 +71,7 @@ public class PandoidPlayer extends Activity {
 				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
 			}
 			else {
-				// all set, start fancy stuff
-				(new InitialSetupTask()).execute(username, password);
-				// TODO : we could just call the StationSelect activity here and have it 
-				// or a common routine handle the initial login so that there is no
-				// pause on the empty player screen
+				serviceSetup(username, password);
 			}
 		}
 		else {
@@ -83,6 +96,23 @@ public class PandoidPlayer extends Activity {
 	protected void onResume() {
 		super.onResume();
 		// The activity has become visible (it is now "resumed").
+	}
+	
+	private boolean serviceSetup(String username, String password) {
+		waiting = ProgressDialog.show(PandoidPlayer.this, "",  getString(R.string.signing_in));
+		
+		PandoraRadioService.createPandoraRadioService(getApplicationContext());
+		pandora = PandoraRadioService.getInstance(true);
+		
+		try {
+			pandora.signIn(username, password);
+		} catch(Exception ex) {
+			ex.printStackTrace();
+		}
+		
+		dismissWaiting();
+		
+		return pandora.isAlive();
 	}
 
 	protected void updateForNewSong(Song song) {
@@ -113,7 +143,7 @@ public class PandoidPlayer extends Activity {
 
 		case R.id.player_ban:
 			pandora.rate(RATING_BAN);
-			Toast.makeText(getApplicationContext(), "Buzz-kill...", Toast.LENGTH_SHORT).show();
+			Toast.makeText(getApplicationContext(), getString(R.string.baned_song), Toast.LENGTH_SHORT).show();
 			if(prefs.getBoolean("behave_nextOnBan", true)) {
 				updateForNewSong(pandora.next());
 			}
@@ -121,7 +151,7 @@ public class PandoidPlayer extends Activity {
 
 		case R.id.player_love:
 			pandora.rate(RATING_LOVE);
-			Toast.makeText(getApplicationContext(), "Rock on!", Toast.LENGTH_SHORT).show();
+			Toast.makeText(getApplicationContext(), getString(R.string.loved_song), Toast.LENGTH_SHORT).show();
 			break;
 
 		case R.id.player_pause:
@@ -165,7 +195,7 @@ public class PandoidPlayer extends Activity {
 	private class InitialSetupTask extends AsyncTask<String, Void, Boolean> {
 		@Override
 		protected void onPreExecute() {
-			waiting = ProgressDialog.show(PandoidPlayer.this, "",  "Signing in. Please wait...");
+			waiting = ProgressDialog.show(PandoidPlayer.this, "",  getString(R.string.signing_in));
 		}
 
 		@Override
@@ -201,7 +231,7 @@ public class PandoidPlayer extends Activity {
 			}
 			else {
 				// failed to sign in for some reason
-				Toast.makeText(getApplicationContext(), "Sign-in failed", Toast.LENGTH_SHORT).show();
+				Toast.makeText(getApplicationContext(), getString(R.string.signin_failed), Toast.LENGTH_SHORT).show();
 				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
 			}
 		}
@@ -211,7 +241,7 @@ public class PandoidPlayer extends Activity {
 	private class PlayStationTask extends AsyncTask<Void, Void, Void> {
 		@Override
 		protected void onPreExecute() {
-			waiting = ProgressDialog.show(PandoidPlayer.this, "",  String.format("Loading %s...", pandora.getCurrentStation().getName()));
+			waiting = ProgressDialog.show(PandoidPlayer.this, "",  getString(R.string.loading, pandora.getCurrentStation().getName()));
 		}
 
 		@Override
