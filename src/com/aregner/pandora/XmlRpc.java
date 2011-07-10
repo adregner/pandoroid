@@ -110,6 +110,7 @@ public class XmlRpc extends org.xmlrpc.android.XMLRPCClient {
 				throw new XMLRPCException("Bad tag <" + tag + "> in XMLRPC response - neither <params> nor <fault>");
 			}
 		} catch (XMLRPCException e) {
+			e.printStackTrace();
 			// catch & propagate XMLRPCException/XMLRPCFault
 			throw e;
 		} catch (Exception e) {

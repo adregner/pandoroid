@@ -22,6 +22,8 @@
  */
 package com.aregner.pandora;
 
+//import java.io.Console; //Not supported by android's JVM - used for testing this class with java6 on PC/Mac
+
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,7 +38,7 @@ import org.xmlrpc.android.XMLRPCException;
 
 public class PandoraRadio {
 
-	public static final String PROTOCOL_VERSION = "30";
+	public static final String PROTOCOL_VERSION = "31";
 	private static final String RPC_URL = "http://www.pandora.com/radio/xmlrpc/v"+PROTOCOL_VERSION+"?";
 	private static final String USER_AGENT = "com.aregner.pandora/0.1";
 
@@ -297,7 +299,7 @@ public class PandoraRadio {
 
 
 	public String test() throws Exception {
-		/* Right now this is just a little playing around with the idea of serializing Pandora data structures
+		// Right now this is just a little playing around with the idea of serializing Pandora data structures
 		
 		Console cons;
 		char[] passwd;
@@ -319,11 +321,11 @@ public class PandoraRadio {
 			
 			boolean rating = true;
 
-			System.out.println("\nSerializing...");
-			(new ObjectOutputStream(System.out)).writeObject(station);
-		}*/
+			//System.out.println("\nSerializing...");
+			//(new ObjectOutputStream(System.out)).writeObject(station);
+		}
 		
-		return null;
+		return "test() method success";
 	}
 
 	public static void main(String[] args) throws Exception {
