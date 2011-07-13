@@ -69,7 +69,7 @@ public class PandoraRadioService extends Service {
 	
 	// static usefullness
 	private static PandoraRadioService instance;
-	private static Object lock = PandoraRadioService.class;
+	private static Object lock = new Object();
 
 	public static void createPandoraRadioService(Context context) {
 		synchronized(lock) {
@@ -79,14 +79,17 @@ public class PandoraRadioService extends Service {
 		}
 	}
 	public static PandoraRadioService getInstance(boolean wait) {
-		long startedWaiting = System.currentTimeMillis();
-		while( wait && instance == null && System.currentTimeMillis() - startedWaiting < 5000L ) {
-			try {
-				Thread.sleep(50);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+		if(wait) {
+			long startedWaiting = System.currentTimeMillis();
+			while( instance == null && System.currentTimeMillis() - startedWaiting < 5000L ) {
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		}
+		
 		synchronized(lock) {
 			return instance;
 		}
@@ -109,7 +112,7 @@ public class PandoraRadioService extends Service {
 			telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 			prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 
-			// Register the listener wit the telephony manager
+			// Register the listener with the telephony manager
 			telephonyManager.listen(new PhoneStateListener() {
 				boolean pausedForRing = false;
 				@Override

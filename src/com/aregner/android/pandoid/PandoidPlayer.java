@@ -70,9 +70,6 @@ public class PandoidPlayer extends Activity {
 				// bring them to the login screen so they can enter what we need
 				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
 			}
-			else {
-				serviceSetup(username, password);
-			}
 		}
 		else {
 			pandora = PandoraRadioService.getInstance(false);
@@ -96,23 +93,13 @@ public class PandoidPlayer extends Activity {
 	protected void onResume() {
 		super.onResume();
 		// The activity has become visible (it is now "resumed").
+		serviceSetup();
 	}
 	
-	private boolean serviceSetup(String username, String password) {
-		waiting = ProgressDialog.show(PandoidPlayer.this, "",  getString(R.string.signing_in));
-		
-		PandoraRadioService.createPandoraRadioService(getApplicationContext());
-		pandora = PandoraRadioService.getInstance(true);
-		
-		try {
-			pandora.signIn(username, password);
-		} catch(Exception ex) {
-			ex.printStackTrace();
+	private void serviceSetup() {
+		if(pandora == null || !(pandora instanceof PandoraRadioService)) {
+			(new InitialSetupTask()).execute();
 		}
-		
-		dismissWaiting();
-		
-		return pandora.isAlive();
 	}
 
 	protected void updateForNewSong(Song song) {
@@ -132,9 +119,7 @@ public class PandoidPlayer extends Activity {
 			(new PlayStationTask()).execute();
 		}
 		else if(requestCode == REQUIRE_LOGIN_CREDS && resultCode == RESULT_OK) {
-			String username = prefs.getString("pandora_username", null);
-			String password = prefs.getString("pandora_password", null);
-			(new InitialSetupTask()).execute(username, password);
+			serviceSetup();
 		}
 	}
 
@@ -192,18 +177,22 @@ public class PandoidPlayer extends Activity {
 
 	/** Signs in the user and loads their initial data
 	 *     -> brings them toward a station               */
-	private class InitialSetupTask extends AsyncTask<String, Void, Boolean> {
+	private class InitialSetupTask extends AsyncTask<Void, Void, Boolean> {
 		@Override
 		protected void onPreExecute() {
 			waiting = ProgressDialog.show(PandoidPlayer.this, "",  getString(R.string.signing_in));
 		}
 
 		@Override
-		protected Boolean doInBackground(String... auth) {
+		protected Boolean doInBackground(Void... arg) {
 			PandoraRadioService.createPandoraRadioService(getApplicationContext());
 			pandora = PandoraRadioService.getInstance(true);
+			
+			String username = prefs.getString("pandora_username", null);
+			String password = prefs.getString("pandora_password", null);
+			
 			try {
-				pandora.signIn(auth[0], auth[1]);
+				pandora.signIn(username, password);
 			} catch(Exception ex) {
 				ex.printStackTrace();
 			}

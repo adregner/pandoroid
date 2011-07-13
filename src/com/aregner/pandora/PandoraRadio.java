@@ -301,7 +301,7 @@ public class PandoraRadio {
 	public String test() throws Exception {
 		// Right now this is just a little playing around with the idea of serializing Pandora data structures
 		
-		Console cons;
+		/*Console cons;
 		char[] passwd;
 		if ((cons = System.console()) != null && (passwd = cons.readPassword("[%s]", "Password:")) != null) {
 			connect("andrew@aregner.com", new String(passwd));
@@ -323,7 +323,7 @@ public class PandoraRadio {
 
 			//System.out.println("\nSerializing...");
 			//(new ObjectOutputStream(System.out)).writeObject(station);
-		}
+		}/**/
 		
 		return "test() method success";
 	}
