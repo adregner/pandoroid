@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+<channel>
+        <title>Pandoroid Radio</title>
+        <description>An open-source application for Android-based devices to interface with the Pandora Radio service.</description>
+        <link>http://aregner.com/android/pandoroid/</link>
+        <lastBuildDate>Wed, 13 Jul 2011 02:30:00 +0000 </lastBuildDate>
+        <pubDate>Wed, 13 Jul 2011 02:30:00 +0000 </pubDate>
+ 
+        <item>
+                <title>New alpha version - updated API keys (v31)</title>
+                <description>After a long/brief hiatus, another release of Pandoroid is made available.  This version includes the new API keys from the recent update by Pandora.  Other stability and feature improvements are also included.</description>
+                <link>http://aregner.com/android/pandoroid/</link>
+                <guid>com.aregner.android.pandoroid_2</guid>
+                <pubDate>Wed, 13 Jul 2011 02:30:00 +0000 </pubDate>
+        </item>
+ 
+        <item>
+                <title>First public release</title>
+                <description>This is the first release of Pandoroid to the public.  It was not very stable at all, but neat to play with.</description>
+                <link>http://aregner.com/android/pandoroid/</link>
+                <guid>com.aregner.android.pandoroid_1</guid>
+                <pubDate>Tue, 22 Mar 2011 04:00:00 +0000 </pubDate>
+        </item>
+ 
+</channel>
+</rss>

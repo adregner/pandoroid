@@ -11,4 +11,4 @@ tar cvjf "../$PACKAGE_NAME.tar.bz2" --exclude-backups --exclude="consoleTesting"
 cp bin/"$(basename $(pwd))".apk "../$PACKAGE_NAME.apk"
 
 # send it to the project's main site
-scp "../$PACKAGE_NAME.apk" "../$PACKAGE_NAME.tar.bz2" doc/*.{html,png} aregner.com:public_html/android/"$PACKAGE_NAME"/
+scp "../$PACKAGE_NAME.apk" "../$PACKAGE_NAME.tar.bz2" doc/*.{html,png,rss} aregner.com:public_html/android/"$PACKAGE_NAME"/
