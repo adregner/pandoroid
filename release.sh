@@ -3,11 +3,11 @@
 
 PACKAGE_NAME=pandoroid #$(basename $(pwd))
 
-# use this to fail if we try to publish without commited changes
-bzr dpush --strict --no-rebase || exit 1
+git push
+git push github 2> /dev/null
 
 # bundle it all up
-tar cvjf "../$PACKAGE_NAME.tar.bz2" --exclude-backups --exclude="consoleTesting" --exclude="bin" * .classpath .project .bzr*
+tar cvjf "../$PACKAGE_NAME.tar.bz2" --exclude-backups --exclude="consoleTesting" --exclude="bin" * .classpath .project .git*
 cp bin/"$(basename $(pwd))".apk "../$PACKAGE_NAME.apk"
 
 # send it to the project's main site
