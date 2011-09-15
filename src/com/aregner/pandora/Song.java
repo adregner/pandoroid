@@ -108,4 +108,37 @@ public class Song {
 	public String getAlbum() {
 		return album;
 	}
+	public Integer getRating() {
+		return rating;
+	}
+	public String getArtistMusicId() {
+		return artistMusicId;
+	}
+	public String getFileGain() {
+		return fileGain;
+	}
+	public String getIdentity() {
+		return identity;
+	}
+	public String getStationId() {
+		return stationId;
+	}
+	public String getSongDetailURL() {
+		return songDetailURL;
+	}
+	public String getAlbumDetailURL() {
+		return albumDetailURL;
+	}
+	public boolean isTired() {
+		return tired;
+	}
+	public String getMessage() {
+		return message;
+	}
+	public Object getStartTime() {
+		return startTime;
+	}
+	public boolean isFinished() {
+		return finished;
+	}
 }
