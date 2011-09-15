@@ -288,6 +288,27 @@ public class PandoraRadio {
 		
 		xmlrpcCall("station.addFeedback", args);
 	}
+	
+	public void bookmarkSong(Station station, Song song) {
+		Vector<Object> args = new Vector<Object>(2);
+		args.add(String.valueOf(station.getId())); args.add(song.getId());
+		
+		xmlrpcCall("station.createBookmark", args);
+	}
+	
+	public void bookmarkArtist(Station station, Song song) {
+		Vector<Object> args = new Vector<Object>(1);
+		args.add(song.getArtistMusicId());
+		
+		xmlrpcCall("station.createArtistBookmark", args);
+	}
+	
+	public void tired(Station station, Song song) {
+		Vector<Object> args = new Vector<Object>(3);
+		args.add(song.getId()); args.add(song.getUserSeed()); args.add(String.valueOf(station.getId()));
+		
+		xmlrpcCall("listener.addTiredSong", args);
+	}
 
 	public boolean isAlive() {
 		return authToken != null;
