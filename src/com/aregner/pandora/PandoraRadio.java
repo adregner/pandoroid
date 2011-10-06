@@ -38,7 +38,7 @@ import org.xmlrpc.android.XMLRPCException;
 
 public class PandoraRadio {
 
-	public static final String PROTOCOL_VERSION = "31";
+	public static final String PROTOCOL_VERSION = "32";
 	private static final String RPC_URL = "http://www.pandora.com/radio/xmlrpc/v"+PROTOCOL_VERSION+"?";
 	private static final String USER_AGENT = "com.aregner.pandora/0.1";
 
@@ -52,7 +52,6 @@ public class PandoraRadio {
 	private Blowfish blowfish_decode;
 	private String authToken;
 	private String rid;
-	private String listenerId;
 	private String webAuthToken;
 	private ArrayList<Station> stations;
 
@@ -187,9 +186,6 @@ public class PandoraRadio {
 		if(rid != null) {
 			urlArgStrings.add("rid="+rid);
 		}
-		if(listenerId != null) {
-			urlArgStrings.add("lid="+listenerId);
-		}
 		method = method.substring(method.lastIndexOf('.')+1);
 		urlArgStrings.add("method="+method);
 		Iterator<Object> urlArgsIter = urlArgs.iterator();
@@ -226,7 +222,7 @@ public class PandoraRadio {
 	@SuppressWarnings("unchecked")
 	public void connect(String user, String password) {
 		rid = String.format("%07dP", System.currentTimeMillis() % 1000L);
-		listenerId = authToken = null;
+		authToken = null;
 
 		Vector<Object> args = new Vector<Object>(2);
 		args.add(user); args.add(password);
@@ -237,13 +233,12 @@ public class PandoraRadio {
 			HashMap<String,Object> userInfo = (HashMap<String,Object>) result;
 
 			webAuthToken = (String) userInfo.get("webAuthToken");
-			listenerId = (String) userInfo.get("listenerId");
 			authToken = (String) userInfo.get("authToken");
 		}
 	}
 	
 	public void disconnect() {
-		listenerId = authToken = null;
+		authToken = null;
 		webAuthToken = null;
 		
 		if(stations != null) {
