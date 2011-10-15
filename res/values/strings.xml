@@ -6,4 +6,6 @@
     <string name="loading">Loading %s...</string>
     <string name="baned_song">Buzz-kill...</string>
     <string name="loved_song">Rock on!</string>
+    <string name="no_song">No song currently playing...</string>
+    <string name="next_song">Loading next song...</string>
 </resources>

@@ -17,27 +17,31 @@
  */
 package com.aregner.android.pandoid;
 
+import com.aregner.android.pandoid.PandoraRadioService;
 import com.aregner.pandora.Song;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.media.MediaPlayer;
-import android.media.MediaPlayer.OnCompletionListener;
-import android.media.MediaPlayer.OnPreparedListener;
+import android.content.pm.ActivityInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 
 public class PandoidPlayer extends Activity {
 
@@ -50,33 +54,48 @@ public class PandoidPlayer extends Activity {
 	private static ProgressDialog waiting;
 	private PandoraRadioService pandora;
 	private SharedPreferences prefs;
+	private boolean initialLogin = false;
 	private ImageDownloader imageDownloader = new ImageDownloader();
+		
+	private static  String LOG_TAG = "PandoidPlayer";
+	private static String SETUP_TAG = "InitialSetupTask";
+	private static String STATION_TAG = "PlayStationTask";
+	
+	IntentFilter intentFilter = new IntentFilter();
+	private BroadcastReceiver receiver = new BroadcastReceiver() {
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			Log.i(LOG_TAG, "Song Change Broadcast Received");
+			updateForNewSong();
+		}
+	};
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		Log.i(LOG_TAG, "Activity Created");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.player);
-
-		if(PandoraRadioService.getInstance(false) == null) {
-			// handle for the preferences for us to use everywhere
-			prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-
+		
+		// handle for the preferences for us to use everywhere
+		prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+		
+		pandora = PandoraRadioService.getInstance(false);
+		if(pandora == null) {
+			Log.i(LOG_TAG, "Service is null. Getting credentials from prefs");
 			// look for what we need to continue with pandora auth
 			String username = prefs.getString("pandora_username", null);
 			String password = prefs.getString("pandora_password", null);
 
 			if(username == null || password == null) {
 				// bring them to the login screen so they can enter what we need
+				Log.i(LOG_TAG, "Calling PandoidLogin.class");
+				initialLogin = true;
 				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
 			}
 		}
-		else {
-			pandora = PandoraRadioService.getInstance(false);
-			updateForNewSong(pandora.getCurrentSong());
-		}
 	}
-
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getMenuInflater();
@@ -85,67 +104,121 @@ public class PandoidPlayer extends Activity {
 	}
 
 	@Override
-	protected void onStart() {
-		super.onStart();
-	}
-
-	@Override
 	protected void onResume() {
 		super.onResume();
-		// The activity has become visible (it is now "resumed").
-		serviceSetup();
+		Log.i(LOG_TAG, "Resuming Activity...");
+		
+		Log.i(LOG_TAG, "Registering Receiver...");
+		intentFilter.addAction(PandoraRadioService.SONG_CHANGE);	
+		registerReceiver(receiver, intentFilter);
+		
+		if(!initialLogin){
+			serviceSetup();
+		}
+		
+		updateForNewSong();
 	}
 	
 	private void serviceSetup() {
 		if(pandora == null || !(pandora instanceof PandoraRadioService)) {
-			(new InitialSetupTask()).execute();
+			Log.i(LOG_TAG, "Executing InitialSetupTask");
+			new InitialSetupTask().execute();
 		}
 	}
 
-	protected void updateForNewSong(Song song) {
-		TextView top = (TextView) findViewById(R.id.player_topText);
-		TextView bottom = (TextView) findViewById(R.id.player_bottomText);
-		ImageView image = (ImageView) findViewById(R.id.player_image);
-
-		top.setText(String.format("%s by %s", song.getTitle(), song.getArtist()));
-		imageDownloader.download(song.getAlbumCoverUrl(), image);
-		bottom.setText(String.format("%s", song.getAlbum()));
+	protected void updateForNewSong() {
+		
+		if(pandora != null && pandora.isPlayable() && pandora.isPlaying()){ 
+			
+			Log.i(LOG_TAG, "updateForNewSong() called..");
+			
+			Song song = pandora.getCurrentSong();
+			
+			TextView top = (TextView) findViewById(R.id.player_topText);
+			TextView bottom = (TextView) findViewById(R.id.player_bottomText);
+			ImageView image = (ImageView) findViewById(R.id.player_image);
+			
+			top.setText(String.format("%s by %s", song.getTitle(), song.getArtist()));
+			imageDownloader.download(song.getAlbumCoverUrl(), image);
+			bottom.setText(String.format("%s", song.getAlbum()));
+		}
 	}
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if(requestCode == REQUIRE_SELECT_STATION && resultCode == RESULT_OK) {
+			Log.i(LOG_TAG, "PandoraStationSelect returned with result_ok");
 			pandora.setCurrentStationId(data.getLongExtra("stationId", -1));
-			(new PlayStationTask()).execute();
+			new PlayStationTask().execute();
 		}
 		else if(requestCode == REQUIRE_LOGIN_CREDS && resultCode == RESULT_OK) {
+			Log.i(LOG_TAG, "PandoraLogin.class returned ok...");
 			serviceSetup();
 		}
+/**		else if(requestCode == REQUIRE_LOGIN_CREDS && resultCode != RESULT_OK ) {
+			Log.i(LOG_TAG, "PandoidLogin.class returned with bad result. finishing activity");
+			finish();
+		}*/
 	}
 
 	public void controlButtonPressed(View button) {
+		String toastMessage;
+		
 		switch(button.getId()) {
 
-		case R.id.player_ban:
-			pandora.rate(RATING_BAN);
-			Toast.makeText(getApplicationContext(), getString(R.string.baned_song), Toast.LENGTH_SHORT).show();
-			if(prefs.getBoolean("behave_nextOnBan", true)) {
-				updateForNewSong(pandora.next());
-			}
-			break;
+			case R.id.station_list:
+				startActivityForResult(new Intent(getApplicationContext(), PandoidStationSelect.class), REQUIRE_SELECT_STATION);
+				break;
+				
+			case R.id.player_ban:
+				if(pandora.isPlaying()) {
+					pandora.rate(RATING_BAN);
+					toastMessage = getString(R.string.baned_song);
+					if(prefs.getBoolean("behave_nextOnBan", true)) {
+						new PlayNextTask().execute();
+					}
+				}
+				else {
+					toastMessage = getString(R.string.no_song);
+				}
+				Toast.makeText(getApplicationContext(), toastMessage, Toast.LENGTH_SHORT).show();
+				break;
+	
+			case R.id.player_love:
+				if(pandora.isPlaying()){
+					pandora.rate(RATING_LOVE);
+					toastMessage = getString(R.string.loved_song);
+				}
+				else {
+					toastMessage = getString(R.string.no_song);
+				}
+				Toast.makeText(getApplicationContext(), toastMessage, Toast.LENGTH_SHORT).show();
+				break;
+	
+			case R.id.player_pause:
+				if(pandora.isPlayable()){
+					if(pandora.isPlaying()){
+						((Button)button).setText(">");
+					}
+					else {
+						((Button)button).setText("||");
+					}
+					pandora.pause();
+				}
+				else {
+					startActivityForResult(new Intent(PandoidPlayer.this, PandoidStationSelect.class), REQUIRE_SELECT_STATION);
+				}
+				break;
 
-		case R.id.player_love:
-			pandora.rate(RATING_LOVE);
-			Toast.makeText(getApplicationContext(), getString(R.string.loved_song), Toast.LENGTH_SHORT).show();
-			break;
-
-		case R.id.player_pause:
-			pandora.pause();
-			break;
-
-		case R.id.player_next:
-			updateForNewSong(pandora.next());
-			break;
+	
+			case R.id.player_next:
+				if(pandora.isPlayable()) {
+					new PlayNextTask().execute();			
+				}
+				else {
+					startActivityForResult(new Intent(PandoidPlayer.this, PandoidStationSelect.class), REQUIRE_SELECT_STATION);
+				}
+				break;
 		}
 	}
 
@@ -163,7 +236,8 @@ public class PandoidPlayer extends Activity {
 				.putString("pandora_username", null)
 				.putString("pandora_password", null)
 				.commit();
-			startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
+			finish();
+			//startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
 			return true;
 
 		case R.id.menu_settings:
@@ -177,23 +251,27 @@ public class PandoidPlayer extends Activity {
 
 	/** Signs in the user and loads their initial data
 	 *     -> brings them toward a station               */
-	private class InitialSetupTask extends AsyncTask<Void, Void, Boolean> {
+	class InitialSetupTask extends AsyncTask<Void, Void, Boolean>{
 		@Override
 		protected void onPreExecute() {
-			waiting = ProgressDialog.show(PandoidPlayer.this, "",  getString(R.string.signing_in));
+			Log.i(SETUP_TAG,"Starting task...");
+			lockOrientation();
+			waiting = ProgressDialog.show(PandoidPlayer.this, "", getString(R.string.signing_in));
 		}
 
 		@Override
 		protected Boolean doInBackground(Void... arg) {
-			PandoraRadioService.createPandoraRadioService(getApplicationContext());
+			PandoraRadioService.createPandoraRadioService(PandoidPlayer.this);
 			pandora = PandoraRadioService.getInstance(true);
 			
 			String username = prefs.getString("pandora_username", null);
 			String password = prefs.getString("pandora_password", null);
 			
 			try {
+				Log.i(SETUP_TAG, "Attempting to sign in using prefs credentials...");
 				pandora.signIn(username, password);
 			} catch(Exception ex) {
+				Log.e(SETUP_TAG, "Failed to sign in...", ex);
 				ex.printStackTrace();
 			}
 			return pandora.isAlive();
@@ -201,26 +279,32 @@ public class PandoidPlayer extends Activity {
 
 		@Override
 		protected void onPostExecute(Boolean result) {
-
+			
+			Log.i(SETUP_TAG, "Finished signin...checking results");
+			Log.i(SETUP_TAG, "calling dismissWaiting()");
+			unlockOrientation();
 			dismissWaiting();
 
-			if(result.booleanValue()) {
-
+			if(result.booleanValue() && result) {
+				Log.i(SETUP_TAG, "Sign in success...");
 				if(!pandora.isPlaying()) {
 
 					if(pandora.isPlayable()) {
 						// play it or resume playback or something smart like that
+						Log.i(SETUP_TAG, "Calling new PlayStationTask...");
 						(new PlayStationTask()).execute();
 					}
 					else {
 						// ask them to select a station
-						startActivityForResult(new Intent(getApplicationContext(), PandoidStationSelect.class), REQUIRE_SELECT_STATION);
+						Log.i(SETUP_TAG, "Need station. Calling PandoidStationSelect.class...");
+						startActivityForResult(new Intent(PandoidPlayer.this, PandoidStationSelect.class), REQUIRE_SELECT_STATION);
 					}
 				}
 			}
 			else {
 				// failed to sign in for some reason
-				Toast.makeText(getApplicationContext(), getString(R.string.signin_failed), Toast.LENGTH_SHORT).show();
+				Log.e(SETUP_TAG, "Sign in failed...Calling PandoidLogin.class");
+				Toast.makeText(PandoidPlayer.this, getString(R.string.signin_failed), Toast.LENGTH_SHORT).show();
 				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
 			}
 		}
@@ -230,46 +314,75 @@ public class PandoidPlayer extends Activity {
 	private class PlayStationTask extends AsyncTask<Void, Void, Void> {
 		@Override
 		protected void onPreExecute() {
+			Log.i(STATION_TAG, "Starting...ataching activity");
+			lockOrientation();
 			waiting = ProgressDialog.show(PandoidPlayer.this, "",  getString(R.string.loading, pandora.getCurrentStation().getName()));
 		}
 
 		@Override
 		protected Void doInBackground(Void... arg0) {
-			pandora.setListener(OnCompletionListener.class, new OnCompletionListener() {
-				public void onCompletion(MediaPlayer mp) {
-					updateForNewSong(pandora.next());
-				}
-			});
-			pandora.setListener(OnPreparedListener.class, new OnPreparedListener() {
-				public void onPrepared(MediaPlayer mp) {
-				}
-			});
 			pandora.prepare();
-
+			
 			return null;
 		}
 
 		@Override
 		protected void onPostExecute(Void result) {
-			updateForNewSong(pandora.play());
+			Log.i(STATION_TAG, "In postExecute");
+			unlockOrientation();
+			pandora.play();
 			dismissWaiting();
 		}
+	} 
+	class PlayNextTask extends AsyncTask<Void, Void, Void>{
+		
+		@Override
+		protected void onPreExecute() {
+			lockOrientation();
+			waiting = ProgressDialog.show(PandoidPlayer.this, "",  getString(R.string.next_song));
+		}
+		@Override
+		protected Void doInBackground(Void ...voids) {
+			pandora.next();
+			return null;
+		}
+		@Override
+		protected void onPostExecute(Void result) {
+			unlockOrientation();
+			dismissWaiting();
+		}	
 	}
-
 	public static void dismissWaiting() {
 		if(waiting != null && waiting.isShowing()) {
+			Log.i(LOG_TAG, "Called dismissWaiting() with positive result.");
 			waiting.dismiss();
 		}
+	}
+	
+	public void lockOrientation() {
+		this.setRequestedOrientation(getResources().getConfiguration().orientation);
+		Log.i(LOG_TAG, "Locking orientation: " + getResources().getConfiguration().orientation );
+	}
+	public void unlockOrientation() {
+		this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+		Log.i(LOG_TAG, "Unlocking orientation: " + getResources().getConfiguration().orientation);
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-		// Another activity is taking focus (this activity is about to be "paused").
+		unregisterReceiver(receiver);
+		dismissWaiting();
 	}
 
 	@Override
 	protected void onStop() {
 		super.onStop();
+		dismissWaiting();
+	}
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		dismissWaiting();
 	}
 }

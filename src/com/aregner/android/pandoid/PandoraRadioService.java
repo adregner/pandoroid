@@ -29,16 +29,12 @@ import com.aregner.pandora.Station;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.ProgressDialog;
 import android.app.Service;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
-import android.media.MediaPlayer.OnPreparedListener;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
@@ -62,7 +58,8 @@ public class PandoraRadioService extends Service {
 	private Song[] currentPlaylist;
 	private Song[] nextPlaylist;
 	private int currentSongIndex;
-	private HashMap<Class<?>,Object> listeners = new HashMap<Class<?>,Object>();
+	
+	public static final String SONG_CHANGE = "com.aregner.android.pandoid.PanoraRadioService.SONG_CHANGE";
 
 	protected PandoraDB db;
 
@@ -149,10 +146,6 @@ public class PandoraRadioService extends Service {
 		return START_STICKY;
 	}
 	
-	public void setListener(Class<?> klass, Object listener) {
-		listeners.put(klass, listener);
-	}
-	
 	public void setNotification() {
 		Notification notification = new Notification(R.drawable.icon, "Pandoroid Radio", System.currentTimeMillis());
 		Intent notificationIntent = new Intent(this, PandoidPlayer.class);
@@ -212,22 +205,15 @@ public class PandoraRadioService extends Service {
 			return stations;
 		}
 	}
-	@SuppressWarnings("unchecked")
 	public ArrayList<Station> getStations() {
 		ArrayList<Station> stations;
 
 		stations = pandora.getStations();
 
-		(new AsyncTask<ArrayList<Station>, Void, Void>() {
-			@Override
-			protected Void doInBackground(ArrayList<Station>... params) {
-				db = new PandoraDB(getBaseContext());
-				db.syncStations(params[0]);
-				db.close();
-				return null;
-			}
-		}).execute(stations);
-
+		db = new PandoraDB(getBaseContext());
+		db.syncStations(stations);
+		db.close();
+		
 		return stations;
 	}
 	public void setCurrentStationId(long sid) {
@@ -254,8 +240,15 @@ public class PandoraRadioService extends Service {
 		currentSongIndex = i;
 		media.reset();
 		
-		media.setOnCompletionListener((OnCompletionListener)listeners.get(OnCompletionListener.class));
-		media.setOnPreparedListener((OnPreparedListener)listeners.get(OnPreparedListener.class));
+		media.setOnCompletionListener(new OnCompletionListener(){
+			@Override
+			public void onCompletion(MediaPlayer mp) {
+				next();
+			}
+		});
+	
+	//	media.setOnCompletionListener((OnCompletionListener)listeners.get(OnCompletionListener.class));
+	//	media.setOnPreparedListener((OnPreparedListener)listeners.get(OnPreparedListener.class));
 		try {
 			media.setDataSource( currentPlaylist[i].getAudioUrl() );
 		} catch (IllegalArgumentException e1) {
@@ -284,6 +277,7 @@ public class PandoraRadioService extends Service {
 	public Song play(int i) {
 		media.start();
 		setNotification();
+		songChangeEvent();
 		return currentPlaylist[i];
 	}
 	public void pause() {
@@ -332,4 +326,10 @@ public class PandoraRadioService extends Service {
 		
 		pandora.rate(currentStation, currentPlaylist[currentSongIndex], ratingBool);
 	}
+	
+	private void songChangeEvent() {
+		Intent i = new Intent();
+		i.setAction(SONG_CHANGE);
+		sendBroadcast(i);	
+	}  
 }

@@ -28,6 +28,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 
 public class PandoraDB extends SQLiteOpenHelper {
@@ -57,7 +58,8 @@ public class PandoraDB extends SQLiteOpenHelper {
 	}
 	
 	/** */
-	public void syncStations(ArrayList<Station> stations) {
+	public synchronized void syncStations(ArrayList<Station> stations) {
+		Log.i("PandoraDB", "syncstations called");
 		SQLiteDatabase write = getWritableDatabase();
 		Iterator<Station> stationIter = stations.iterator();
 		

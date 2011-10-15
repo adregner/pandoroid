@@ -3,44 +3,50 @@
     android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="fill_parent">
 
     <TextView android:layout_width="fill_parent" android:layout_height="wrap_content" 
-    android:paddingTop="20dip" android:gravity="center" android:text="Loading..." android:id="@+id/player_topText" 
+    android:paddingTop="20dip" android:textSize="8pt" android:gravity="center" android:text="Loading..." android:id="@+id/player_topText" 
     android:layout_alignParentLeft="true"></TextView>
-
-    <ImageView android:layout_height="wrap_content" android:layout_width="fill_parent" 
-    	android:src="@drawable/transparent" android:id="@+id/player_image" android:paddingTop="14dip"
-    	android:layout_below="@+id/player_topText" android:layout_alignLeft="@+id/player_topText" 
-    	android:layout_alignRight="@+id/player_topText"></ImageView>
-
+    
     <TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingTop="14dip"
-    	android:layout_below="@+id/player_image" android:layout_alignLeft="@+id/player_image" 
+    	android:layout_below="@+id/player_topText" android:layout_alignLeft="@+id/player_image" 
     	android:layout_alignRight="@+id/player_image" android:gravity="center" android:text="" 
     	android:id="@+id/player_bottomText"></TextView>
 
-    <RelativeLayout android:layout_height="80dip" android:layout_width="fill_parent" 
+    <ImageView android:layout_height="fill_parent" android:layout_width="fill_parent" 
+    	android:src="@drawable/transparent" android:id="@+id/player_image" android:paddingTop="14dip"
+    	android:layout_below="@+id/player_bottomText" android:layout_above="@+id/player_buttons"
+    	android:layout_alignLeft="@+id/player_topText" android:layout_alignRight="@+id/player_topText"></ImageView>
+
+    <RelativeLayout android:layout_height="60dip" android:layout_width="fill_parent" android:paddingTop="5px"
     	android:layout_alignParentBottom="true" android:id="@+id/player_buttons" android:gravity="center">
 
-        <Button android:text="--" android:layout_width="75dip" android:id="@+id/player_ban" 
+		<Button android:text="=" android:layout_width="60dip" android:id="@+id/station_list" 
         	android:layout_height="fill_parent" android:layout_alignParentBottom="true" 
         	android:onClick="controlButtonPressed" android:typeface="monospace" android:textStyle="bold" 
-        	android:width="75dip" android:textSize="30sp"></Button>
+        	android:width="60dip" android:textSize="20sp"></Button>
+        	
+        <Button android:text="--" android:layout_width="60dip" android:id="@+id/player_ban" 
+        	android:layout_height="fill_parent" android:layout_alignParentBottom="true" 
+        	android:layout_alignTop="@+id/station_list" android:layout_alignBottom="@+id/station_list" 
+        	android:onClick="controlButtonPressed" android:typeface="monospace" android:textStyle="bold" 
+        	android:width="60dip" android:textSize="20sp" android:layout_toRightOf="@+id/station_list"></Button>
 
-        <Button android:text="++" android:layout_width="75dip" android:id="@+id/player_love"
+        <Button android:text="++" android:layout_width="60dip" android:id="@+id/player_love"
         	android:layout_height="fill_parent" android:layout_toRightOf="@+id/player_ban"
         	android:layout_alignTop="@+id/player_ban" android:layout_alignBottom="@+id/player_ban" 
         	android:onClick="controlButtonPressed" android:typeface="monospace" android:textStyle="bold" 
-        	android:width="75dip" android:textSize="30sp"></Button>
+        	android:width="60dip" android:textSize="20sp"></Button>
 
-        <Button android:text="||" android:layout_width="75dip" android:id="@+id/player_pause"
+        <Button android:text="||" android:layout_width="60dip" android:id="@+id/player_pause"
         	android:layout_height="fill_parent" android:layout_toRightOf="@+id/player_love"
         	android:layout_alignTop="@+id/player_love" android:layout_alignBottom="@+id/player_love" 
         	android:onClick="controlButtonPressed" android:typeface="monospace" android:textStyle="bold" 
-        	android:width="75dip" android:textSize="30sp"></Button>
+        	android:width="60dip" android:textSize="20sp"></Button>
 
-        <Button android:text="&gt;&gt;" android:layout_width="75dip" android:id="@+id/player_next"
+        <Button android:text="&gt;&gt;" android:layout_width="60dip" android:id="@+id/player_next"
         	android:layout_height="fill_parent" android:layout_toRightOf="@+id/player_pause"
         	android:layout_alignTop="@+id/player_pause" android:layout_alignBottom="@+id/player_pause" 
         	android:onClick="controlButtonPressed" android:typeface="monospace" android:textStyle="bold" 
-        	android:width="75dip" android:textSize="30sp"></Button>
+        	android:width="60dip" android:textSize="20sp"></Button>
 
     </RelativeLayout>
 

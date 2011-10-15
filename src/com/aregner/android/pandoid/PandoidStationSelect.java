@@ -32,8 +32,8 @@ import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.BaseAdapter;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
@@ -48,7 +48,7 @@ public class PandoidStationSelect extends ListActivity {
 		
 		pandora = PandoraRadioService.getInstance(true);
 		ArrayList<Station> stations = pandora.getStations();
-
+		
 		ListView lv = getListView();
 		setListAdapter(new StationListAdapter(stations, this));
 		lv.setTextFilterEnabled(true);
@@ -59,6 +59,17 @@ public class PandoidStationSelect extends ListActivity {
 				finish();
 				//finishActivity(PandoidPlayer.REQUIRE_SELECT_STATION);
 			}
+		});
+		
+		lv.setOnItemLongClickListener(new OnItemLongClickListener() {
+
+			@Override
+			public boolean onItemLongClick(AdapterView<?> parent, View view,
+					int position, long id) {
+				//delete station stuff here
+				return true;
+			}
+			
 		});
 	}
 
@@ -71,7 +82,7 @@ public class PandoidStationSelect extends ListActivity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.player_menu, menu);
+		inflater.inflate(R.menu.station_select_menu, menu);
 		return true;
 	}
 
