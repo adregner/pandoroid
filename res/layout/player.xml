@@ -36,7 +36,7 @@
         	android:onClick="controlButtonPressed" android:typeface="monospace" android:textStyle="bold" 
         	android:width="60dip" android:textSize="20sp"></Button>
 
-        <Button android:text="||" android:layout_width="60dip" android:id="@+id/player_pause"
+        <Button android:text=">" android:layout_width="60dip" android:id="@+id/player_pause"
         	android:layout_height="fill_parent" android:layout_toRightOf="@+id/player_love"
         	android:layout_alignTop="@+id/player_love" android:layout_alignBottom="@+id/player_love" 
         	android:onClick="controlButtonPressed" android:typeface="monospace" android:textStyle="bold" 

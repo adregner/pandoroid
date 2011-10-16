@@ -232,6 +232,14 @@ public class PandoraRadioService extends Service {
 	public boolean isPlaying() {
 		return media.isPlaying();
 	}
+	public boolean isReadytoUpdateUI() {
+		boolean ready = false;
+		
+		if (instance != null && media != null && currentStation != null && currentPlaylist != null) {
+			ready = true;
+		}
+		return ready;
+	}
 	public void prepare() {
 		currentPlaylist = currentStation.getPlaylist( prefs.getString("pandora_audioFormat", PandoraRadio.DEFAULT_AUDIO_FORMAT) );
 		prepare(0);
@@ -331,5 +339,5 @@ public class PandoraRadioService extends Service {
 		Intent i = new Intent();
 		i.setAction(SONG_CHANGE);
 		sendBroadcast(i);	
-	}  
+	} 
 }

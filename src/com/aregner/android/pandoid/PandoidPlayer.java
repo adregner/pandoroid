@@ -28,6 +28,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -56,6 +57,7 @@ public class PandoidPlayer extends Activity {
 	private SharedPreferences prefs;
 	private boolean initialLogin = false;
 	private ImageDownloader imageDownloader = new ImageDownloader();
+	ImageView image, cache;
 		
 	private static  String LOG_TAG = "PandoidPlayer";
 	private static String SETUP_TAG = "InitialSetupTask";
@@ -67,6 +69,8 @@ public class PandoidPlayer extends Activity {
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			Log.i(LOG_TAG, "Song Change Broadcast Received");
+			//deleted cached image
+			cache = null;
 			updateForNewSong();
 		}
 	};
@@ -78,6 +82,8 @@ public class PandoidPlayer extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.player);
 		
+		//if there is a cached album cover use it.
+		cache = (ImageView) getLastNonConfigurationInstance();
 		// handle for the preferences for us to use everywhere
 		prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 		
@@ -95,6 +101,16 @@ public class PandoidPlayer extends Activity {
 				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
 			}
 		}
+	}
+	/**
+	 * Returns the current image being use for the album cover.
+	 */
+	@Override
+	public Object onRetainNonConfigurationInstance() {
+		if(image != null){
+			return image;
+		}
+		return null;
 	}
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -126,24 +142,49 @@ public class PandoidPlayer extends Activity {
 		}
 	}
 
-	protected void updateForNewSong() {
+	protected void updateForNewSong() {		
+		Log.i(LOG_TAG, "updateForNewSong() called..");
 		
-		if(pandora != null && pandora.isPlayable() && pandora.isPlaying()){ 
+		if(pandora != null && pandora.isReadytoUpdateUI()){ 
 			
-			Log.i(LOG_TAG, "updateForNewSong() called..");
+			String url;
+			TextView top, bottom;
+			Button player_pause;
+			Song song;
 			
-			Song song = pandora.getCurrentSong();
+			song = pandora.getCurrentSong();
 			
-			TextView top = (TextView) findViewById(R.id.player_topText);
-			TextView bottom = (TextView) findViewById(R.id.player_bottomText);
-			ImageView image = (ImageView) findViewById(R.id.player_image);
+			top = (TextView) findViewById(R.id.player_topText);
+			bottom = (TextView) findViewById(R.id.player_bottomText);
+			image = (ImageView) findViewById(R.id.player_image);
+			player_pause = (Button) findViewById(R.id.player_pause);
+			
+			if(pandora.isPlaying())
+				player_pause.setText("||");
+			
+			if(cache == null) {
+				url = getImageUrl(song);
+				
+				if(url == null) {
+					 url = song.getAlbumCoverUrl();
+				}
+				imageDownloader.download(url, image);
+			}
+				
+			else 
+				image.setImageDrawable(cache.getDrawable());
 			
 			top.setText(String.format("%s by %s", song.getTitle(), song.getArtist()));
-			imageDownloader.download(song.getAlbumCoverUrl(), image);
 			bottom.setText(String.format("%s", song.getAlbum()));
 		}
 	}
 
+	protected String getImageUrl(Song song) {
+		
+		AlbumArtDownloader aad = new AlbumArtDownloader(song.getArtist(), song.getAlbum(), AlbumArtDownloader.MEGA);
+		return aad.getAlbumUrl();
+		
+	}
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if(requestCode == REQUIRE_SELECT_STATION && resultCode == RESULT_OK) {
