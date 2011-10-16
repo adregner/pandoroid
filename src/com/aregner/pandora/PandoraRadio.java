@@ -45,7 +45,7 @@ public class PandoraRadio {
 	public static final long PLAYLIST_VALIDITY_TIME = 3600 * 3;
 	public static final String DEFAULT_AUDIO_FORMAT = "aacplus";
 
-	private static final Vector<Object> EMPTY_ARGS = new Vector<Object>();
+	private final Vector<Object> EMPTY_ARGS = new Vector<Object>();
 
 	private XmlRpc xmlrpc;
 	private Blowfish blowfish_encode;
