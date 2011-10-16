@@ -17,6 +17,8 @@
  */
 package com.aregner.android.pandoid;
 
+import java.util.Map;
+
 import com.aregner.android.pandoid.PandoraRadioService;
 import com.aregner.pandora.Song;
 
@@ -126,6 +128,7 @@ public class PandoidPlayer extends Activity {
 		
 		Log.i(LOG_TAG, "Registering Receiver...");
 		intentFilter.addAction(PandoraRadioService.SONG_CHANGE);	
+		intentFilter.addAction(Intent.ACTION_SCREEN_ON); //check for need of UI update if screen has been off
 		registerReceiver(receiver, intentFilter);
 		
 		if(!initialLogin){
@@ -165,7 +168,8 @@ public class PandoidPlayer extends Activity {
 			if(cache == null) {
 				url = getImageUrl(song);
 				
-				if(url == null) {
+				if(url == null ||  url.length() == 0) {
+					Log.i(LOG_TAG, "Couldn't find lastFm album artwork, reverting to pandora...");
 					 url = song.getAlbumCoverUrl();
 				}
 				Log.i(LOG_TAG,"album url = " + url);
@@ -181,9 +185,12 @@ public class PandoidPlayer extends Activity {
 	}
 
 	protected String getImageUrl(Song song) {
-		
-		AlbumArtDownloader aad = new AlbumArtDownloader(song, AlbumArtDownloader.MEGA );
-		return aad.getAlbumUrl();
+
+		String albumResPref = prefs.getString("pandora_albumArtRes", "0");
+		int preference = Integer.parseInt(albumResPref);
+		Log.i(LOG_TAG,"Using " + albumResPref + " image resolution");
+		AlbumArtDownloader aad = new AlbumArtDownloader(song);
+		return aad.getAlbumUrl(preference);
 		
 	}
 	@Override

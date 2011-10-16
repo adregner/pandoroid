@@ -24,6 +24,7 @@
     <PreferenceCategory android:title="Audio">
         <ListPreference android:key="pandora_audioFormat" android:title="Audio Format" android:summary="Audio encoding format to request from the Pandora service." android:entryValues="@array/pandora_audioFormat_values" android:entries="@array/pandora_audioFormat_text" android:defaultValue="aacplus"></ListPreference>
     </PreferenceCategory><PreferenceCategory android:title="Behavior">
+    	<ListPreference android:key="pandora_albumArtRes" android:title="Album Art Resolution" android:summary="Preferred resolution of album artwork." android:entryValues="@array/pandora_albumRes_values" android:entries="@array/pandora_albumRes_text" android:defaultValue="0"></ListPreference>
         <CheckBoxPreference android:key="behave_nextOnBan" android:summary='Skip to the next song when you "thumb down" a song.' android:title="Next track on ban" android:defaultValue="true"></CheckBoxPreference>
         <CheckBoxPreference android:key="behave_resumeOnHangup" android:summary="Resume playback automatically when a call is ended." android:title="Resume on Hangup" android:defaultValue="true"></CheckBoxPreference>
         
