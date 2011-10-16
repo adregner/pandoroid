@@ -11,6 +11,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.aregner.pandora.Song;
+
 
 public class AlbumArtDownloader {
 	
@@ -19,30 +21,49 @@ public class AlbumArtDownloader {
 	public static final String LARGE = "large";
 	public static final String MEGA = "mega";
 	
+	public static final int ALBUM_ARTIST = 1;
+	public static final int ARTIST_TITLE = 2;
+	
 	private String apiKey = "3f6527e63fa7ab4771a687ce39377cf8";
 	private String imageSize = LARGE;
-	private String artist;
-	private String album;
+	private String artist, title, album;
+	private String url;
 	
-	public AlbumArtDownloader(String artist, String album){
-		this.artist = artist;
-		this.album = album;
-		getAlbumUrl();
-	}
-	public AlbumArtDownloader(String artist, String album, String imageSize){
-		this.artist = artist;
-		this.album = album;
-		this.imageSize = imageSize;
-		getAlbumUrl();
-	}
-	
-	public String getAlbumUrl()  {
-		String imgUrl = null;
-
-		String request = "http://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key="+apiKey;
+	public AlbumArtDownloader(Song song, String imageSize){
+		artist = song.getArtist();
+		title = song.getTitle();
+		album = song.getAlbum();
 		
-        request += "&artist=" + artist.replaceAll(" ", "%20");
-        request += "&album=" + album.replaceAll(" ", "%20");
+		this.imageSize = imageSize;
+		
+		url = processRequest(ALBUM_ARTIST);
+		
+		if(url == null){
+			url = processRequest(ARTIST_TITLE);
+		}
+		
+	}
+	
+	private String processRequest(int method){
+		String imgUrl = null;
+		String methodCall, request, parameters = "";
+
+		if(method == ALBUM_ARTIST) {
+			methodCall = "album.getinfo";
+			parameters += "&album=" + album.replaceAll(" ", "%20");
+		}
+		else if(method == ARTIST_TITLE) {
+			methodCall = "track.getinfo";
+			parameters += "&track=" + album.replaceAll(" ", "%20");
+		}
+		else {
+			return null;
+		}
+		
+		parameters +="&artist=" + artist.replaceAll(" ", "%20");
+
+		request = "http://ws.audioscrobbler.com/2.0/?method=" + methodCall + "&api_key="+apiKey;
+		request += parameters;
         
         try {
         	URL url = new URL(request);
@@ -73,5 +94,9 @@ public class AlbumArtDownloader {
         }
        
 		return imgUrl;
+	}
+	
+	public  String getAlbumUrl()  {
+		return url;
 	}
 }

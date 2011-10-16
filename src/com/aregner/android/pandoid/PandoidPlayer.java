@@ -168,6 +168,7 @@ public class PandoidPlayer extends Activity {
 				if(url == null) {
 					 url = song.getAlbumCoverUrl();
 				}
+				Log.i(LOG_TAG,"album url = " + url);
 				imageDownloader.download(url, image);
 			}
 				
@@ -181,7 +182,7 @@ public class PandoidPlayer extends Activity {
 
 	protected String getImageUrl(Song song) {
 		
-		AlbumArtDownloader aad = new AlbumArtDownloader(song.getArtist(), song.getAlbum(), AlbumArtDownloader.MEGA);
+		AlbumArtDownloader aad = new AlbumArtDownloader(song, AlbumArtDownloader.MEGA );
 		return aad.getAlbumUrl();
 		
 	}
