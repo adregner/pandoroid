@@ -21,8 +21,10 @@ package com.aregner.android.pandoid;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import com.aregner.pandora.PandoraRadio;
+import com.aregner.pandora.SearchResult;
 import com.aregner.pandora.Song;
 import com.aregner.pandora.Station;
 
@@ -33,6 +35,8 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.AudioManager;
+import android.media.AudioManager.OnAudioFocusChangeListener;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.os.AsyncTask;
@@ -40,6 +44,7 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 
 public class PandoraRadioService extends Service {
 
@@ -48,8 +53,10 @@ public class PandoraRadioService extends Service {
 	// tools this service uses
 	private PandoraRadio pandora;
 	private MediaPlayer media;
+	private AudioFocusListener focusListener;
 	
 	private NotificationManager notificationManager;
+	private AudioManager audioManager;
 	private TelephonyManager telephonyManager;
 	private SharedPreferences prefs;
 	
@@ -57,13 +64,16 @@ public class PandoraRadioService extends Service {
 	private Station currentStation;
 	private Song[] currentPlaylist;
 	private Song[] nextPlaylist;
+	private List<SearchResult> searchResults;
 	private int currentSongIndex;
 	
 	public static final String SONG_CHANGE = "com.aregner.android.pandoid.PanoraRadioService.SONG_CHANGE";
 
 	protected PandoraDB db;
 
-	
+	private static final String LOG_TAG = "PandoraRadioService";
+
+		
 	// static usefullness
 	private static PandoraRadioService instance;
 	private static Object lock = new Object();
@@ -105,9 +115,12 @@ public class PandoraRadioService extends Service {
 			pandora = new PandoraRadio();
 			media = new MediaPlayer();
 			
+			audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 			notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 			telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 			prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+			
+			focusListener = new AudioFocusListener();
 
 			// Register the listener with the telephony manager
 			telephonyManager.listen(new PhoneStateListener() {
@@ -209,6 +222,10 @@ public class PandoraRadioService extends Service {
 		ArrayList<Station> stations;
 
 		stations = pandora.getStations();
+		
+		if(stations == null){
+			reauthenticate();
+		}
 
 		db = new PandoraDB(getBaseContext());
 		db.syncStations(stations);
@@ -216,6 +233,25 @@ public class PandoraRadioService extends Service {
 		
 		return stations;
 	}
+	private void reauthenticate() {
+		
+		String username = prefs.getString("pandora_username", null);
+		String password = prefs.getString("pandora_password", null);
+		
+		if(username != null && password != null){
+			Log.i(LOG_TAG , "Reauthenticating...");
+			pandora.disconnect();
+			signIn(username,password);
+		}
+		if(pandora.isAlive()){
+			Log.i(LOG_TAG, "Success!");
+		}
+		else {
+			Log.i(LOG_TAG, "Failed!");
+		}
+		
+		
+	};
 	public void setCurrentStationId(long sid) {
 		if(sid < 0) return;
 		currentStation = pandora.getStationById(sid);
@@ -268,7 +304,7 @@ public class PandoraRadioService extends Service {
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
-		}
+		} 
 		try {
 			media.prepare();
 		} catch (IllegalStateException e) {
@@ -283,17 +319,22 @@ public class PandoraRadioService extends Service {
 		return play(0);
 	}
 	public Song play(int i) {
+		audioManager.requestAudioFocus(focusListener, AudioManager.STREAM_MUSIC , AudioManager.AUDIOFOCUS_GAIN);
+		
 		media.start();
 		setNotification();
 		songChangeEvent();
+		
 		return currentPlaylist[i];
 	}
 	public void pause() {
 		if(media.isPlaying()) {
+			audioManager.abandonAudioFocus(focusListener);
 			media.pause();
 			stopForeground(true);
 		}
 		else {
+			audioManager.requestAudioFocus(focusListener, AudioManager.STREAM_MUSIC , AudioManager.AUDIOFOCUS_GAIN);
 			media.start();
 			setNotification();
 		}
@@ -334,10 +375,50 @@ public class PandoraRadioService extends Service {
 		
 		pandora.rate(currentStation, currentPlaylist[currentSongIndex], ratingBool);
 	}
-	
+	public void search(String query, String type){
+		int queryType;
+		if(type.equals("Artist")){
+			queryType = pandora.ARTIST_QUERY;
+		}
+		else{
+			queryType = pandora.TRACK_QUERY;
+		}
+		searchResults =  pandora.search(query, queryType);
+	}
+	public List<SearchResult> getSearchResults(){
+		return searchResults;
+	}
 	private void songChangeEvent() {
 		Intent i = new Intent();
 		i.setAction(SONG_CHANGE);
 		sendBroadcast(i);	
 	} 
+	private class AudioFocusListener implements OnAudioFocusChangeListener {
+
+		@Override
+		public void onAudioFocusChange(int focusChange) {
+			if(focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+				audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.ADJUST_RAISE);
+			}
+			else if(focusChange == AudioManager.AUDIOFOCUS_LOSS){
+				media.pause();
+				stopForeground(true);
+			}
+			else if(focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT){
+				media.pause();
+			}
+			else if(focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK){
+				audioManager.adjustVolume(AudioManager.ADJUST_LOWER, AudioManager.ADJUST_LOWER);
+			}
+		}
+	}
+
+	public Station createStation(String musicId) {
+		return pandora.createStation(musicId, pandora.TYPE_MUSIC_ID);	
+	}
+	public void deleteStation(Station station) {
+		String stationId = station.getStationId();
+		pandora.deleteStation(stationId);		
+	}
+
 }

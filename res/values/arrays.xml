@@ -20,5 +20,9 @@
     	<item>Normal</item>
     	<item>High</item>
     </string-array>
+    <string-array name="query_types">
+    	<item>Song</item>
+    	<item>Artist</item>
+    </string-array>
 
 </resources>

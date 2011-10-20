@@ -17,8 +17,6 @@
  */
 package com.aregner.android.pandoid;
 
-import java.util.Map;
-
 import com.aregner.android.pandoid.PandoraRadioService;
 import com.aregner.pandora.Song;
 
@@ -30,17 +28,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
-import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;

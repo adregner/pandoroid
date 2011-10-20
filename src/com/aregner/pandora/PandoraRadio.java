@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import org.xmlrpc.android.XMLRPCException;
+import android.util.Log;
 
 
 public class PandoraRadio {
@@ -44,6 +45,10 @@ public class PandoraRadio {
 
 	public static final long PLAYLIST_VALIDITY_TIME = 3600 * 3;
 	public static final String DEFAULT_AUDIO_FORMAT = "aacplus";
+	public static final String TYPE_MUSIC_ID = "mi";
+	public static final String TYPE_SHARED_STATION_ID = "sh";
+	public static final int ARTIST_QUERY = 1;
+	public static final int TRACK_QUERY = 2;
 
 	private final Vector<Object> EMPTY_ARGS = new Vector<Object>();
 
@@ -263,6 +268,23 @@ public class PandoraRadio {
 		
 		return stations;
 	}
+	public Station createStation(String musicId, String requestType){		
+		String empty = "";
+		Station station = null;
+		
+		Vector<Object> args = new Vector<Object>(2);
+		args.add(requestType + musicId);
+		args.add(empty);
+		Object result = xmlrpcCall("station.createStation", args);
+		
+		if(result instanceof HashMap){
+			station = new Station((HashMap<String, Object>)result, this);
+			stations.add(station);
+		}
+		
+		return station;
+			
+	}
 	
 	public Station getStationById(long sid) {
 		Iterator<Station> stationIter = stations.iterator();
@@ -309,8 +331,68 @@ public class PandoraRadio {
 		return authToken != null;
 	}
 
-	public class SearchResult {
-
+	public ArrayList<SearchResult> search(String query, int type) {
+		ArrayList stationList, artistList = null, songList = null, searchResults = null;
+		Object[] artists, stations, songs;
+		
+		Vector<Object> args = new Vector<Object>(1);
+		args.add(query);
+		
+		Object result = xmlrpcCall("music.search", args);
+		
+		if(result instanceof HashMap<?,?>) {
+			artists = (Object[]) (((HashMap) result).get("artists"));
+			stations = (Object[])(((HashMap) result).get("stations"));
+			songs = (Object[])( ((HashMap) result).get("songs"));
+			
+			if(artists instanceof Object[]) {
+				Object[] artistResults = (Object[]) artists;
+				artistList = new ArrayList(artists.length);
+				for(int s=0; s<artists.length; s++) {
+					artistList.add(((HashMap)artistResults[s]));
+				}
+			}
+			
+			if(stations instanceof Object[]) {
+				Object[] stationResults = (Object[]) stations;
+				stationList = new ArrayList(stations.length);
+				for(int s=0; s<stations.length; s++) {
+					stationList.add(((HashMap)stationResults[s]));
+				}
+			}
+			
+			if(songs instanceof Object[]) {
+				Object[] songsResults = (Object[]) songs;
+				songList = new ArrayList(songs.length);
+				for(int s=0; s<songs.length; s++) {
+					songList.add(((HashMap)songsResults[s]));
+				}
+			}
+		}	
+		
+		if(type == TRACK_QUERY){
+			searchResults = new ArrayList<SongResult>();
+			for(int i = 0; i < songList.size(); i++){
+				searchResults.add(new SongResult((HashMap<String, Object>)songList.get(i)));
+			}
+		}
+		else if(type == ARTIST_QUERY){
+			searchResults = new ArrayList<ArtistResult>();
+			for(int i = 0; i < artistList.size(); i++){
+				searchResults.add(new ArtistResult((HashMap<String, Object>)artistList.get(i)));
+			}
+		}
+		
+		return searchResults;
+		
+	}
+	public void deleteStation(String stationId){
+		Object[] artists, stations, songs;
+		
+		Vector<Object> args = new Vector<Object>(1);
+		args.add(stationId);
+		
+		xmlrpcCall("station.removeStation", args);
 	}
 
 
@@ -348,5 +430,4 @@ public class PandoraRadio {
 		PandoraRadio pandora = new PandoraRadio();
 		System.out.println(pandora.test());
 	}
-
 }

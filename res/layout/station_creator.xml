@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:orientation="vertical"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent">
+  	<TextView
+  		android:layout_height="wrap_content"
+  		android:layout_width="wrap_content"
+  		android:text="@string/search_text"
+  		android:textSize="12pt"
+  	/>
+  	<LinearLayout
+  		android:layout_height="wrap_content"
+  		android:layout_width="fill_parent"
+  		android:orientation="horizontal"
+  	>
+  		<EditText 
+  			android:layout_width="wrap_content" 
+  			android:id="@+id/searchQuery" 
+  			android:layout_height="wrap_content" 
+  			android:layout_weight="1"
+  		/>
+	  	<Spinner 
+	  		android:id="@+id/queryType"
+	  		android:layout_width="wrap_content"
+	  		android:layout_height="wrap_content"
+	  		android:layout_gravity="right"
+	  		android:entries="@array/query_types"
+	  	/>
+  	</LinearLayout>
+  	<Button 
+  		android:text="Search" 
+  		android:layout_width="wrap_content" 
+  		android:layout_height="wrap_content"
+  		android:onClick="onSearchQuery"
+  	/>
+</LinearLayout>

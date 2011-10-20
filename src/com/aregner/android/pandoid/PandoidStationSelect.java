@@ -22,16 +22,22 @@ import java.util.List;
 
 import com.aregner.pandora.Station;
 
+import android.app.Activity;
 import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
@@ -40,6 +46,9 @@ import android.widget.AdapterView.OnItemClickListener;
 
 public class PandoidStationSelect extends ListActivity {
 	private PandoraRadioService pandora;
+	ArrayList<Station> stations;
+	StationListAdapter adapter;
+	private static final int CREATE_STATION = 1;
 
 	/** Called when the activity is first created. */
 	@Override
@@ -47,10 +56,10 @@ public class PandoidStationSelect extends ListActivity {
 		super.onCreate(savedInstanceState);
 		
 		pandora = PandoraRadioService.getInstance(true);
-		ArrayList<Station> stations = pandora.getStations();
-		
+		stations = pandora.getStations();
 		ListView lv = getListView();
-		setListAdapter(new StationListAdapter(stations, this));
+		adapter = new StationListAdapter(stations, this);
+		setListAdapter(adapter);
 		lv.setTextFilterEnabled(true);
 		lv.setOnItemClickListener(new OnItemClickListener() {
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -60,17 +69,7 @@ public class PandoidStationSelect extends ListActivity {
 				//finishActivity(PandoidPlayer.REQUIRE_SELECT_STATION);
 			}
 		});
-		
-		lv.setOnItemLongClickListener(new OnItemLongClickListener() {
-
-			@Override
-			public boolean onItemLongClick(AdapterView<?> parent, View view,
-					int position, long id) {
-				//delete station stuff here
-				return true;
-			}
-			
-		});
+		registerForContextMenu(lv);
 	}
 
 	@Override
@@ -85,6 +84,35 @@ public class PandoidStationSelect extends ListActivity {
 		inflater.inflate(R.menu.station_select_menu, menu);
 		return true;
 	}
+	
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+
+		case R.id.create_station:			
+			startActivity(new Intent(PandoidStationSelect.this, PandoidStationCreator.class).addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT));
+			return true;
+
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
+	
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
+		super.onCreateContextMenu(menu, v, menuInfo);
+	    menu.setHeaderTitle("Delete Station");
+	    menu.add("Delete");
+	}
+	@Override
+	public boolean onContextItemSelected(MenuItem item) {
+		AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+		pandora.deleteStation(stations.get(info.position));
+		stations.remove(info.position);
+		adapter.notifyDataSetChanged();
+	  return true;
+	 
+	}
+	
 
 	private class StationListAdapter extends BaseAdapter {
 

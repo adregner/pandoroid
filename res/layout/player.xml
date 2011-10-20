@@ -3,7 +3,7 @@
     android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="fill_parent">
 
     <TextView android:layout_width="fill_parent" android:layout_height="wrap_content" 
-    android:paddingTop="20dip" android:textSize="8pt" android:gravity="center" android:text="Loading..." android:id="@+id/player_topText" 
+    android:paddingTop="20dip" android:textSize="8pt" android:gravity="center" android:text="Pandoroid" android:id="@+id/player_topText" 
     android:layout_alignParentLeft="true"></TextView>
     
     <TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingTop="14dip"
