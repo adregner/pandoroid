@@ -118,7 +118,6 @@ public class PandoraRadioService extends Service {
 			
 			
 			recentlyPlayed = new ArrayList<Song>();
-			getRecentSongsFromDB();
 			
 			audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 			notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -229,15 +228,6 @@ public class PandoraRadioService extends Service {
 			
 			return stations;
 		}
-	}
-	private void getRecentSongsFromDB(){
-		db = new PandoraDB(getBaseContext());
-		HashMap<String, Object>[] recentData = db.getRecentSongs();
-		
-		for(int s=0; s<recentData.length; s++) {
-			recentlyPlayed.add(new Song(recentData[s], pandora));
-		}
-		db.close();
 	}
 	public ArrayList<Song> getRecentSongs(){
 		return recentlyPlayed;

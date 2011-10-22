@@ -305,7 +305,7 @@ public class PandoidPlayer extends Activity {
 			return true;
 		
 		case R.id.menu_recently_played:
-			startActivityForResult(new Intent(getApplicationContext(), PandoidRecentlyPlayedList.class), PLAY_RECENT);
+			startActivity(new Intent(getApplicationContext(), PandoidRecentlyPlayedList.class));
 
 		default:
 			return super.onOptionsItemSelected(item);
