@@ -65,6 +65,7 @@ public class PandoraRadioService extends Service {
 	private Song[] currentPlaylist;
 	private Song[] nextPlaylist;
 	private List<SearchResult> searchResults;
+	private ArrayList<Song> recentlyPlayed;
 	private int currentSongIndex;
 	
 	public static final String SONG_CHANGE = "com.aregner.android.pandoid.PanoraRadioService.SONG_CHANGE";
@@ -115,12 +116,23 @@ public class PandoraRadioService extends Service {
 			pandora = new PandoraRadio();
 			media = new MediaPlayer();
 			
+			
+			recentlyPlayed = new ArrayList<Song>();
+			getRecentSongsFromDB();
+			
 			audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 			notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 			telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 			prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 			
 			focusListener = new AudioFocusListener();
+			
+			media.setOnCompletionListener(new OnCompletionListener(){
+				@Override
+				public void onCompletion(MediaPlayer mp) {
+					next();
+				}
+			});
 
 			// Register the listener with the telephony manager
 			telephonyManager.listen(new PhoneStateListener() {
@@ -161,7 +173,7 @@ public class PandoraRadioService extends Service {
 	
 	public void setNotification() {
 		Notification notification = new Notification(R.drawable.icon, "Pandoroid Radio", System.currentTimeMillis());
-		Intent notificationIntent = new Intent(this, PandoidPlayer.class);
+		Intent notificationIntent = new Intent(this, PandoidPlayer.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		PendingIntent contentIntent = PendingIntent.getActivity(this, NOTIFICATION_SONG_PLAYING, notificationIntent, 0);
 		
 		notification.flags |= Notification.FLAG_ONGOING_EVENT | Notification.FLAG_FOREGROUND_SERVICE;
@@ -218,14 +230,22 @@ public class PandoraRadioService extends Service {
 			return stations;
 		}
 	}
+	private void getRecentSongsFromDB(){
+		db = new PandoraDB(getBaseContext());
+		HashMap<String, Object>[] recentData = db.getRecentSongs();
+		
+		for(int s=0; s<recentData.length; s++) {
+			recentlyPlayed.add(new Song(recentData[s], pandora));
+		}
+		db.close();
+	}
+	public ArrayList<Song> getRecentSongs(){
+		return recentlyPlayed;
+	}
 	public ArrayList<Station> getStations() {
 		ArrayList<Station> stations;
 
 		stations = pandora.getStations();
-		
-		if(stations == null){
-			reauthenticate();
-		}
 
 		db = new PandoraDB(getBaseContext());
 		db.syncStations(stations);
@@ -233,25 +253,9 @@ public class PandoraRadioService extends Service {
 		
 		return stations;
 	}
-	private void reauthenticate() {
-		
-		String username = prefs.getString("pandora_username", null);
-		String password = prefs.getString("pandora_password", null);
-		
-		if(username != null && password != null){
-			Log.i(LOG_TAG , "Reauthenticating...");
-			pandora.disconnect();
-			signIn(username,password);
-		}
-		if(pandora.isAlive()){
-			Log.i(LOG_TAG, "Success!");
-		}
-		else {
-			Log.i(LOG_TAG, "Failed!");
-		}
-		
-		
-	};
+	public ArrayList<Song> getRecentlyPlayed(){
+		return recentlyPlayed;
+	}
 	public void setCurrentStationId(long sid) {
 		if(sid < 0) return;
 		currentStation = pandora.getStationById(sid);
@@ -271,7 +275,7 @@ public class PandoraRadioService extends Service {
 	public boolean isReadytoUpdateUI() {
 		boolean ready = false;
 		
-		if (instance != null && media != null && currentStation != null && currentPlaylist != null) {
+		if (instance != null && currentPlaylist != null) {
 			ready = true;
 		}
 		return ready;
@@ -284,12 +288,6 @@ public class PandoraRadioService extends Service {
 		currentSongIndex = i;
 		media.reset();
 		
-		media.setOnCompletionListener(new OnCompletionListener(){
-			@Override
-			public void onCompletion(MediaPlayer mp) {
-				next();
-			}
-		});
 	
 	//	media.setOnCompletionListener((OnCompletionListener)listeners.get(OnCompletionListener.class));
 	//	media.setOnPreparedListener((OnPreparedListener)listeners.get(OnPreparedListener.class));
@@ -315,6 +313,16 @@ public class PandoraRadioService extends Service {
 			e.printStackTrace();
 		}
 	}
+	public void play(Song song) {
+		if(currentPlaylist == null){
+			currentPlaylist = new Song[1];
+			currentSongIndex = 0;
+		}
+		currentPlaylist[currentSongIndex] = song;
+		
+		prepare(currentSongIndex);
+		play(currentSongIndex);
+	}
 	public Song play() {
 		return play(0);
 	}
@@ -325,7 +333,19 @@ public class PandoraRadioService extends Service {
 		setNotification();
 		songChangeEvent();
 		
+		addRecentlyPlayed(currentPlaylist[i]);
+		
 		return currentPlaylist[i];
+	}
+	private void addRecentlyPlayed(Song song) {
+		if(!recentlyPlayed.contains(song)){
+			recentlyPlayed.add(0, song);
+			
+			db = new PandoraDB(getBaseContext());
+			db.syncRecentSongs(recentlyPlayed);
+			db.close();
+		}
+			
 	}
 	public void pause() {
 		if(media.isPlaying()) {
@@ -398,17 +418,19 @@ public class PandoraRadioService extends Service {
 		@Override
 		public void onAudioFocusChange(int focusChange) {
 			if(focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-				audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.ADJUST_RAISE);
+				media.start();
+				setNotification();
 			}
 			else if(focusChange == AudioManager.AUDIOFOCUS_LOSS){
-				media.pause();
+				if(media != null && media.isPlaying()){
+					media.pause();
 				stopForeground(true);
+				}
 			}
 			else if(focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT){
 				media.pause();
 			}
 			else if(focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK){
-				audioManager.adjustVolume(AudioManager.ADJUST_LOWER, AudioManager.ADJUST_LOWER);
 			}
 		}
 	}
@@ -420,5 +442,6 @@ public class PandoraRadioService extends Service {
 		String stationId = station.getStationId();
 		pandora.deleteStation(stationId);		
 	}
+
 
 }

@@ -55,7 +55,7 @@ public class ImageDownloader {
 
     private static final int HARD_CACHE_CAPACITY = 40;
     private static final int DELAY_BEFORE_PURGE = 30 * 1000; // in milliseconds
-
+    private boolean done = false;
     // Hard cache, with a fixed maximum capacity and a life duration
     private final HashMap<String, Bitmap> sHardBitmapCache =
         new LinkedHashMap<String, Bitmap>(HARD_CACHE_CAPACITY / 2, 0.75f, true) {
@@ -91,6 +91,7 @@ public class ImageDownloader {
      * @param imageView The ImageView to bind the downloaded image to.
      */
     public void download(String url, ImageView imageView) {
+    	done = false;
         download(url, imageView, null);
     }
 
@@ -103,6 +104,7 @@ public class ImageDownloader {
      * @param cookie A cookie String that will be used by the http connection.
      */
     public void download(String url, ImageView imageView, String cookie) {
+    	done = false;
         resetPurgeTimer();
         Bitmap bitmap = getBitmapFromCache(url);
 
@@ -111,7 +113,11 @@ public class ImageDownloader {
         } else {
             cancelPotentialDownload(url, imageView);
             imageView.setImageBitmap(bitmap);
+            done = true;
         }
+    }
+    public boolean isDoneDownloading(){
+    	return done;
     }
 
     /*
@@ -137,6 +143,7 @@ public class ImageDownloader {
             BitmapDownloaderTask task = new BitmapDownloaderTask(imageView);
             DownloadedDrawable downloadedDrawable = new DownloadedDrawable(task);
             imageView.setImageDrawable(downloadedDrawable);
+           
             task.execute(url, cookie);
         }
     }
@@ -327,6 +334,7 @@ public class ImageDownloader {
                 // Change bitmap only if this process is still associated with it
                 if (this == bitmapDownloaderTask) {
                     imageView.setImageBitmap(bitmap);
+                    done = true;
                 }
             }
         }

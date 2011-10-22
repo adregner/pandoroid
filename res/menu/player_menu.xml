@@ -3,4 +3,5 @@
     <item android:id="@+id/menu_stations" android:title="Stations"></item>
     <item android:id="@+id/menu_logout" android:title="Logout"></item>
     <item android:id="@+id/menu_settings" android:title="Settings"></item>
+    <item android:id="@+id/menu_recently_played" android:title="Recently Played"></item>
 </menu>

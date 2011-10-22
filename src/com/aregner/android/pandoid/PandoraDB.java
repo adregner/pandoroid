@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import com.aregner.pandora.Song;
 import com.aregner.pandora.Station;
 
 import android.content.ContentValues;
@@ -34,6 +35,7 @@ import android.util.Log;
 public class PandoraDB extends SQLiteOpenHelper {
 
 	public static final int DATABASE_VERSION = 1;
+	public static final String RECENT_TABLE_NAME = "recentlyPlayed";
 	public static final String STATION_TABLE_NAME = "stations";
 	public static final String STATION_TABLE_CREATE =
 		"CREATE TABLE " + STATION_TABLE_NAME + " (" +
@@ -42,6 +44,14 @@ public class PandoraDB extends SQLiteOpenHelper {
 		"isCreator INTEGER, " +
 		"isQuickMix INTEGER, " +
 		"stationName TEXT);";
+	public static final String RECENT_TABLE_CREATE = 
+		"CREATE TABLE " + RECENT_TABLE_NAME + " (" + 
+		"musicId TEXT PRIMARY KEY, " +
+		"title TEXT, " +
+		"artist TEXT, " +
+		"album TEXT, " +
+		"albumUrl TEXT, " +
+		"audioUrl TEXT);";
 
 	public PandoraDB(Context context) {
 		super(context, "pandoradb", null, DATABASE_VERSION);
@@ -50,14 +60,55 @@ public class PandoraDB extends SQLiteOpenHelper {
 	@Override
 	public void onCreate(SQLiteDatabase db) {
 		db.execSQL(STATION_TABLE_CREATE);
+		db.execSQL(RECENT_TABLE_CREATE);
 	}
 
 	@Override
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-		
+		db.execSQL("DROP TABLE IF EXISTS " + RECENT_TABLE_CREATE);
+		db.execSQL("DROP TABLE IF EXISTS " + STATION_TABLE_CREATE);
 	}
 	
 	/** */
+	public synchronized void syncRecentSongs(ArrayList<Song> recentlyPlayed) {
+		Log.i("PandoraDB", "syncstations called");
+		SQLiteDatabase write = getWritableDatabase();
+		Iterator<Song> songIter = recentlyPlayed.iterator();
+		
+		while(songIter.hasNext()) {
+			Song song = songIter.next();
+			
+			ContentValues values = new ContentValues(6);
+			values.put("musicId", song.getId());
+			values.put("title", song.getTitle());
+			values.put("artist", song.getArtist());
+			values.put("album", song.getAlbum());
+			values.put("albumUrl", song.getAlbumCoverUrl());
+			values.put("audioUrl", song.getOrigAudioUrl());
+			
+			write.insertWithOnConflict(PandoraDB.RECENT_TABLE_NAME, null, values , SQLiteDatabase.CONFLICT_IGNORE);
+		}
+	}
+	public HashMap<String, Object>[] getRecentSongs(){
+		Cursor records = getReadableDatabase().query(RECENT_TABLE_NAME, null, null, null, null, null, null);
+		HashMap<String, Object>[] songs = new HashMap[records.getCount()];
+		
+		for(int s=0; s<songs.length; s++) {
+			records.moveToPosition(s);
+			
+			songs[s] = new HashMap<String, Object>();
+			
+			songs[s].put("musicId", records.getString(0));
+			songs[s].put("songTitle", records.getString(1));
+			songs[s].put("artistSummary", records.getString(2));
+			songs[s].put("albumTitle", records.getString(3));
+			songs[s].put("artRadio", records.getString(4));
+			songs[s].put("audioURL", records.getString(5));
+			
+		}
+		
+		return songs;
+	}
 	public synchronized void syncStations(ArrayList<Station> stations) {
 		Log.i("PandoraDB", "syncstations called");
 		SQLiteDatabase write = getWritableDatabase();

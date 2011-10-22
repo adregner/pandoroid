@@ -24,6 +24,7 @@ public class Song {
 	private String artist;
 	private String artistMusicId;
 	private String audioUrl;
+	private String origAudioUrl;
 	private String fileGain;
 	private String identity;
 	private String musicId;
@@ -50,7 +51,7 @@ public class Song {
 			album = (String) d.get("albumTitle");
 			artist = (String) d.get("artistSummary");
 			artistMusicId = (String) d.get("artistMusicId");
-			audioUrl = (String) d.get("audioURL"); // needs to be hacked, see below
+			origAudioUrl = (String) d.get("audioURL");
 			fileGain = (String) d.get("fileGain");
 			identity = (String) d.get("identity");
 			musicId = (String) d.get("musicId");
@@ -63,8 +64,8 @@ public class Song {
 			artRadio = (String) d.get("artRadio");
 			songType = (Integer) d.get("songType");
 
-			int aul = audioUrl.length();
-			audioUrl = audioUrl.substring(0, aul-48) + pandora.pandoraDecrypt(audioUrl.substring(aul-48));
+			int aul = origAudioUrl.length();
+			audioUrl = origAudioUrl.substring(0, aul-48) + pandora.pandoraDecrypt(origAudioUrl.substring(aul-48));
 
 			tired = false;
 			message = "";
@@ -87,6 +88,9 @@ public class Song {
 
 	public String getId() {
 		return musicId;
+	}
+	public String getOrigAudioUrl(){
+		return origAudioUrl;
 	}
 
 	public boolean isStillValid() {
@@ -141,4 +145,20 @@ public class Song {
 	public boolean isFinished() {
 		return finished;
 	}
+	 @Override
+	    public boolean equals(Object compareObj)
+	    {
+		if (this == compareObj) // Are they exactly the same instance?
+	           return true;
+	 
+		if (compareObj == null) // Is the object being compared null?
+		    return false;
+	 
+		if (!(compareObj instanceof Song)) // Is the object being compared also a Person?
+		    return false;
+	 
+		Song compareSong = (Song)compareObj; // Convert the object to a Person
+	 
+		return this.musicId.equals(compareSong.getId()); // Are they equal?
+	    }
 }

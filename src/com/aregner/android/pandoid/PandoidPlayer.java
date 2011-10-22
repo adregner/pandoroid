@@ -17,7 +17,11 @@
  */
 package com.aregner.android.pandoid;
 
+import java.util.ArrayList;
+import java.util.Map;
+
 import com.aregner.android.pandoid.PandoraRadioService;
+import com.aregner.pandora.SearchResult;
 import com.aregner.pandora.Song;
 
 import android.app.Activity;
@@ -28,14 +32,17 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -45,15 +52,18 @@ public class PandoidPlayer extends Activity {
 
 	public static final int REQUIRE_SELECT_STATION = 0x10;
 	public static final int REQUIRE_LOGIN_CREDS = 0x20;
+	public static final int GET_STATIONS_FAILED = 3;
+	public static final int PLAY_RECENT = 4;
 	public static final String RATING_BAN = "ban";
 	public static final String RATING_LOVE = "love";
 	public static final String RATING_NONE = null;
+	
 
 	private static ProgressDialog waiting;
 	private PandoraRadioService pandora;
 	private SharedPreferences prefs;
 	private boolean initialLogin = false;
-	private ImageDownloader imageDownloader = new ImageDownloader();
+	private static ImageDownloader imageDownloader = new ImageDownloader();
 	ImageView image, cache;
 		
 	private static  String LOG_TAG = "PandoidPlayer";
@@ -95,7 +105,7 @@ public class PandoidPlayer extends Activity {
 				// bring them to the login screen so they can enter what we need
 				Log.i(LOG_TAG, "Calling PandoidLogin.class");
 				initialLogin = true;
-				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
+				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class).addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP), REQUIRE_LOGIN_CREDS);
 			}
 		}
 	}
@@ -104,7 +114,7 @@ public class PandoidPlayer extends Activity {
 	 */
 	@Override
 	public Object onRetainNonConfigurationInstance() {
-		if(image != null){
+		if(image != null && imageDownloader.isDoneDownloading()){
 			return image;
 		}
 		return null;
@@ -195,14 +205,20 @@ public class PandoidPlayer extends Activity {
 			pandora.setCurrentStationId(data.getLongExtra("stationId", -1));
 			new PlayStationTask().execute();
 		}
+		else if(requestCode == REQUIRE_SELECT_STATION && resultCode == this.GET_STATIONS_FAILED ) {
+			Log.i(LOG_TAG, "Reauthentication necessary...attempting");
+			pandora.signOut();
+			pandora = null;
+			serviceSetup();
+		}
 		else if(requestCode == REQUIRE_LOGIN_CREDS && resultCode == RESULT_OK) {
 			Log.i(LOG_TAG, "PandoraLogin.class returned ok...");
 			serviceSetup();
 		}
-/**		else if(requestCode == REQUIRE_LOGIN_CREDS && resultCode != RESULT_OK ) {
+		else if(requestCode == REQUIRE_LOGIN_CREDS && resultCode != RESULT_OK ) {
 			Log.i(LOG_TAG, "PandoidLogin.class returned with bad result. finishing activity");
 			finish();
-		}*/
+		}
 	}
 
 	public void controlButtonPressed(View button) {
@@ -260,7 +276,7 @@ public class PandoidPlayer extends Activity {
 					new PlayNextTask().execute();			
 				}
 				else {
-					startActivityForResult(new Intent(PandoidPlayer.this, PandoidStationSelect.class), REQUIRE_SELECT_STATION);
+					startActivityForResult(new Intent(this, PandoidStationSelect.class), REQUIRE_SELECT_STATION);
 				}
 				break;
 		}
@@ -287,6 +303,9 @@ public class PandoidPlayer extends Activity {
 		case R.id.menu_settings:
 			startActivity(new Intent(getApplicationContext(), PandoidSettings.class));
 			return true;
+		
+		case R.id.menu_recently_played:
+			startActivityForResult(new Intent(getApplicationContext(), PandoidRecentlyPlayedList.class), PLAY_RECENT);
 
 		default:
 			return super.onOptionsItemSelected(item);
@@ -349,8 +368,11 @@ public class PandoidPlayer extends Activity {
 				// failed to sign in for some reason
 				Log.e(SETUP_TAG, "Sign in failed...Calling PandoidLogin.class");
 				Toast.makeText(PandoidPlayer.this, getString(R.string.signin_failed), Toast.LENGTH_SHORT).show();
-				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
+				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class).addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP), REQUIRE_LOGIN_CREDS);
 			}
+			
+	//		ArrayList<SearchResult> searchResults = pandora.search("Switchfoot");
+	//		Log.i(LOG_TAG, "Got results");
 		}
 	}
 

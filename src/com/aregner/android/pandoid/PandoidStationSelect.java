@@ -49,6 +49,7 @@ public class PandoidStationSelect extends ListActivity {
 	ArrayList<Station> stations;
 	StationListAdapter adapter;
 	private static final int CREATE_STATION = 1;
+	private static final int GET_STATIONS_FAILED = 3;
 
 	/** Called when the activity is first created. */
 	@Override
@@ -56,21 +57,29 @@ public class PandoidStationSelect extends ListActivity {
 		super.onCreate(savedInstanceState);
 		
 		pandora = PandoraRadioService.getInstance(true);
-		stations = pandora.getStations();
-		ListView lv = getListView();
-		adapter = new StationListAdapter(stations, this);
-		setListAdapter(adapter);
-		lv.setTextFilterEnabled(true);
-		lv.setOnItemClickListener(new OnItemClickListener() {
-			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-				//Station station = PandoraRadioService.getInstance().getStations().get(position);
-				setResult(RESULT_OK, (new Intent()).putExtra("stationId", id));
-				finish();
-				//finishActivity(PandoidPlayer.REQUIRE_SELECT_STATION);
-			}
-		});
-		registerForContextMenu(lv);
+		
+		try{
+			stations = pandora.getStations();
+			ListView lv = getListView();
+			adapter = new StationListAdapter(stations, this);
+			setListAdapter(adapter);
+			lv.setTextFilterEnabled(true);
+			lv.setOnItemClickListener(new OnItemClickListener() {
+				public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+					//Station station = PandoraRadioService.getInstance().getStations().get(position);
+					setResult(RESULT_OK, (new Intent()).putExtra("stationId", id));
+					finish();
+					//finishActivity(PandoidPlayer.REQUIRE_SELECT_STATION);
+				}
+			});
+			registerForContextMenu(lv);
+		}
+		catch(NullPointerException e){
+			setResult(GET_STATIONS_FAILED);
+			finish();
+		}
 	}
+
 
 	@Override
 	protected void onResume() {
