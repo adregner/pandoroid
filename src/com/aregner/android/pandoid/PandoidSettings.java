@@ -17,6 +17,7 @@
  */
 package com.aregner.android.pandoid;
 
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 
@@ -25,6 +26,7 @@ public class PandoidSettings extends PreferenceActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
         
         // Load the preferences from an XML resource
         addPreferencesFromResource(R.xml.preferences);

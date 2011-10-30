@@ -1,7 +1,5 @@
 package com.aregner.android.pandoid;
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,7 +36,6 @@ public class AlbumArtDownloader {
 	
 	private String apiKey = "3f6527e63fa7ab4771a687ce39377cf8";
 	private String artist, title, album;
-	private String url;
 	
 	private Map<String, String> urls = new HashMap<String, String>();
 	
@@ -101,7 +98,7 @@ public class AlbumArtDownloader {
                 	if(imgUrl.trim().length() > 0) {
                 		//get rid of urls that the app passes when there is no artwork available: noimage
                 		//and if you get repeated bad requests: /serve/174s
-                		if(!imgUrl.contains("noimage") && !imgUrl.contains("/serve/174s")) {
+                		if(!imgUrl.contains("noimage")) {
                 			urls.put(imageSize, imgUrl);
                 		}
                 	}

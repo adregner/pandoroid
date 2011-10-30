@@ -1,6 +1,5 @@
 package com.aregner.android.pandoid;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.aregner.pandora.SearchResult;
@@ -8,17 +7,13 @@ import com.aregner.pandora.SearchResult;
 import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.Bundle;
-import android.view.ContextMenu;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ContextMenu.ContextMenuInfo;
 import android.widget.AdapterView;
-import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
-import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -31,7 +26,7 @@ public class PandoidSearchResultList extends ListActivity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+		this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
 		pandora = PandoraRadioService.getInstance(true);
 		final List<SearchResult> results = pandora.getSearchResults();
 		ListView lv = getListView();

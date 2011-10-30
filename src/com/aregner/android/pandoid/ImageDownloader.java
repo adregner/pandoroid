@@ -57,7 +57,8 @@ public class ImageDownloader {
     private static final int DELAY_BEFORE_PURGE = 30 * 1000; // in milliseconds
     private boolean done = false;
     // Hard cache, with a fixed maximum capacity and a life duration
-    private final HashMap<String, Bitmap> sHardBitmapCache =
+    @SuppressWarnings("serial")
+	private final HashMap<String, Bitmap> sHardBitmapCache =
         new LinkedHashMap<String, Bitmap>(HARD_CACHE_CAPACITY / 2, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(LinkedHashMap.Entry<String, Bitmap> eldest) {
@@ -114,6 +115,8 @@ public class ImageDownloader {
             cancelPotentialDownload(url, imageView);
             imageView.setImageBitmap(bitmap);
             done = true;
+            PandoidPlayer.imageDownloadFinished();
+            
         }
     }
     public boolean isDoneDownloading(){
@@ -136,6 +139,7 @@ public class ImageDownloader {
         // State sanity: url is guaranteed to never be null in DownloadedDrawable and cache keys.
         if (url == null) {
             imageView.setImageDrawable(null);
+            done = true;
             return;
         }
 
@@ -335,6 +339,7 @@ public class ImageDownloader {
                 if (this == bitmapDownloaderTask) {
                     imageView.setImageBitmap(bitmap);
                     done = true;
+                    PandoidPlayer.imageDownloadFinished();
                 }
             }
         }

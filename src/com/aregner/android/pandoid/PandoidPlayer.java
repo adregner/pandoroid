@@ -17,11 +17,7 @@
  */
 package com.aregner.android.pandoid;
 
-import java.util.ArrayList;
-import java.util.Map;
-
 import com.aregner.android.pandoid.PandoraRadioService;
-import com.aregner.pandora.SearchResult;
 import com.aregner.pandora.Song;
 
 import android.app.Activity;
@@ -32,19 +28,19 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
-import android.graphics.drawable.Drawable;
+import android.media.AudioManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.Display;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -54,47 +50,84 @@ public class PandoidPlayer extends Activity {
 	public static final int REQUIRE_LOGIN_CREDS = 0x20;
 	public static final int GET_STATIONS_FAILED = 3;
 	public static final int PLAY_RECENT = 4;
+	public static final int SEARCH_ACTIVITY = 5;
 	public static final String RATING_BAN = "ban";
 	public static final String RATING_LOVE = "love";
-	public static final String RATING_NONE = null;
+	public static final String RATING_NONE = null;	
 	
-
+	private static ImageDownloader imageDownloader = new ImageDownloader();	
+	private static PandoraRadioService pandora;
+	private static ProgressBar progress;
 	private static ProgressDialog waiting;
-	private PandoraRadioService pandora;
-	private SharedPreferences prefs;
+	private static Button playButton;
+	
 	private boolean initialLogin = false;
-	private static ImageDownloader imageDownloader = new ImageDownloader();
-	ImageView image, cache;
-		
-	private static  String LOG_TAG = "PandoidPlayer";
+	private String lastPlayedSong = "";
+	private IntentFilter intentFilter;
+	private SharedPreferences prefs;
+	private ImageView image, cache;
+	
+	private static String LOG_TAG = "PandoidPlayer";
 	private static String SETUP_TAG = "InitialSetupTask";
 	private static String STATION_TAG = "PlayStationTask";
-	
-	IntentFilter intentFilter = new IntentFilter();
-	private BroadcastReceiver receiver = new BroadcastReceiver() {
 
+	private BroadcastReceiver receiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			Log.i(LOG_TAG, "Song Change Broadcast Received");
-			//deleted cached image
+			
 			cache = null;
 			updateForNewSong();
 		}
 	};
+	
+	
+	public static void imageDownloadFinished() {
+		if(progress != null){
+			progress.setVisibility(View.INVISIBLE);
+		}
+	}
+	
+	public static void dismissWaiting() {
+		if(waiting != null && waiting.isShowing()) {
+			Log.i(LOG_TAG, "Called dismissWaiting() with positive result.");
+			waiting.dismiss();
+		}
+	}
+	
+	public static void togglePlayButton(){
+		playButton.post(new Runnable() {
+			@Override
+			public void run() {
+				if(playButton != null){
+					if(pandora.isPlaying()){
+						playButton.setText("||");
+					}
+					else{
+						playButton.setText(">");
+					}
+				}
+			}
+		});
+	}
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		Log.i(LOG_TAG, "Activity Created");
-		super.onCreate(savedInstanceState);
+		super.onCreate(savedInstanceState);		
 		setContentView(R.layout.player);
 		
+		this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
+		
+		//initializations
 		//if there is a cached album cover use it.
 		cache = (ImageView) getLastNonConfigurationInstance();
-		// handle for the preferences for us to use everywhere
+		playButton = (Button) findViewById(R.id.player_pause);
 		prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-		
+		progress = (ProgressBar)findViewById(R.id.progress);
 		pandora = PandoraRadioService.getInstance(false);
+		
 		if(pandora == null) {
 			Log.i(LOG_TAG, "Service is null. Getting credentials from prefs");
 			// look for what we need to continue with pandora auth
@@ -131,16 +164,17 @@ public class PandoidPlayer extends Activity {
 		super.onResume();
 		Log.i(LOG_TAG, "Resuming Activity...");
 		
-		Log.i(LOG_TAG, "Registering Receiver...");
-		intentFilter.addAction(PandoraRadioService.SONG_CHANGE);	
-		intentFilter.addAction(Intent.ACTION_SCREEN_ON); //check for need of UI update if screen has been off
-		registerReceiver(receiver, intentFilter);
-		
 		if(!initialLogin){
 			serviceSetup();
 		}
+		updateForNewSong();		
 		
-		updateForNewSong();
+		//register the receiver for song changes
+		Log.i(LOG_TAG, "Registering Receiver...");
+		intentFilter = new IntentFilter();
+		intentFilter.addAction(PandoraRadioService.SONG_CHANGE);	
+		intentFilter.addAction(Intent.ACTION_SCREEN_ON); //check for need of UI update if screen has been off
+		registerReceiver(receiver, intentFilter);
 	}
 	
 	private void serviceSetup() {
@@ -149,76 +183,59 @@ public class PandoidPlayer extends Activity {
 			new InitialSetupTask().execute();
 		}
 	}
-
+	
 	protected void updateForNewSong() {		
 		Log.i(LOG_TAG, "updateForNewSong() called..");
-		
 		if(pandora != null && pandora.isReadytoUpdateUI()){ 
 			
-			String url;
-			TextView top, bottom;
-			Button player_pause;
+			TextView top, bottom, middle;
 			Song song;
 			
 			song = pandora.getCurrentSong();
 			
 			top = (TextView) findViewById(R.id.player_topText);
 			bottom = (TextView) findViewById(R.id.player_bottomText);
+			middle = (TextView)findViewById(R.id.player_middleText);
 			image = (ImageView) findViewById(R.id.player_image);
-			player_pause = (Button) findViewById(R.id.player_pause);
 			
-			if(pandora.isPlaying())
-				player_pause.setText("||");
+			togglePlayButton();
 			
 			if(cache == null) {
-				url = getImageUrl(song);
-				
-				if(url == null ||  url.length() == 0) {
-					Log.i(LOG_TAG, "Couldn't find lastFm album artwork, reverting to pandora...");
-					 url = song.getAlbumCoverUrl();
-				}
-				Log.i(LOG_TAG,"album url = " + url);
-				imageDownloader.download(url, image);
-			}
-				
+				new GetAlbumArtUrlTask().execute(song);
+			}	
 			else 
 				image.setImageDrawable(cache.getDrawable());
 			
-			top.setText(String.format("%s by %s", song.getTitle(), song.getArtist()));
+			top.setText(String.format("%s", song.getTitle()));
+			middle.setText(String.format("%s", song.getArtist()));
 			bottom.setText(String.format("%s", song.getAlbum()));
+			
 		}
 	}
-
-	protected String getImageUrl(Song song) {
-
-		String albumResPref = prefs.getString("pandora_albumArtRes", "0");
-		int preference = Integer.parseInt(albumResPref);
-		Log.i(LOG_TAG,"Using " + albumResPref + " image resolution");
-		AlbumArtDownloader aad = new AlbumArtDownloader(song);
-		return aad.getAlbumUrl(preference);
-		
-	}
+	
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		
 		if(requestCode == REQUIRE_SELECT_STATION && resultCode == RESULT_OK) {
 			Log.i(LOG_TAG, "PandoraStationSelect returned with result_ok");
 			pandora.setCurrentStationId(data.getLongExtra("stationId", -1));
 			new PlayStationTask().execute();
 		}
-		else if(requestCode == REQUIRE_SELECT_STATION && resultCode == this.GET_STATIONS_FAILED ) {
+		else if(requestCode == REQUIRE_SELECT_STATION && resultCode == GET_STATIONS_FAILED ) {
 			Log.i(LOG_TAG, "Reauthentication necessary...attempting");
-			pandora.signOut();
-			pandora = null;
-			serviceSetup();
+			reauthenticate();
 		}
 		else if(requestCode == REQUIRE_LOGIN_CREDS && resultCode == RESULT_OK) {
 			Log.i(LOG_TAG, "PandoraLogin.class returned ok...");
 			serviceSetup();
 		}
-		else if(requestCode == REQUIRE_LOGIN_CREDS && resultCode != RESULT_OK ) {
-			Log.i(LOG_TAG, "PandoidLogin.class returned with bad result. finishing activity");
-			finish();
-		}
+	}
+	
+	protected void reauthenticate() {
+		pandora.signOut();
+		pandora = null;
+		initialLogin = true;
+		serviceSetup();
 	}
 
 	public void controlButtonPressed(View button) {
@@ -232,15 +249,19 @@ public class PandoidPlayer extends Activity {
 				
 			case R.id.player_ban:
 				if(pandora.isPlaying()) {
+					
 					pandora.rate(RATING_BAN);
 					toastMessage = getString(R.string.baned_song);
+					
 					if(prefs.getBoolean("behave_nextOnBan", true)) {
 						new PlayNextTask().execute();
 					}
 				}
+				
 				else {
 					toastMessage = getString(R.string.no_song);
 				}
+				
 				Toast.makeText(getApplicationContext(), toastMessage, Toast.LENGTH_SHORT).show();
 				break;
 	
@@ -257,12 +278,6 @@ public class PandoidPlayer extends Activity {
 	
 			case R.id.player_pause:
 				if(pandora.isPlayable()){
-					if(pandora.isPlaying()){
-						((Button)button).setText(">");
-					}
-					else {
-						((Button)button).setText("||");
-					}
 					pandora.pause();
 				}
 				else {
@@ -297,7 +312,6 @@ public class PandoidPlayer extends Activity {
 				.putString("pandora_password", null)
 				.commit();
 			finish();
-			//startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
 			return true;
 
 		case R.id.menu_settings:
@@ -370,10 +384,15 @@ public class PandoidPlayer extends Activity {
 				Toast.makeText(PandoidPlayer.this, getString(R.string.signin_failed), Toast.LENGTH_SHORT).show();
 				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class).addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP), REQUIRE_LOGIN_CREDS);
 			}
-			
-	//		ArrayList<SearchResult> searchResults = pandora.search("Switchfoot");
-	//		Log.i(LOG_TAG, "Got results");
 		}
+	}
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+	    if ((keyCode == KeyEvent.KEYCODE_SEARCH)) {
+	        Log.d(this.getClass().getName(), "Search Key pressed");
+	        startActivityForResult(new Intent(getApplicationContext(), PandoidSearchActivity.class), REQUIRE_SELECT_STATION);
+	    }
+	    return super.onKeyDown(keyCode, event);
 	}
 
 	/** Prepares a selected station to be played */
@@ -418,10 +437,43 @@ public class PandoidPlayer extends Activity {
 			dismissWaiting();
 		}	
 	}
-	public static void dismissWaiting() {
-		if(waiting != null && waiting.isShowing()) {
-			Log.i(LOG_TAG, "Called dismissWaiting() with positive result.");
-			waiting.dismiss();
+	class GetAlbumArtUrlTask extends AsyncTask<Song, Void, String> {
+		
+		@Override
+		protected void onPreExecute(){
+			image.setImageBitmap(null);
+			progress = (ProgressBar) findViewById(R.id.progress);
+			if(progress != null){
+				progress.setVisibility(View.VISIBLE);
+			}
+		}
+		@Override
+		protected String doInBackground(Song... params) {
+			
+			String url;
+			Song song = params[0];
+			
+			String albumResPref = prefs.getString("pandora_albumArtRes", "0");
+			int preference = Integer.parseInt(albumResPref);
+			
+			AlbumArtDownloader aad = new AlbumArtDownloader(song);
+			url = aad.getAlbumUrl(preference);
+			
+			if(url == null ||  url.length() == 0) {
+				Log.i(LOG_TAG, "Couldn't find lastFm album artwork, reverting to pandora...");
+				 url = song.getAlbumCoverUrl();
+			}
+			Log.i(LOG_TAG,"album url = " + url);
+					
+			return url;
+		}
+		@Override
+		protected void onPostExecute(String url){
+			if(url != null){
+				
+				ImageView image = (ImageView)findViewById(R.id.player_image);
+				imageDownloader.download(url, image);
+			}
 		}
 	}
 	
@@ -437,18 +489,8 @@ public class PandoidPlayer extends Activity {
 	@Override
 	protected void onPause() {
 		super.onPause();
+		
 		unregisterReceiver(receiver);
-		dismissWaiting();
-	}
-
-	@Override
-	protected void onStop() {
-		super.onStop();
-		dismissWaiting();
-	}
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
 		dismissWaiting();
 	}
 }

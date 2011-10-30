@@ -4,11 +4,15 @@ import java.util.List;
 
 import com.aregner.pandora.Song;
 
+import android.app.Activity;
 import android.app.ListActivity;
+//import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -28,9 +32,13 @@ import android.widget.AdapterView.OnItemClickListener;
 
 public class PandoidRecentlyPlayedList extends ListActivity{
 	public static final String LOG_TAG = "PandoidRecentlyPlayedList";
-	private PandoraRadioService pandora;
+	private static PandoraRadioService pandora;
 	RecentListAdapter adapter;
 	List<Song> results;
+	
+	private static PlaySongTask playSongTask;	
+//	private static ProgressDialog waiting;
+	private static boolean loading = false;
 	
 	IntentFilter filter = new IntentFilter();
 	private BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -47,6 +55,8 @@ public class PandoidRecentlyPlayedList extends ListActivity{
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
+		this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
+		
 		pandora = PandoraRadioService.getInstance(true);
 		results = pandora.getRecentlyPlayed();
 		adapter = new RecentListAdapter(results, this);
@@ -62,6 +72,26 @@ public class PandoidRecentlyPlayedList extends ListActivity{
 			}
 		});
 		
+		if(loading){
+			playSongTask = (PlaySongTask) getLastNonConfigurationInstance();
+			playSongTask.attach(this);
+		}
+		
+	}
+	@Override
+	public Object onRetainNonConfigurationInstance(){
+		if(playSongTask != null)
+			playSongTask.detach();
+		
+		return playSongTask;
+	}
+	@Override
+	public void onSaveInstanceState(Bundle outState){
+		outState.putBoolean("loading", loading);
+	}
+	@Override
+	public void onRestoreInstanceState(Bundle savedInstanceState){
+		loading = savedInstanceState.getBoolean("loading");
 	}
 	
 	@Override
@@ -92,8 +122,8 @@ public class PandoidRecentlyPlayedList extends ListActivity{
 	@Override
 	public boolean onContextItemSelected(MenuItem item) {
 		AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+		playSongTask = (PlaySongTask) new PlaySongTask(this).execute(results.get(info.position));
 		
-		pandora.play(results.get(info.position));
 		return true;
 	}
 	
@@ -142,8 +172,41 @@ public class PandoidRecentlyPlayedList extends ListActivity{
 			
 			return itemLayout;
 		}
-	
 	}
+	
+	static class PlaySongTask extends AsyncTask<Song, Void, Void> {
+		
+		private Activity activity;
+		
+		public PlaySongTask(Activity activity){
+			this.activity = activity;
+		}
+		@Override
+		protected void onPreExecute() {
+			loading = true;
+		//	waiting = ProgressDialog.show(activity, "", activity.getString(R.string.searching));
+		}
+		@Override
+		protected Void doInBackground(Song... query) {
+			pandora.play(query[0]);
+			return null;
+		}
+		@Override
+		protected void onPostExecute(Void result) {
+			if(activity != null){
+			//    `	waiting.dismiss();
+			}
+			loading = false;
+		}
+		public void detach(){
+			this.activity = null;
+		}
+		public void attach(Activity activity){
+			this.activity = activity;
+			
+	//		waiting = ProgressDialog.show(activity, "", activity.getString(R.string.searching));		
+		}
+	}	
 
 }
 

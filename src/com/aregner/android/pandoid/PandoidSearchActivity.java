@@ -1,23 +1,18 @@
 package com.aregner.android.pandoid;
 
-import java.util.List;
-
-import com.aregner.pandora.PandoraRadio;
-import com.aregner.pandora.SearchResult;
 import com.aregner.pandora.Station;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 
-public class PandoidStationCreator extends Activity {
+public class PandoidSearchActivity extends Activity {
 	
 	private static final int SEARCH_RESULT = 0x01;
 	private static PandoraRadioService pandora;
@@ -32,6 +27,7 @@ public class PandoidStationCreator extends Activity {
 	public void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.station_creator);
+		this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
 		
 		pandora = PandoraRadioService.getInstance(false);
 		searchQuery = (EditText)findViewById(R.id.searchQuery);
@@ -108,14 +104,23 @@ public class PandoidStationCreator extends Activity {
 		protected Void doInBackground(String... query) {
 			Spinner spin = (Spinner)(activity.findViewById(R.id.queryType));
 			String text = spin.getSelectedItem().toString();
-			pandora.search(query[0], text);
+			try{
+				pandora.search(query[0], text);
+				if(activity != null){
+					activity.startActivityForResult(new Intent(activity, PandoidSearchResultList.class), SEARCH_RESULT);
+				}
+				searching = false;
+			}
+			catch(NullPointerException e){
+				activity.setResult(PandoidPlayer.GET_STATIONS_FAILED);
+				activity.finish();
+			}
 			return null;
 		}
 		@Override
 		protected void onPostExecute(Void result) {
 			if(activity != null){
 				waiting.dismiss();
-				activity.startActivityForResult(new Intent(activity, PandoidSearchResultList.class), SEARCH_RESULT);
 			}
 			searching = false;
 		}

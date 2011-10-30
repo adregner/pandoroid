@@ -18,6 +18,7 @@
 package com.aregner.android.pandoid;
 
 import android.app.Activity;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.Menu;
@@ -34,6 +35,8 @@ public class PandoidLogin extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.login);
+		
+		this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
 		((Button)findViewById(R.id.login_button)).setOnClickListener(new OnClickListener() {
 			public void onClick(View viewParam) {
@@ -50,8 +53,6 @@ public class PandoidLogin extends Activity {
 					if(success) {
 						setResult(RESULT_OK);
 						finish();
-						//finishActivityFromChild(child, PandoidPlayer.REQUIRE_LOGIN_CREDS);
-						//finishActivity(PandoidPlayer.REQUIRE_LOGIN_CREDS);
 					}
 				}
 			}

@@ -88,7 +88,7 @@ public class PandoraDB extends SQLiteOpenHelper {
 			
 			write.insertWithOnConflict(PandoraDB.RECENT_TABLE_NAME, null, values , SQLiteDatabase.CONFLICT_IGNORE);
 		}
-	}
+	} /**
 	public HashMap<String, Object>[] getRecentSongs(){
 		Cursor records = getReadableDatabase().query(RECENT_TABLE_NAME, null, null, null, null, null, null);
 		HashMap<String, Object>[] songs = new HashMap[records.getCount()];
@@ -108,7 +108,7 @@ public class PandoraDB extends SQLiteOpenHelper {
 		}
 		
 		return songs;
-	}
+	} */
 	public synchronized void syncStations(ArrayList<Station> stations) {
 		Log.i("PandoraDB", "syncstations called");
 		SQLiteDatabase write = getWritableDatabase();

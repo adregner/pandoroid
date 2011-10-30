@@ -22,12 +22,11 @@ import java.util.List;
 
 import com.aregner.pandora.Station;
 
-import android.app.Activity;
 import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.LayoutInflater;
@@ -38,7 +37,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
-import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -48,13 +46,13 @@ public class PandoidStationSelect extends ListActivity {
 	private PandoraRadioService pandora;
 	ArrayList<Station> stations;
 	StationListAdapter adapter;
-	private static final int CREATE_STATION = 1;
 	private static final int GET_STATIONS_FAILED = 3;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
 		
 		pandora = PandoraRadioService.getInstance(true);
 		
@@ -98,7 +96,7 @@ public class PandoidStationSelect extends ListActivity {
 		switch (item.getItemId()) {
 
 		case R.id.create_station:			
-			startActivity(new Intent(PandoidStationSelect.this, PandoidStationCreator.class).addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT));
+			startActivity(new Intent(PandoidStationSelect.this, PandoidSearchActivity.class).addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT));
 			return true;
 
 		default:

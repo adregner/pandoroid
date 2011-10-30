@@ -26,7 +26,6 @@ package com.aregner.pandora;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +33,8 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import org.xmlrpc.android.XMLRPCException;
+import org.xmlrpc.android.XMLRPCFault;
+
 import android.util.Log;
 
 
@@ -210,8 +211,10 @@ public class PandoraRadio {
 		Object result = null;
 		try {
 			result = xmlrpc.callWithBody(url.toString(), data);
+		} catch (XMLRPCFault e) {			
+			e = (XMLRPCFault)e;
+			Log.e("PandoraRadio", "faultcode: + " + e.getFaultCode() + " faultString:" + e.getFaultString());
 		} catch (XMLRPCException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
