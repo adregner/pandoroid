@@ -15,7 +15,7 @@
             </intent-filter>
         </activity>
         <activity android:name="PandoidStationSelect" android:noHistory="true"></activity>
-        <activity android:name="PandoidStationCreator"></activity>
+        <activity android:name="PandoidSearchActivity"></activity>
         <activity android:name="PandoidSearchResultList"></activity>
         <activity android:name="PandoidRecentlyPlayedList"></activity>
         <activity android:name="PandoidSettings" android:noHistory="true"></activity>
