@@ -38,10 +38,17 @@ import org.xmlrpc.android.XMLRPCException;
 
 public class PandoraRadio {
 
-	public static final String PROTOCOL_VERSION = "32";
-	private static final String RPC_URL = "http://www.pandora.com/radio/xmlrpc/v"+PROTOCOL_VERSION+"?";
+	/*public static final String PROTOCOL_VERSION = "32";	
+	private static final String RPC_URL = "http://www.pandora.com/radio/xmlrpc/v"+PROTOCOL_VERSION+"?";*/
 	private static final String USER_AGENT = "com.aregner.pandora/0.1";
-
+	
+	//JSON API stuff
+	public static final String PROTOCOL_VERSION = "5";
+	private static final String RPC_URL = "http://tuner.pandora.com/servics/json/?";
+	private static final String DEVICE_MODEL = "android-generic";
+	private static final String PARTNER_USERNAME = "android";
+	private static final String PARTNER_PASSWORD = "AC7IBG09A3DTSYM4R41UJWL07VLN8JI7";
+	
 	public static final long PLAYLIST_VALIDITY_TIME = 3600 * 3;
 	public static final String DEFAULT_AUDIO_FORMAT = "aacplus";
 
