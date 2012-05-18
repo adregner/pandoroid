@@ -15,13 +15,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.aregner.android.pandoid;
+package com.aregner.android.pandoroid;
 
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import com.aregner.android.pandoid.R;
 import com.aregner.pandora.PandoraRadio;
 import com.aregner.pandora.Song;
 import com.aregner.pandora.Station;
@@ -155,7 +156,7 @@ public class PandoraRadioService extends Service {
 	
 	public void setNotification() {
 		Notification notification = new Notification(R.drawable.icon, "Pandoroid Radio", System.currentTimeMillis());
-		Intent notificationIntent = new Intent(this, PandoidPlayer.class);
+		Intent notificationIntent = new Intent(this, PandoroidPlayer.class);
 		PendingIntent contentIntent = PendingIntent.getActivity(this, NOTIFICATION_SONG_PLAYING, notificationIntent, 0);
 		
 		notification.flags |= Notification.FLAG_ONGOING_EVENT | Notification.FLAG_FOREGROUND_SERVICE;
@@ -323,12 +324,12 @@ public class PandoraRadioService extends Service {
 		}
 	}
 	public void rate(String rating) {
-		if(rating == PandoidPlayer.RATING_NONE) {
+		if(rating == PandoroidPlayer.RATING_NONE) {
 			// cannot set rating to none
 			return;
 		}
 		
-		boolean ratingBool = rating.equals(PandoidPlayer.RATING_LOVE) ? true : false;
+		boolean ratingBool = rating.equals(PandoroidPlayer.RATING_LOVE) ? true : false;
 		
 		pandora.rate(currentStation, currentPlaylist[currentSongIndex], ratingBool);
 	}

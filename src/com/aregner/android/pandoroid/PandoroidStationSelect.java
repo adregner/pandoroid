@@ -15,11 +15,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.aregner.android.pandoid;
+package com.aregner.android.pandoroid;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import com.aregner.android.pandoid.R;
 import com.aregner.pandora.Station;
 
 import android.app.ListActivity;
@@ -38,7 +39,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 
-public class PandoidStationSelect extends ListActivity {
+public class PandoroidStationSelect extends ListActivity {
 	private PandoraRadioService pandora;
 
 	/** Called when the activity is first created. */
@@ -65,7 +66,7 @@ public class PandoidStationSelect extends ListActivity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-		PandoidPlayer.dismissWaiting();
+		PandoroidPlayer.dismissWaiting();
 	}
 
 	@Override

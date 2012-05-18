@@ -15,12 +15,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.aregner.android.pandoid;
+package com.aregner.android.pandoroid;
+
+import com.aregner.android.pandoid.R;
 
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 
-public class PandoidSettings extends PreferenceActivity {
+public class PandoroidSettings extends PreferenceActivity {
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {

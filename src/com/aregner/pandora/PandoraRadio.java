@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import org.xmlrpc.android.XMLRPCException;
+import org.json.*;
 
 
 public class PandoraRadio {
@@ -66,8 +67,8 @@ public class PandoraRadio {
 		xmlrpc = new XmlRpc(RPC_URL);
 		xmlrpc.addHeader("User-agent", USER_AGENT);
 
-		blowfish_encode = new Blowfish(PandoraKeys.out_key_p, PandoraKeys.out_key_s);
-		blowfish_decode = new Blowfish(PandoraKeys.in_key_p, PandoraKeys.in_key_s);
+		//blowfish_encode = new Blowfish(PandoraKeys.out_key_p, PandoraKeys.out_key_s);
+		//blowfish_decode = new Blowfish(PandoraKeys.in_key_p, PandoraKeys.in_key_s);
 	}
 
 	private String pad(String s, int l) {

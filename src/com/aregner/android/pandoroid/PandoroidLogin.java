@@ -15,7 +15,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.aregner.android.pandoid;
+package com.aregner.android.pandoroid;
+
+import com.aregner.android.pandoid.R;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -27,7 +29,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 
-public class PandoidLogin extends Activity {
+public class PandoroidLogin extends Activity {
 
 	/** Called when the activity is first created. */
 	@Override
@@ -68,6 +70,6 @@ public class PandoidLogin extends Activity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-		PandoidPlayer.dismissWaiting();
+		PandoroidPlayer.dismissWaiting();
 	}
 }

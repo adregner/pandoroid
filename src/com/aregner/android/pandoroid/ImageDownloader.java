@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.aregner.android.pandoid;
+package com.aregner.android.pandoroid;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;

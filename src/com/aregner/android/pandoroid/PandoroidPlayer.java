@@ -15,8 +15,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.aregner.android.pandoid;
+package com.aregner.android.pandoroid;
 
+import com.aregner.android.pandoid.R;
 import com.aregner.pandora.Song;
 
 import android.app.Activity;
@@ -39,7 +40,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-public class PandoidPlayer extends Activity {
+public class PandoroidPlayer extends Activity {
 
 	public static final int REQUIRE_SELECT_STATION = 0x10;
 	public static final int REQUIRE_LOGIN_CREDS = 0x20;
@@ -68,7 +69,7 @@ public class PandoidPlayer extends Activity {
 
 			if(username == null || password == null) {
 				// bring them to the login screen so they can enter what we need
-				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
+				startActivityForResult(new Intent(getApplicationContext(), PandoroidLogin.class), REQUIRE_LOGIN_CREDS);
 			}
 		}
 		else {
@@ -154,7 +155,7 @@ public class PandoidPlayer extends Activity {
 		switch (item.getItemId()) {
 
 		case R.id.menu_stations:
-			startActivityForResult(new Intent(getApplicationContext(), PandoidStationSelect.class), REQUIRE_SELECT_STATION);
+			startActivityForResult(new Intent(getApplicationContext(), PandoroidStationSelect.class), REQUIRE_SELECT_STATION);
 			return true;
 
 		case R.id.menu_logout:
@@ -163,11 +164,11 @@ public class PandoidPlayer extends Activity {
 				.putString("pandora_username", null)
 				.putString("pandora_password", null)
 				.commit();
-			startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
+			startActivityForResult(new Intent(getApplicationContext(), PandoroidLogin.class), REQUIRE_LOGIN_CREDS);
 			return true;
 
 		case R.id.menu_settings:
-			startActivity(new Intent(getApplicationContext(), PandoidSettings.class));
+			startActivity(new Intent(getApplicationContext(), PandoroidSettings.class));
 			return true;
 
 		default:
@@ -180,7 +181,7 @@ public class PandoidPlayer extends Activity {
 	private class InitialSetupTask extends AsyncTask<Void, Void, Boolean> {
 		@Override
 		protected void onPreExecute() {
-			waiting = ProgressDialog.show(PandoidPlayer.this, "",  getString(R.string.signing_in));
+			waiting = ProgressDialog.show(PandoroidPlayer.this, "",  getString(R.string.signing_in));
 		}
 
 		@Override
@@ -214,14 +215,14 @@ public class PandoidPlayer extends Activity {
 					}
 					else {
 						// ask them to select a station
-						startActivityForResult(new Intent(getApplicationContext(), PandoidStationSelect.class), REQUIRE_SELECT_STATION);
+						startActivityForResult(new Intent(getApplicationContext(), PandoroidStationSelect.class), REQUIRE_SELECT_STATION);
 					}
 				}
 			}
 			else {
 				// failed to sign in for some reason
 				Toast.makeText(getApplicationContext(), getString(R.string.signin_failed), Toast.LENGTH_SHORT).show();
-				startActivityForResult(new Intent(getApplicationContext(), PandoidLogin.class), REQUIRE_LOGIN_CREDS);
+				startActivityForResult(new Intent(getApplicationContext(), PandoroidLogin.class), REQUIRE_LOGIN_CREDS);
 			}
 		}
 	}
@@ -230,7 +231,7 @@ public class PandoidPlayer extends Activity {
 	private class PlayStationTask extends AsyncTask<Void, Void, Void> {
 		@Override
 		protected void onPreExecute() {
-			waiting = ProgressDialog.show(PandoidPlayer.this, "",  getString(R.string.loading, pandora.getCurrentStation().getName()));
+			waiting = ProgressDialog.show(PandoroidPlayer.this, "",  getString(R.string.loading, pandora.getCurrentStation().getName()));
 		}
 
 		@Override
