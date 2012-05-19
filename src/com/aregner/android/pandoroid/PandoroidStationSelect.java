@@ -20,7 +20,7 @@ package com.aregner.android.pandoroid;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.aregner.android.pandoid.R;
+import com.aregner.android.pandoroid.R;
 import com.aregner.pandora.Station;
 
 import android.app.ListActivity;

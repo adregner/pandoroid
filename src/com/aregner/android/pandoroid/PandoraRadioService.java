@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.aregner.android.pandoid.R;
+import com.aregner.android.pandoroid.R;
 import com.aregner.pandora.PandoraRadio;
 import com.aregner.pandora.Song;
 import com.aregner.pandora.Station;

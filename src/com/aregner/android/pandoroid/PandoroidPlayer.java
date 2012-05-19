@@ -17,7 +17,7 @@
  */
 package com.aregner.android.pandoroid;
 
-import com.aregner.android.pandoid.R;
+import com.aregner.android.pandoroid.R;
 import com.aregner.pandora.Song;
 
 import android.app.Activity;

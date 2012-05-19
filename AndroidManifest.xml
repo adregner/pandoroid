@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="com.aregner.android.pandoid"
+      package="com.aregner.android.pandoroid"
       android:versionCode="2" android:versionName="0.2">
     <uses-sdk android:minSdkVersion="8" />
     <uses-permission android:name="android.permission.INTERNET"></uses-permission>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
 
     <application android:icon="@drawable/icon" android:label="@string/app_name">
-        <activity android:name="PandoidPlayer" android:label="@string/app_name" android:clearTaskOnLaunch="true">
+        <activity android:name="com.aregner.android.pandoroid.PandoroidPlayer" android:label="@string/app_name" android:clearTaskOnLaunch="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"></action>
                 <category android:name="android.intent.category.LAUNCHER"></category>
             </intent-filter>
         </activity>
-        <activity android:name="PandoidStationSelect" android:noHistory="true"></activity>
-        <activity android:name="PandoidSettings" android:noHistory="true"></activity>
+        <activity android:name="com.aregner.android.pandoroid.PandoroidStationSelect" android:noHistory="true"></activity>
+        <activity android:name="com.aregner.android.pandoroid.PandoroidSettings" android:noHistory="true"></activity>
         <service android:name="com.aregner.android.pandoroid.PandoraRadioService" android:enabled="true" android:exported="false"></service>
         <activity android:name="com.aregner.android.pandoroid.PandoroidLogin" android:noHistory="true"></activity>
 
