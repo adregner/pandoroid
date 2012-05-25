@@ -31,44 +31,95 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
+import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Security;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.xmlrpc.android.XMLRPCException;
 import org.json.*;
 
-
 public class PandoraRadio {
-
+	
 	/*public static final String PROTOCOL_VERSION = "32";	
 	private static final String RPC_URL = "http://www.pandora.com/radio/xmlrpc/v"+PROTOCOL_VERSION+"?";*/
 	private static final String USER_AGENT = "com.aregner.pandora/0.1";
 	
 	//JSON API stuff
 	public static final String PROTOCOL_VERSION = "5";
-	private static final String RPC_URL = "http://tuner.pandora.com/servics/json/?";
+	private static final String RPC_URL = "tuner.pandora.com/services/json/";
 	private static final String DEVICE_MODEL = "android-generic";
 	private static final String PARTNER_USERNAME = "android";
 	private static final String PARTNER_PASSWORD = "AC7IBG09A3DTSYM4R41UJWL07VLN8JI7";
+	private static final String DECRYPT_CIPHER = "R=U!LH$O2B#";
+	private static final String ENCRYPT_CIPHER = "6#26FRL$ZWD";
+	private static final String MIME_TYPE = "text/plain";
 	
 	public static final long PLAYLIST_VALIDITY_TIME = 3600 * 3;
 	public static final String DEFAULT_AUDIO_FORMAT = "aacplus";
 
 	private static final Vector<Object> EMPTY_ARGS = new Vector<Object>();
 
-	private XmlRpc xmlrpc;
-	private Blowfish blowfish_encode;
-	private Blowfish blowfish_decode;
+	//private XmlRpc xmlrpc;
+	private RPC pandora_rpc;
+	private Cipher blowfish_encode;
+	private Cipher blowfish_decode;
 	private String authToken;
-	private String rid;
+	//private String rid;
 	private String webAuthToken;
 	private ArrayList<Station> stations;
 
 	public PandoraRadio() {
-		xmlrpc = new XmlRpc(RPC_URL);
-		xmlrpc.addHeader("User-agent", USER_AGENT);
-
-		//blowfish_encode = new Blowfish(PandoraKeys.out_key_p, PandoraKeys.out_key_s);
-		//blowfish_decode = new Blowfish(PandoraKeys.in_key_p, PandoraKeys.in_key_s);
+		
+		pandora_rpc = new RPC(RPC_URL, MIME_TYPE, USER_AGENT);
+		Map<String, String> partner_auth = new HashMap<String, String>(1);
+		partner_auth.put("method", "auth.partnerLogin");
+		String partner_return;
+		try{
+			partner_return = pandora_rpc.call(partner_auth, "{\"username\": \"" + PARTNER_USERNAME + "\",\"password\": \"" + PARTNER_PASSWORD + "\",\"deviceModel\": \"" + DEVICE_MODEL + "\",\"version\": \"" + PROTOCOL_VERSION + "\"}", true);
+		}
+		catch (Exception e){
+			e.getMessage();
+		}
+		
+		//xmlrpc = new XmlRpc(RPC_URL);
+		//xmlrpc.addHeader("User-agent", USER_AGENT);
+		
+		try{
+			//We're using the built in Blowfish cipher here. Not too sure if this works on Android 2.2 or lower
+			blowfish_encode = Cipher.getInstance("Blowfish/ECB/NoPadding"); //new Blowfish(/*PandoraKeys.out_key_p, PandoraKeys.out_key_s*/);
+			byte[] encrypt_key_data = ENCRYPT_CIPHER.getBytes();
+			SecretKeySpec key_spec = new SecretKeySpec(encrypt_key_data, "Blowfish");
+			blowfish_encode.init(Cipher.ENCRYPT_MODE, key_spec);
+			
+			blowfish_decode = Cipher.getInstance("Blowfish/ECB/NoPadding"); //new Blowfish(/*PandoraKeys.in_key_p, PandoraKeys.in_key_s*/);
+			byte[] decrypt_key_data = DECRYPT_CIPHER.getBytes();
+			key_spec = new SecretKeySpec(decrypt_key_data, "Blowfish");
+			blowfish_decode.init(Cipher.DECRYPT_MODE, key_spec);
+		}
+		catch (NoSuchAlgorithmException e){
+			
+		}
+		catch (NoSuchPaddingException e){
+			
+			
+		}
+		catch (InvalidKeyException e){
+			
+			
+		}
+		finally{
+			//bugs happened
+			
+		}
 	}
 
 	private String pad(String s, int l) {
@@ -97,7 +148,7 @@ public class PandoraRadio {
 		return decodedText;
 	}
 
-	public String pandoraEncrypt(String s) {
+	public String pandoraEncrypt(String s) throws GeneralSecurityException, BadPaddingException {
 		int length = s.length();
 		StringBuilder result = new StringBuilder( length * 2 );
 		int i8 = 0;
@@ -105,23 +156,27 @@ public class PandoraRadio {
 			i8 = (i + 8 >= length) ? (length) : (i + 8);
 			String substring = s.substring(i, i8);
 			String padded = pad(substring, 8);
-			long[] blownstring = blowfish_encode.encrypt(padded.toCharArray());
-			for(int c=0; c<blownstring.length; c++) {
-				if(blownstring[c] < 0x10)
-					result.append("0");
-				result.append(Integer.toHexString((int)blownstring[c]));
-			}
+			final byte[] byte_string = blowfish_encode.doFinal(padded.getBytes());
+			//long[] blownstring = blowfish_encode.doFinal(padded)//encrypt(padded.toCharArray());
+//			for(int c=0; c<blownstring.length; c++) {
+//				if(blownstring[c] < 0x10)
+//					result.append("0");
+//				result.append(Integer.toHexString((int)blownstring[c]));
+//			}
+			result.append(new String(byte_string));
 		}
 		return result.toString();
 	}
 
-	public String pandoraDecrypt(String s) {
+	public String pandoraDecrypt(String s) throws GeneralSecurityException, BadPaddingException {
 		StringBuilder result = new StringBuilder();
 		int length = s.length();
 		int i16 = 0;
 		for(int i=0; i<length; i+=16) {
 			i16 = (i + 16 > length) ? (length - 1) : (i + 16);
-			result.append( blowfish_decode.decrypt( pad( fromHex( s.substring(i, i16)), 8).toCharArray()));
+			//result.append( blowfish_decode.decrypt( pad( fromHex( s.substring(i, i16)), 8).toCharArray()));
+			result.append(blowfish_decode.doFinal(s.substring(i, i16).getBytes()).toString());			
+			
 		}
 		return result.toString().trim();
 	}
@@ -172,12 +227,18 @@ public class PandoraRadio {
 		return formatUrlArg(v.iterator());
 	}
 
+	public Object doCall(String method, Vector<Object> args, Vector<Object> urlArgs){
+		Object result = null;
+		
+		
+		return result;
+	}
 	/*public static void printXmlRpc(String xml) {
 		xml = xml.replace("<param>", "\n\t<param>").replace("</params>", "\n</params>");
 		System.err.println(xml);
 	}*/
 	
-	@SuppressWarnings("unchecked")
+	/*@SuppressWarnings("unchecked")
 	private Object xmlrpcCall(String method, Vector<Object> args, Vector<Object> urlArgs) {
 		if(urlArgs == null)
 			urlArgs = (Vector<Object>) args.clone();
@@ -188,7 +249,16 @@ public class PandoraRadio {
 
 		String xml = XmlRpc.makeCall(method, args);
 		//printXmlRpc(xml);
-		String data = pandoraEncrypt(xml);
+		String data = null;
+		try{
+			data = pandoraEncrypt(xml);
+		}
+		catch (BadPaddingException e){
+			//something?		
+		}
+		catch (GeneralSecurityException e){
+			
+		}
 
 		ArrayList<String> urlArgStrings = new ArrayList<String>();
 		if(rid != null) {
@@ -225,17 +295,18 @@ public class PandoraRadio {
 	}
 	private Object xmlrpcCall(String method) {
 		return xmlrpcCall(method, EMPTY_ARGS, null);
-	}
+	}*/
 
 	@SuppressWarnings("unchecked")
 	public void connect(String user, String password) {
-		rid = String.format("%07dP", System.currentTimeMillis() % 1000L);
+		//rid = String.format("%07dP", System.currentTimeMillis() % 1000L);
 		authToken = null;
 
 		Vector<Object> args = new Vector<Object>(2);
-		args.add(user); args.add(password);
+		args.add(user); 
+		args.add(password);
 
-		Object result = xmlrpcCall("listener.authenticateListener", args, EMPTY_ARGS);
+		Object result = doCall("listener.authenticateListener", args, EMPTY_ARGS);
 
 		if(result instanceof HashMap<?,?>) {
 			HashMap<String,Object> userInfo = (HashMap<String,Object>) result;
@@ -258,7 +329,7 @@ public class PandoraRadio {
 	@SuppressWarnings("unchecked")
 	public ArrayList<Station> getStations() {
 		// get stations
-		Object result = xmlrpcCall("station.getStations");
+		Object result = doCall("station.getStations", null, null);
 
 		if(result instanceof Object[]) {
 			Object[] stationsResult = (Object[]) result;
@@ -286,31 +357,39 @@ public class PandoraRadio {
 
 	public void rate(Station station, Song song, boolean rating) {
 		Vector<Object> args = new Vector<Object>(7);
-		args.add(String.valueOf(station.getId())); args.add(song.getId()); args.add(song.getUserSeed());
-		args.add(""/*testStrategy*/); args.add(rating); args.add(false); args.add(song.getSongType());
+		args.add(String.valueOf(station.getId())); 
+		args.add(song.getId()); 
+		args.add(song.getUserSeed());
+		args.add(""/*testStrategy*/); 
+		args.add(rating); 
+		args.add(false); 
+		args.add(song.getSongType());
 		
-		xmlrpcCall("station.addFeedback", args);
+		doCall("station.addFeedback", args, null);
 	}
 	
 	public void bookmarkSong(Station station, Song song) {
 		Vector<Object> args = new Vector<Object>(2);
-		args.add(String.valueOf(station.getId())); args.add(song.getId());
+		args.add(String.valueOf(station.getId())); 
+		args.add(song.getId());
 		
-		xmlrpcCall("station.createBookmark", args);
+		doCall("station.createBookmark", args, null);
 	}
 	
 	public void bookmarkArtist(Station station, Song song) {
 		Vector<Object> args = new Vector<Object>(1);
 		args.add(song.getArtistMusicId());
 		
-		xmlrpcCall("station.createArtistBookmark", args);
+		doCall("station.createArtistBookmark", args, null);
 	}
 	
 	public void tired(Station station, Song song) {
 		Vector<Object> args = new Vector<Object>(3);
-		args.add(song.getId()); args.add(song.getUserSeed()); args.add(String.valueOf(station.getId()));
+		args.add(song.getId()); 
+		args.add(song.getUserSeed()); 
+		args.add(String.valueOf(station.getId()));
 		
-		xmlrpcCall("listener.addTiredSong", args);
+		doCall("listener.addTiredSong", args, null);
 	}
 
 	public boolean isAlive() {

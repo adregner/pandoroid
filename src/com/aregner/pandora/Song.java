@@ -17,7 +17,10 @@
  */
 package com.aregner.pandora;
 
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
+
+import javax.crypto.BadPaddingException;
 
 public class Song {
 	private String album;
@@ -74,6 +77,10 @@ public class Song {
 		} catch(RuntimeException ex) {
 			ex.printStackTrace();
 			return;
+		} catch (BadPaddingException e) {
+			e.printStackTrace();
+		} catch (GeneralSecurityException e) {
+			e.printStackTrace();
 		}
 	}
 

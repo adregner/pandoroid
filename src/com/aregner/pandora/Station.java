@@ -70,7 +70,7 @@ public class Station implements Comparable<Station>, Serializable {
 		args.add("0");
 		args.add("0");
 
-		Object result = pandora.xmlrpcCall("playlist.getFragment", args);
+		Object result = pandora.doCall("playlist.getFragment", args, null);
 
 		if(result instanceof Object[]) {
 			Object[] fragmentsResult = (Object[]) result;
