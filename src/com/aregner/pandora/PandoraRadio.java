@@ -253,7 +253,7 @@ public class PandoraRadio {
 			request_args.put("additionalAudioUrl", 
 					         AAC_64 + "," + MP3_128 + "," + MP3_192);
 			
-			JSONObject response = this.doCall("auth.userLogin", request_args, 
+			JSONObject response = this.doCall("station.getPlaylist", request_args, 
 					                          true, true, null);
 			
 			JSONArray songs_returned = response.getJSONArray("items");

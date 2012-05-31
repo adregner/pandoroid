@@ -52,7 +52,7 @@ public class Station implements Comparable<Station>, Serializable {
 	
 	public Song[] getPlaylist(String format, boolean forceDownload) {
 		if(forceDownload || currentPlaylist == null) {
-			return getPlaylist(format);
+			return getPlaylist();
 		}
 		else {
 			return currentPlaylist;
@@ -60,7 +60,7 @@ public class Station implements Comparable<Station>, Serializable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public Song[] getPlaylist(String format) {
+	public Song[] getPlaylist() {
 //		Vector<Object> args = new Vector<Object>(7);
 //		args.add(id);
 //		args.add("0");
@@ -73,7 +73,7 @@ public class Station implements Comparable<Station>, Serializable {
 		
 		try{
 			Vector<Song> result = pandora.getPlaylist(idToken);
-			Song[] list = null;
+			Song[] list = new Song[result.size()];
 			result.copyInto(list);
 			
 //		if(result instanceof Object[]) {
@@ -87,7 +87,8 @@ public class Station implements Comparable<Station>, Serializable {
 		currentPlaylist = list;
 		}
 		catch (Exception e){
-			
+			e.getMessage();
+			e.getStackTrace();
 		}
 
 		return currentPlaylist;

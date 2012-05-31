@@ -169,7 +169,7 @@ public class PandoraRadioService extends Service {
 	private class PrepareNextPlaylistTask extends AsyncTask<Void, Void, Void> {
 		@Override
 		protected Void doInBackground(Void... arg0) {
-			nextPlaylist = currentStation.getPlaylist( prefs.getString("pandora_audioFormat", PandoraRadio.DEFAULT_AUDIO_FORMAT) );
+			nextPlaylist = currentStation.getPlaylist();
 			return null;
 		}
 	}
@@ -260,7 +260,7 @@ public class PandoraRadioService extends Service {
 		return media.isPlaying();
 	}
 	public void prepare() {
-		currentPlaylist = currentStation.getPlaylist( prefs.getString("pandora_audioFormat", PandoraRadio.DEFAULT_AUDIO_FORMAT) );
+		currentPlaylist = currentStation.getPlaylist();
 		prepare(0);
 	}
 	public void prepare(int i) {

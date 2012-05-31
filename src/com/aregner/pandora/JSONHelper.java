@@ -53,7 +53,9 @@ public abstract class JSONHelper {
             	mapping.put(key, toVector((JSONArray) item));
             }
             //All other types won't be anything funky.
-            mapping.put(key, object.opt(key));
+            else{
+            	mapping.put(key, object.opt(key));
+            }
         }
         return mapping;
 	}

@@ -55,10 +55,10 @@ public class PandoroidStationSelect extends ListActivity {
 		lv.setTextFilterEnabled(true);
 		lv.setOnItemClickListener(new OnItemClickListener() {
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-				//Station station = PandoraRadioService.getInstance().getStations().get(position);
+				Station station = PandoraRadioService.getInstance(false).getStations().get(position);
 				setResult(RESULT_OK, (new Intent()).putExtra("stationId", id));
 				finish();
-				//finishActivity(PandoidPlayer.REQUIRE_SELECT_STATION);
+				finishActivity(PandoroidPlayer.REQUIRE_SELECT_STATION);
 			}
 		});
 	}
