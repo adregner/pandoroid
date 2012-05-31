@@ -60,31 +60,13 @@ public class Station implements Comparable<Station>, Serializable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public Song[] getPlaylist() {
-//		Vector<Object> args = new Vector<Object>(7);
-//		args.add(id);
-//		args.add("0");
-//		args.add("");
-//		args.add("");
-//		args.add(format);
-//		args.add("0");
-//		args.add("0");
-		
+	public Song[] getPlaylist() {		
 		
 		try{
 			Vector<Song> result = pandora.getPlaylist(idToken);
 			Song[] list = new Song[result.size()];
 			result.copyInto(list);
-			
-//		if(result instanceof Object[]) {
-//			Object[] fragmentsResult = (Object[]) result;
-//			Song[] list = new Song[fragmentsResult.length];
-//			for(int f=0; f<fragmentsResult.length; f++) {
-//				list[f] = new Song((HashMap<String,Object>)fragmentsResult[f], pandora);
-//			}
-//			currentPlaylist = list;
-//		}
-		currentPlaylist = list;
+			currentPlaylist = list;
 		}
 		catch (Exception e){
 			e.getMessage();

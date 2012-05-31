@@ -36,7 +36,7 @@ import org.json.JSONObject;
 /*
  * Description: This is the RPC client implementation for interfacing with 
  * 	Pandora's servers. At the moment it uses Pandora's JSON API, but will
- *  hopefully be useful for whatever Pandora's APIs throw at us in the future.
+ *  hopefully be useful for whatever Pandora throws at us in the future.
  */
 public class RPC {
 	private HttpClient client;
@@ -122,10 +122,12 @@ public class RPC {
 		String ret_data = new String();
 		byte[] bytes = new byte[BUFFER_BYTE_SIZE];
 		
-		//Check the entity type (usually 'text/plain'). Probably unneeded.
+		//Check the entity type (usually 'text/plain'). Probably doesn't need
+		//to be checked.
 		if (response_entity.getContentType().getValue().equals(entity_type)){			
 			InputStream content = response_entity.getContent();
 			int bytes_read = BUFFER_BYTE_SIZE;
+			
 			//Rather than read an arbitrary amount of bytes, lets be sure to get
 			//it all.
 			while((bytes_read = content.read(bytes, 0, BUFFER_BYTE_SIZE)) != -1){				

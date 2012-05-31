@@ -46,7 +46,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.xmlrpc.android.XMLRPCException;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -77,9 +77,6 @@ public class PandoraRadio {
 	public static String MP3_192 = "HTTP_192_MP3";
 	//End Audio
 
-	private static final Vector<Object> EMPTY_ARGS = new Vector<Object>();
-
-	//private XmlRpc xmlrpc;
 	private RPC pandora_rpc;
 	private Cipher blowfish_encode;
 	private Cipher blowfish_decode;
@@ -87,8 +84,6 @@ public class PandoraRadio {
 	private String partner_auth_token;
 	private long sync_time;
 	private long sync_obtained_time;
-	//private String rid;
-	//private String webAuthToken;
 	private ArrayList<Station> stations;
 	private Map<String, String> standard_url_params;
 
@@ -98,9 +93,6 @@ public class PandoraRadio {
 		pandora_rpc = new RPC(RPC_URL, MIME_TYPE, USER_AGENT);
 		standard_url_params = new HashMap<String, String>();
 		stations = new ArrayList<Station>();
-		
-		//xmlrpc = new XmlRpc(RPC_URL);
-		//xmlrpc.addHeader("User-agent", USER_AGENT);
 		
 		try{
 			//We're using the built in Blowfish cipher here. Not too sure if 
@@ -122,18 +114,23 @@ public class PandoraRadio {
 		}		
 	}
 	
-	
+	/*
+	 * Description: Disabled
+	 */
 	public void bookmarkArtist(Station station, Song song) {
-		Vector<Object> args = new Vector<Object>(1);
+		//Vector<Object> args = new Vector<Object>(1);
 		//args.add(song.getArtistMusicId());
 		
 		//doCall("station.createArtistBookmark", args, null);
 	}
 	
+	/*
+	 * Description: Disabled
+	 */
 	public void bookmarkSong(Station station, Song song) {
-		Vector<Object> args = new Vector<Object>(2);
-		args.add(String.valueOf(station.getId())); 
-		args.add(song.getId());
+//		Vector<Object> args = new Vector<Object>(2);
+//		args.add(String.valueOf(station.getId())); 
+//		args.add(song.getId());
 		
 		//doCall("station.createBookmark", args, null);
 	}
@@ -147,8 +144,9 @@ public class PandoraRadio {
 				         - this.sync_obtained_time));
 	}
 	
-	
-	//@SuppressWarnings("unchecked")
+	/*
+	 * Description: Logs a user in.
+	 */
 	public void connect(String user, String password) throws Exception {
 		
 		Map<String, Object> request_args = new HashMap<String, Object>();
@@ -156,6 +154,7 @@ public class PandoraRadio {
 		request_args.put("username", user);
 		request_args.put("password", password);
 		request_args.put("partnerAuthToken", this.partner_auth_token);
+		
 		//One extra possible request token.
 		//request_args.put("includeDemographics", true); 
 		
@@ -167,9 +166,10 @@ public class PandoraRadio {
 		this.standard_url_params.put("user_id", result.getString("userId"));
 	}
 	
+	/*
+	 * Description: Effectively logs a user off.
+	 */
 	public void disconnect() {
-		//authToken = null;
-		//webAuthToken = null;
 		this.standard_url_params.remove("user_id");
 		this.standard_url_params.put("auth_token", this.partner_auth_token);
 		if(stations != null) {
@@ -183,6 +183,9 @@ public class PandoraRadio {
 	 * 	using Pandora's JSON protocol. This will return a JSONObject holding
 	 * 	the contents of the results key in the response. If an error occurs
 	 * 	(ie "stat":"fail") an exception with the message body will be thrown.
+	 * Caution: When debugging, be sure to note that most data that flows 
+	 *  through here is time sensitive, and if stopped in the wrong places
+	 *  will cause "stat":"fail" responses from the remote server.
 	 */
 	private JSONObject doCall(String method, Map<String, Object> json_params,
 						      boolean http_secure_flag, boolean encrypt,
@@ -231,16 +234,14 @@ public class PandoraRadio {
 				throw new Exception("RPC unknown error. stat: " + 
 									response.getString("stat"));
 			}
-		}
-		
-//		if (blowfish_flag){
-//			response_string = this.pandoraDecrypt(response.toString());
-//		}
-		
+		}		
 		
 		return response.getJSONObject("result"); //Exception thrown if nonexistent
 	}
 	
+	/*
+	 * Description: Gets a list of songs to be played.
+	 */
 	public Vector<Song> getPlaylist(String station_token) throws Exception{
 		Vector<Song> songs = new Vector<Song>();
 		
@@ -278,6 +279,9 @@ public class PandoraRadio {
 		return songs;
 	}
 	
+	/*
+	 * Description: <to be filled>
+	 */
 	public Station getStationById(long sid) {
 		Iterator<Station> stationIter = stations.iterator();
 		Station station = null;
@@ -291,7 +295,10 @@ public class PandoraRadio {
 	}
 	
 	
-//	@SuppressWarnings("unchecked")
+	/*
+	 * Description: Retrieves the available stations, saves them to a 
+	 * 	PandoraRadio member variable, and returns them.
+	 */
 	public ArrayList<Station> getStations() throws Exception {
 		// get stations
 		
@@ -313,20 +320,9 @@ public class PandoraRadio {
 			stations.add(new Station(station_prep, this));
 		}
 		
-//		if(result instanceof Object[]) {
-//			Object[] stationsResult = (Object[]) result;
-//			stations = new ArrayList<Station>(stationsResult.length);
-//			for(int s=0; s<stationsResult.length; s++) {
-//				stations.add(new Station((HashMap<String,Object>)stationsResult[s], this));
-//			}
-//			Collections.sort(stations);
-//		}
-		
 		return stations;
 	}
 	
-	
-
 
 	/*
 	 * Description: Self explanatory function that converts from a hex string
@@ -342,20 +338,6 @@ public class PandoraRadio {
 			raw[i / 2] = (byte) ((Character.digit(hex_text.charAt(i), 16) * 16)
 					             + Character.digit(hex_text.charAt(i + 1), 16));
 		}
-		
-		//String decoded_text = new String(raw, 0, hex_len / 2);
-//		String chunk=null;
-//		if(hexText!=null && hexText.length()>0) {
-//			int numBytes = hexText.length()/2;
-//			char[] rawToByte = new char[numBytes];
-//			int offset=0;
-//			for(int i =0; i <numBytes; i++) {
-//				chunk = hexText.substring(offset,offset+2);
-//				offset+=2;
-//				rawToByte[i] = (char) (Integer.parseInt(chunk,16) & 0x000000FF);
-//			}
-//			decodedText= new String(rawToByte);
-//		}
 		return raw;
 	}
 	
@@ -367,12 +349,6 @@ public class PandoraRadio {
 	 */
 	private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
 	private String toHex(byte[] clean_text){
-//		StringBuffer hex_buffer = new StringBuffer();
-//		for (int i = 0; i < clean_text.length; ++i) {
-//			//What an absolutely worthless function toHexString() is.
-//			//hex_buffer.append(Integer.toHexString(clean_text[i])/*.toCharArray(), 5, 2*/);
-//		}
-		
 		char[] chars = new char[2 * clean_text.length];
         for (int i = 0; i < clean_text.length; ++i){
             chars[2 * i] = HEX_CHARS[(clean_text[i] & 0xF0) >>> 4];
@@ -395,18 +371,7 @@ public class PandoraRadio {
 	 */
 	public String pandoraDecrypt(String s) 
 			throws GeneralSecurityException, BadPaddingException {
-		//StringBuilder result = new StringBuilder();
-//		int length = s.length();
-//		int i16 = 0;
-//		for(int i=0; i<length; i+=16) {
-//			i16 = (i + 16 > length) ? (length - 1) : (i + 16);
-//			//result.append( blowfish_decode.decrypt( pad( fromHex( s.substring(i, i16)), 8).toCharArray()));
-//			result.append(blowfish_decode.doFinal(s.substring(i, i16).getBytes()).toString());			
-//			
-//		}
-		//String base_256 = fromHex(s);
-		byte[] bytes = fromHex(s);//base_256.getBytes();
-		//int len = base_256.length();
+		byte[] bytes = fromHex(s);
 		byte[] raw_decoded = blowfish_decode.doFinal(bytes);
 		String result_string = new String(raw_decoded);
 		return result_string;
@@ -419,22 +384,6 @@ public class PandoraRadio {
 	 */
 	public String pandoraEncrypt(String s) 
 			throws GeneralSecurityException, BadPaddingException {
-		//int length = s.length();
-		//StringBuilder result = new StringBuilder();
-//		int i8 = 0;
-//		for(int i=0; i<length; i+=8) {
-//			i8 = (i + 8 >= length) ? (length) : (i + 8);
-//			String substring = s.substring(i, i8);
-//			String padded = pad(substring, 8);
-//			final byte[] byte_string = blowfish_encode.doFinal(padded.getBytes());
-//			//long[] blownstring = blowfish_encode.doFinal(padded)//encrypt(padded.toCharArray());
-////			for(int c=0; c<blownstring.length; c++) {
-////				if(blownstring[c] < 0x10)
-////					result.append("0");
-////				result.append(Integer.toHexString((int)blownstring[c]));
-////			}
-//			result.append(new String(byte_string));
-//		}
 		byte[] byte_s = s.getBytes();
 		
 		if (byte_s.length % 8 != 0){			
@@ -451,7 +400,9 @@ public class PandoraRadio {
 	}
 
 
-
+	/*
+	 * Description: This is the authorization for the app itself.
+	 */
 	private void partnerLogin() throws Exception{
 		Map<String, Object> partner_params = new HashMap<String, Object>(4);
 		partner_params.put("username", PARTNER_USERNAME);
@@ -469,33 +420,30 @@ public class PandoraRadio {
 		standard_url_params.put("auth_token", partner_auth_token);
 	}
 
+	/*
+	 * Description: Disabled
+	 */
 	public void rate(Station station, Song song, boolean rating) {
-		Vector<Object> args = new Vector<Object>(7);
-		args.add(String.valueOf(station.getId())); 
-		args.add(song.getId()); 
-		//args.add(song.getUserSeed());
-		args.add(""/*testStrategy*/); 
-		args.add(rating); 
-		args.add(false); 
+//		Vector<Object> args = new Vector<Object>(7);
+//		args.add(String.valueOf(station.getId())); 
+//		args.add(song.getId()); 
+//		//args.add(song.getUserSeed());
+//		args.add(""/*testStrategy*/); 
+//		args.add(rating); 
+//		args.add(false); 
 		//args.add(song.getSongType());
 		
 		//doCall("station.addFeedback", args, null);
 	}
 	
-	public class SearchResult {
-
-	}
-	
-	private void setSync(String encoded_sync_time) throws Exception{
-//		//String dehexed_sync = this.fromHex(encoded_sync_time);	
-//		byte[] data = new byte[encoded_sync_time.length() / 2];
-//		for ( int i = 0; i < encoded_sync_time.length(); i += 2){
-//			int first = Character.digit(encoded_sync_time.charAt(i), 16) * 16;
-//			int second	= Character.digit(encoded_sync_time.charAt(i + 1), 16);
-//			data[i / 2] = (byte) (first + second);
-//		}
-//		String junk = new String(this.blowfish_decode.doFinal(data));
-		
+	/*
+	 * Description: The sync time from the remote server is rather special.
+	 * 	It comes in hexadecimal form from which it must be dehexed to byte form,
+	 * 	then it must be decrypted with the Blowfish decryption. From there,
+	 *  it's hidden inside a string with 4 bytes of junk characters at the 
+	 *  beginning, and two white space characters at the end.
+	 */
+	private void setSync(String encoded_sync_time) throws Exception{		
 		//This time stamp contains a lot of junk in the string it's in.
 		String junk = pandoraDecrypt(encoded_sync_time); //First decrypt the hex
 		junk = junk.substring(4); //Remove the first 4 bytes of junk.
@@ -506,189 +454,53 @@ public class PandoraRadio {
 		this.sync_obtained_time = System.currentTimeMillis() / 1000L; 
 	}
 	
-	
+	/*
+	 * Description: Disabled
+	 */
 	public void tired(Station station, Song song) {
-		Vector<Object> args = new Vector<Object>(3);
-		args.add(song.getId()); 
-		//args.add(song.getUserSeed()); 
-		args.add(String.valueOf(station.getId()));
-		
-		//doCall("listener.addTiredSong", args, null);
+//		Vector<Object> args = new Vector<Object>(3);
+//		args.add(song.getId()); 
+//		//args.add(song.getUserSeed()); 
+//		args.add(String.valueOf(station.getId()));
+//		
+//		//doCall("listener.addTiredSong", args, null);
 	}
 
-	
-//	private String formatUrlArg(boolean v) {
-//	return v ? "true" : "false";
-//}
-//private String formatUrlArg(int v) {
-//	return String.valueOf(v);
-//}
-//private String formatUrlArg(long v) {
-//	return String.valueOf(v);
-//}
-//private String formatUrlArg(float v) {
-//	return String.valueOf(v);
-//}
-//private String formatUrlArg(double v) {
-//	return String.valueOf(v);
-//}
-//private String formatUrlArg(char v) {
-//	return String.valueOf(v);
-//}
-//private String formatUrlArg(short v) {
-//	return String.valueOf(v);
-//}
-//private String formatUrlArg(Object v) {
-//	return URLEncoder.encode(v.toString());
-//}
-//private String formatUrlArg(Object[] v) {
-//	StringBuilder result = new StringBuilder();
-//	for(int i=0; i<v.length; i++) {
-//		result.append(formatUrlArg(v[i]));
-//		if(i < v.length - 1)
-//			result.append("%2C");
+
+//	public String test() throws Exception {
+//		// Right now this is just a little playing around with the idea of serializing Pandora data structures
+//		
+//		/*Console cons;
+//		char[] passwd;
+//		if ((cons = System.console()) != null && (passwd = cons.readPassword("[%s]", "Password:")) != null) {
+//			connect("andrew@aregner.com", new String(passwd));
+//			getStations();
+//			
+//			Station station = null;
+//			Iterator<Station> stationIter = stations.iterator();
+//			while(stationIter.hasNext()) {
+//				station = stationIter.next();
+//				if(station.getName().equals("0 - Pandoid Testing"))
+//					break;
+//			}
+//			System.out.println(station.getName());
+//
+//			Song song = station.getPlaylist("mp3-hifi")[1];
+//			System.out.println(song.getTitle());
+//			
+//			boolean rating = true;
+//
+//			//System.out.println("\nSerializing...");
+//			//(new ObjectOutputStream(System.out)).writeObject(station);
+//		}/**/
+//		
+//		return "test() method success";
 //	}
-//	return result.toString();
-//}
-//private String formatUrlArg(Iterator<?> v) {
-//	StringBuilder result = new StringBuilder();
-//	while(v.hasNext()) {
-//		result.append(formatUrlArg(v.next()));
-//		if(v.hasNext())
-//			result.append("%2C");
+//
+//	public static void main(String[] args) throws Exception {
+//		PandoraRadio pandora = new PandoraRadio();
+//		System.out.println(pandora.test());
 //	}
-//	return result.toString();
-//}
-//private String formatUrlArg(Collection<?> v) {
-//	return formatUrlArg(v.iterator());
-//}
-	
-	/*public static void printXmlRpc(String xml) {
-		xml = xml.replace("<param>", "\n\t<param>").replace("</params>", "\n</params>");
-		System.err.println(xml);
-	}*/
-	
-	/*@SuppressWarnings("unchecked")
-	private Object xmlrpcCall(String method, Vector<Object> args, Vector<Object> urlArgs) {
-		if(urlArgs == null)
-			urlArgs = (Vector<Object>) args.clone();
-
-		args.add(0, new Long(System.currentTimeMillis()/1000L));
-		if(authToken != null)
-			args.add(1, authToken);
-
-		String xml = XmlRpc.makeCall(method, args);
-		//printXmlRpc(xml);
-		String data = null;
-		try{
-			data = pandoraEncrypt(xml);
-		}
-		catch (BadPaddingException e){
-			//something?		
-		}
-		catch (GeneralSecurityException e){
-			
-		}
-
-		ArrayList<String> urlArgStrings = new ArrayList<String>();
-		if(rid != null) {
-			urlArgStrings.add("rid="+rid);
-		}
-		method = method.substring(method.lastIndexOf('.')+1);
-		urlArgStrings.add("method="+method);
-		Iterator<Object> urlArgsIter = urlArgs.iterator();
-		int count = 1;
-		while(urlArgsIter.hasNext()) {
-			urlArgStrings.add("arg"+(count++)+"="+formatUrlArg(urlArgsIter.next()));
-		}
-
-		StringBuilder url = new StringBuilder(RPC_URL);
-		Iterator<String> argIter = urlArgStrings.iterator();
-		while(argIter.hasNext()) {
-			url.append(argIter.next());
-			if(argIter.hasNext())
-				url.append("&");
-		}
-
-		Object result = null;
-		try {
-			result = xmlrpc.callWithBody(url.toString(), data);
-		} catch (XMLRPCException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		return result;
-	}
-	Object xmlrpcCall(String method, Vector<Object> args) {
-		return xmlrpcCall(method, args, null);
-	}
-	private Object xmlrpcCall(String method) {
-		return xmlrpcCall(method, EMPTY_ARGS, null);
-	}*/
-
-	
-	
-	
-
-	
-//	private String pad(String s, int l) {
-//	String result = s;
-//	while(l - s.length() > 0) {
-//		result += '\0';
-//		l--;
-//	}
-//	return result;
-//}	
-	
-
-
-	
-
-	
-
-	
-
-
-
-
-
-
-
-	public String test() throws Exception {
-		// Right now this is just a little playing around with the idea of serializing Pandora data structures
-		
-		/*Console cons;
-		char[] passwd;
-		if ((cons = System.console()) != null && (passwd = cons.readPassword("[%s]", "Password:")) != null) {
-			connect("andrew@aregner.com", new String(passwd));
-			getStations();
-			
-			Station station = null;
-			Iterator<Station> stationIter = stations.iterator();
-			while(stationIter.hasNext()) {
-				station = stationIter.next();
-				if(station.getName().equals("0 - Pandoid Testing"))
-					break;
-			}
-			System.out.println(station.getName());
-
-			Song song = station.getPlaylist("mp3-hifi")[1];
-			System.out.println(song.getTitle());
-			
-			boolean rating = true;
-
-			//System.out.println("\nSerializing...");
-			//(new ObjectOutputStream(System.out)).writeObject(station);
-		}/**/
-		
-		return "test() method success";
-	}
-
-	public static void main(String[] args) throws Exception {
-		PandoraRadio pandora = new PandoraRadio();
-		System.out.println(pandora.test());
-	}
 	
 
 	

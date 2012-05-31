@@ -23,6 +23,10 @@ import java.util.Vector;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+/*
+ * Description: An abstract class for a logical organization of the following
+ *  two functions.
+ */
 public abstract class JSONHelper {
 
 	/*
@@ -46,12 +50,14 @@ public abstract class JSONHelper {
             String key = (String) keys.next();
             Object item = object.opt(key);
             if (item instanceof JSONObject){
+            	
             	//Recursive call if we come across a JSONObject inside.
             	mapping.put(key, toMap((JSONObject) item));
             }
             else if (item instanceof JSONArray){
             	mapping.put(key, toVector((JSONArray) item));
             }
+            
             //All other types won't be anything funky.
             else{
             	mapping.put(key, object.opt(key));
