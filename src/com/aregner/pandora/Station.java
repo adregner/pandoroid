@@ -27,7 +27,7 @@ public class Station implements Comparable<Station>, Serializable {
 	
 	private String id;
 	private String idToken;
-	private boolean isCreator;
+	//private boolean isCreator;
 	private boolean isQuickMix;
 	private String name;
 
@@ -38,7 +38,7 @@ public class Station implements Comparable<Station>, Serializable {
 	public Station(HashMap<String, Object> d, PandoraRadio instance) {
 		id = (String) d.get("stationId");
 		idToken = (String) d.get("stationIdToken");
-		isCreator = (Boolean) d.get("isCreator");
+		//isCreator = (Boolean) d.get("isCreator");
 		isQuickMix = (Boolean) d.get("isQuickMix");
 		name = (String) d.get("stationName");
 
@@ -61,24 +61,33 @@ public class Station implements Comparable<Station>, Serializable {
 
 	@SuppressWarnings("unchecked")
 	public Song[] getPlaylist(String format) {
-		Vector<Object> args = new Vector<Object>(7);
-		args.add(id);
-		args.add("0");
-		args.add("");
-		args.add("");
-		args.add(format);
-		args.add("0");
-		args.add("0");
-
-		Object result = pandora.doCall("playlist.getFragment", args, null);
-
-		if(result instanceof Object[]) {
-			Object[] fragmentsResult = (Object[]) result;
-			Song[] list = new Song[fragmentsResult.length];
-			for(int f=0; f<fragmentsResult.length; f++) {
-				list[f] = new Song((HashMap<String,Object>)fragmentsResult[f], pandora);
-			}
-			currentPlaylist = list;
+//		Vector<Object> args = new Vector<Object>(7);
+//		args.add(id);
+//		args.add("0");
+//		args.add("");
+//		args.add("");
+//		args.add(format);
+//		args.add("0");
+//		args.add("0");
+		
+		
+		try{
+			Vector<Song> result = pandora.getPlaylist(idToken);
+			Song[] list = null;
+			result.copyInto(list);
+			
+//		if(result instanceof Object[]) {
+//			Object[] fragmentsResult = (Object[]) result;
+//			Song[] list = new Song[fragmentsResult.length];
+//			for(int f=0; f<fragmentsResult.length; f++) {
+//				list[f] = new Song((HashMap<String,Object>)fragmentsResult[f], pandora);
+//			}
+//			currentPlaylist = list;
+//		}
+		currentPlaylist = list;
+		}
+		catch (Exception e){
+			
 		}
 
 		return currentPlaylist;
@@ -117,9 +126,9 @@ public class Station implements Comparable<Station>, Serializable {
 		return idToken;
 	}
 
-	public boolean isCreator() {
-		return isCreator;
-	}
+//	public boolean isCreator() {
+//		return isCreator;
+//	}
 
 	public boolean isQuickMix() {
 		return isQuickMix;

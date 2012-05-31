@@ -176,7 +176,12 @@ public class PandoraRadioService extends Service {
 
 	/** methods for clients */
 	public void signIn(String username, String password) {
-		pandora.connect(username, password);
+		try{
+			pandora.connect(username, password);
+		}
+		catch (Exception e){
+			e.getMessage();//Possibly rethrow or pass it along?
+		}
 	}
 	public void signOut() {
 		if(media != null) {
@@ -215,19 +220,26 @@ public class PandoraRadioService extends Service {
 	}
 	@SuppressWarnings("unchecked")
 	public ArrayList<Station> getStations() {
-		ArrayList<Station> stations;
+		ArrayList<Station> stations = null;
+		
+		try{
+			stations = pandora.getStations();
+		
 
-		stations = pandora.getStations();
-
-		(new AsyncTask<ArrayList<Station>, Void, Void>() {
-			@Override
-			protected Void doInBackground(ArrayList<Station>... params) {
-				db = new PandoraDB(getBaseContext());
-				db.syncStations(params[0]);
-				db.close();
-				return null;
-			}
-		}).execute(stations);
+			(new AsyncTask<ArrayList<Station>, Void, Void>() {
+				@Override
+				protected Void doInBackground(ArrayList<Station>... params) {
+					db = new PandoraDB(getBaseContext());
+					db.syncStations(params[0]);
+					db.close();
+					return null;
+				}
+			}).execute(stations);
+	
+		}
+		catch (Exception e){
+			e.getMessage();
+		}
 
 		return stations;
 	}
@@ -258,7 +270,7 @@ public class PandoraRadioService extends Service {
 		media.setOnCompletionListener((OnCompletionListener)listeners.get(OnCompletionListener.class));
 		media.setOnPreparedListener((OnPreparedListener)listeners.get(OnPreparedListener.class));
 		try {
-			media.setDataSource( currentPlaylist[i].getAudioUrl() );
+			media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_192));
 		} catch (IllegalArgumentException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

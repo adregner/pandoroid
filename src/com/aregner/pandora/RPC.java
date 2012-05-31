@@ -19,6 +19,7 @@ package com.aregner.pandora;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -46,8 +47,8 @@ public class RPC {
 	/*
 	 * Description: Our constructor class. This will set our default parameters
 	 * 	for subsequent http requests, along with the MIME type for our entity
-	 *  (i.e. 'text/plain' for the current JSON protocol), and the partial URL for
-	 *  the server (i.e. 'tuner.pandora.com/path/to/request/').
+	 *  (i.e. 'text/plain' for the current JSON protocol), and the partial URL 
+	 *  for the server (i.e. 'tuner.pandora.com/path/to/request/').
 	 */
 	public RPC(String default_url, 
 			   String default_entity_type, 
@@ -65,7 +66,8 @@ public class RPC {
 	 */
 	public String call(Map<String, String> url_params, 
 			           String entity_data,
-			           boolean require_secure) throws Exception, HttpResponseException{
+			           boolean require_secure) 
+			                            throws Exception, HttpResponseException{
 		
 		if (url_params == null || url_params.size() == 0){
 			throw new Exception("Missing URL paramaters");
@@ -109,7 +111,9 @@ public class RPC {
 		int status_code = response.getStatusLine().getStatusCode();
 		
 		if (status_code != HttpStatus.SC_OK){
-			throw new HttpResponseException(status_code, "HTTP status code: " + status_code + " != " + HttpStatus.SC_OK);
+			throw new HttpResponseException(status_code, "HTTP status code: " 
+		                                     + status_code + " != " 
+					                         + HttpStatus.SC_OK);
 		}
 		
 		//Read the response returned and turn it from a byte stream to a string.
@@ -117,14 +121,15 @@ public class RPC {
 		int BUFFER_BYTE_SIZE = 512;
 		String ret_data = new String();
 		byte[] bytes = new byte[BUFFER_BYTE_SIZE];
+		
+		//Check the entity type (usually 'text/plain'). Probably unneeded.
 		if (response_entity.getContentType().getValue().equals(entity_type)){			
 			InputStream content = response_entity.getContent();
 			int bytes_read = BUFFER_BYTE_SIZE;
 			//Rather than read an arbitrary amount of bytes, lets be sure to get
 			//it all.
-			while(bytes_read == BUFFER_BYTE_SIZE){
-				bytes_read = content.read(bytes, 0, BUFFER_BYTE_SIZE);
-				ret_data += new String(bytes);
+			while((bytes_read = content.read(bytes, 0, BUFFER_BYTE_SIZE)) != -1){				
+				ret_data += new String(bytes, 0, bytes_read);
 			}
 		}
 		else{
@@ -151,8 +156,8 @@ public class RPC {
 			else{
 				first_loop = false;
 			}
-			
-			url_string += entry.getKey() + "=" + entry.getValue();			
+			url_string += URLEncoder.encode(entry.getKey()) + "=" 
+			              + URLEncoder.encode(entry.getValue());			
 		}
 		
 		return url_string;

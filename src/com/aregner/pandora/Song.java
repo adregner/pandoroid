@@ -19,56 +19,60 @@ package com.aregner.pandora;
 
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
+import java.util.Map;
 
 import javax.crypto.BadPaddingException;
 
 public class Song {
 	private String album;
 	private String artist;
-	private String artistMusicId;
-	private String audioUrl;
+	//private String artistMusicId;
+	//private String audioUrl;
 	private String fileGain;
-	private String identity;
+	//private String identity;
 	private String musicId;
 	private Integer rating;
 	private String stationId;
 	private String title;
-	private String userSeed;
+	//private String userSeed;
 	private String songDetailURL;
 	private String albumDetailURL;
-	private String artRadio;
-	private Integer songType;
+	private String album_art_url;
+	//private Integer songType;
+	private Map<String, String> audio_urls;
 
 	private boolean tired;
 	private String message;
 	private Object startTime;
 	private boolean finished;
 	private long playlistTime;
-	private PandoraRadio pandora;
+	//private PandoraRadio pandora;
 
-	public Song(HashMap<String,Object> d, PandoraRadio instance) {
+	public Song(Map<String,Object> d, Map<String, String> audio_urls_in) {
 		try {
-			pandora = instance;
+			//pandora = instance;
 			
-			album = (String) d.get("albumTitle");
-			artist = (String) d.get("artistSummary");
-			artistMusicId = (String) d.get("artistMusicId");
-			audioUrl = (String) d.get("audioURL"); // needs to be hacked, see below
-			fileGain = (String) d.get("fileGain");
-			identity = (String) d.get("identity");
-			musicId = (String) d.get("musicId");
-			rating = (Integer) d.get("rating");
+			album = (String) d.get("albumName");
+			artist = (String) d.get("artistName");
+			//artistMusicId = (String) d.get("artistMusicId");
+			//audioUrl = (String) d.get("audioURL"); // needs to be hacked, see below
+			fileGain = (String) d.get("trackGain");
+			//identity = (String) d.get("identity");
+			musicId = (String) d.get("trackToken");
+			rating = (Integer) d.get("songRating");
 			stationId = (String) d.get("stationId");
-			title = (String) d.get("songTitle");
-			userSeed = (String) d.get("userSeed");
+			title = (String) d.get("songName");
+			//userSeed = (String) d.get("userSeed");
 			songDetailURL = (String) d.get("songDetailURL");
 			albumDetailURL = (String) d.get("albumDetailURL");
-			artRadio = (String) d.get("artRadio");
-			songType = (Integer) d.get("songType");
+			album_art_url = (String) d.get("albumArtUrl");
+			//songType = (Integer) d.get("songType");
 
-			int aul = audioUrl.length();
-			audioUrl = audioUrl.substring(0, aul-48) + pandora.pandoraDecrypt(audioUrl.substring(aul-48));
+			//int aul = audioUrl.length();
+			//audioUrl = audioUrl.substring(0, aul-48) + pandora.pandoraDecrypt(audioUrl.substring(aul-48));
 
+			audio_urls = audio_urls_in;
+			
 			tired = false;
 			message = "";
 			startTime = null;
@@ -77,20 +81,20 @@ public class Song {
 		} catch(RuntimeException ex) {
 			ex.printStackTrace();
 			return;
-		} catch (BadPaddingException e) {
-			e.printStackTrace();
-		} catch (GeneralSecurityException e) {
-			e.printStackTrace();
-		}
+		} //catch (BadPaddingException e) {
+//			e.printStackTrace();
+//		} catch (GeneralSecurityException e) {
+//			e.printStackTrace();
+//		}
 	}
 
-	public int getSongType() {
-		return songType.intValue();
-	}
+//	public int getSongType() {
+//		return songType.intValue();
+//	}
 
-	public String getUserSeed() {
-		return userSeed;
-	}
+//	public String getUserSeed() {
+//		return userSeed;
+//	}
 
 	public String getId() {
 		return musicId;
@@ -100,11 +104,11 @@ public class Song {
 		return ((System.currentTimeMillis() / 1000L) - playlistTime) < PandoraRadio.PLAYLIST_VALIDITY_TIME;
 	}
 
-	public String getAudioUrl() {
-		return audioUrl;
+	public String getAudioUrl(String audio_quality) {
+		return audio_urls.get(audio_quality);
 	}
 	public String getAlbumCoverUrl() {
-		return artRadio;
+		return album_art_url;
 	}
 	public String getTitle() {
 		return title;
@@ -118,15 +122,15 @@ public class Song {
 	public Integer getRating() {
 		return rating;
 	}
-	public String getArtistMusicId() {
-		return artistMusicId;
-	}
+//	public String getArtistMusicId() {
+//		return artistMusicId;
+//	}
 	public String getFileGain() {
 		return fileGain;
 	}
-	public String getIdentity() {
-		return identity;
-	}
+//	public String getIdentity() {
+//		return identity;
+//	}
 	public String getStationId() {
 		return stationId;
 	}

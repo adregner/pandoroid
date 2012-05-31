@@ -67,7 +67,7 @@ public class PandoraDB extends SQLiteOpenHelper {
 			ContentValues values = new ContentValues(5);
 			values.put("stationId", station.getStationId());
 			values.put("stationIdToken", station.getStationIdToken());
-			values.put("isCreator", station.isCreator());
+			//values.put("isCreator", station.isCreator());
 			values.put("isQuickMix", station.isQuickMix());
 			values.put("stationName", station.getName());
 			
@@ -85,7 +85,7 @@ public class PandoraDB extends SQLiteOpenHelper {
 
 			stations[s].put("stationId", records.getString(0));
 			stations[s].put("stationIdToken", records.getString(1));
-			stations[s].put("isCreator", records.getInt(2));
+			//stations[s].put("isCreator", records.getInt(2));
 			stations[s].put("isQuickMix", records.getInt(3));
 			stations[s].put("stationName", records.getString(4));
 		}
