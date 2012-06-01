@@ -193,7 +193,9 @@ public class PandoroidPlayer extends Activity {
 			String password = prefs.getString("pandora_password", null);
 			
 			try {
-				pandora.signIn(username, password);
+				if (username != null && password != null){
+					pandora.signIn(username, password);
+				}
 			} catch(Exception ex) {
 				ex.printStackTrace();
 			}

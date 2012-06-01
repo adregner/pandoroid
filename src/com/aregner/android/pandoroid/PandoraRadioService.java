@@ -311,7 +311,7 @@ public class PandoraRadioService extends Service {
 	}
 	public Song next() {
 		// play the next song in the current list
-		if(++currentSongIndex < currentPlaylist.length) {
+		if(currentPlaylist != null && (++currentSongIndex < currentPlaylist.length)) {
 			prepare(currentSongIndex);
 
 			// prepare the next playlist if we are nearing the end

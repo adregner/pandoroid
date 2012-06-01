@@ -53,7 +53,7 @@ public class PandoroidLogin extends Activity {
 						setResult(RESULT_OK);
 						finish();
 						//finishActivityFromChild(child, PandoidPlayer.REQUIRE_LOGIN_CREDS);
-						//finishActivity(PandoidPlayer.REQUIRE_LOGIN_CREDS);
+						//finishActivity(PandoroidPlayer.REQUIRE_LOGIN_CREDS);
 					}
 				}
 			}
