@@ -186,8 +186,13 @@ public class PandoroidPlayer extends Activity {
 
 		@Override
 		protected Boolean doInBackground(Void... arg) {
-			PandoraRadioService.createPandoraRadioService(getApplicationContext());
-			pandora = PandoraRadioService.getInstance(true);
+			//There are a few hotfixes in this function for some issues that
+			//need to be addressed more formally. This function gets called
+			//way too much.
+			if (pandora == null){ 
+				PandoraRadioService.createPandoraRadioService(getApplicationContext());
+				pandora = PandoraRadioService.getInstance(true);
+			}
 			
 			String username = prefs.getString("pandora_username", null);
 			String password = prefs.getString("pandora_password", null);
