@@ -31,6 +31,7 @@ import android.media.MediaPlayer.OnPreparedListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -59,9 +60,10 @@ public class PandoroidPlayer extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.player);
 
+		// handle for the preferences for us to use everywhere
+		prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+		
 		if(PandoraRadioService.getInstance(false) == null) {
-			// handle for the preferences for us to use everywhere
-			prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 
 			// look for what we need to continue with pandora auth
 			String username = prefs.getString("pandora_username", null);
@@ -202,7 +204,7 @@ public class PandoroidPlayer extends Activity {
 					pandora.signIn(username, password);
 				}
 			} catch(Exception ex) {
-				ex.printStackTrace();
+				Log.e("pandoroid", "Exception during login:", ex);
 			}
 			return pandora.isAlive();
 		}

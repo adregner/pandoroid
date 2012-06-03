@@ -148,6 +148,7 @@ public class PandoraRadio {
 	 * Description: Logs a user in.
 	 */
 	public void connect(String user, String password) throws Exception {
+		this.partnerLogin();
 		
 		Map<String, Object> request_args = new HashMap<String, Object>();
 		request_args.put("loginType", "user");
