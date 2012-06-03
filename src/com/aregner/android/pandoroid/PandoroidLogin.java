@@ -17,6 +17,7 @@
  */
 package com.aregner.android.pandoroid;
 
+import com.actionbarsherlock.app.SherlockActivity;
 import com.aregner.android.pandoroid.R;
 
 import android.app.Activity;
@@ -29,11 +30,12 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 
-public class PandoroidLogin extends Activity {
+public class PandoroidLogin extends SherlockActivity {
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		setTheme(R.style.Theme_Sherlock);
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.login);
 
@@ -60,12 +62,14 @@ public class PandoroidLogin extends Activity {
 		});
 	}
 
+	/*
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getMenuInflater();
 		inflater.inflate(R.menu.player_menu, menu);
 		return true;
 	}
+	*/
 
 	@Override
 	protected void onResume() {

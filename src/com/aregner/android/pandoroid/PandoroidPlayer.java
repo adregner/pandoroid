@@ -25,6 +25,7 @@ import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
@@ -32,16 +33,20 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.Menu;
 import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.actionbarsherlock.ActionBarSherlock;
+import com.actionbarsherlock.ActionBarSherlock.OnCreateOptionsMenuListener;
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuItem;
 
 
-public class PandoroidPlayer extends Activity {
+
+public class PandoroidPlayer extends Activity implements OnCreateOptionsMenuListener {
+	ActionBarSherlock mSherlock = ActionBarSherlock.wrap(this);
 
 	public static final int REQUIRE_SELECT_STATION = 0x10;
 	public static final int REQUIRE_LOGIN_CREDS = 0x20;
@@ -53,12 +58,22 @@ public class PandoroidPlayer extends Activity {
 	private PandoraRadioService pandora;
 	private SharedPreferences prefs;
 	private ImageDownloader imageDownloader = new ImageDownloader();
+	private int BAN;
+	private int LOVE;
+	private int PLAY;
+	private int SKIP;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		setTheme(R.style.Theme_Sherlock);
 		super.onCreate(savedInstanceState);
+		
+		//Set ActionBar options
+		mSherlock.setUiOptions(ActivityInfo.UIOPTION_SPLIT_ACTION_BAR_WHEN_NARROW);
+		
 		setContentView(R.layout.player);
+		
 
 		// handle for the preferences for us to use everywhere
 		prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
@@ -81,9 +96,32 @@ public class PandoroidPlayer extends Activity {
 	}
 
 	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.player_menu, menu);
+	public boolean onCreateOptionsMenu(android.view.Menu menu) {
+		return mSherlock.dispatchCreateOptionsMenu(menu);
+	}
+	
+	/**
+	 * This method is used to create the much better looking options at the bottom
+	 */
+	public boolean onCreateOptionsMenu(Menu menu){
+		menu.add("Ban").setIcon(R.drawable.thumb_down_button).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+		BAN = menu.getItem(0).getItemId();
+		
+		menu.add("Love").setIcon(R.drawable.thumb_up_button).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+		LOVE = menu.getItem(1).getItemId();
+		
+		menu.add("Play/Pause").setIcon(R.drawable.play_button).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+		PLAY = menu.getItem(2).getItemId();
+		
+		menu.add("Next").setIcon(R.drawable.skip_button).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+		SKIP = menu.getItem(3).getItemId();
+		
+		MenuListener listen = new MenuListener();
+		
+		for(int i = 0; i < menu.size(); i++){
+			menu.getItem(i).setOnMenuItemClickListener(listen);
+		}
+		
 		return true;
 	}
 
@@ -126,33 +164,7 @@ public class PandoroidPlayer extends Activity {
 		}
 	}
 
-	public void controlButtonPressed(View button) {
-		switch(button.getId()) {
 
-		case R.id.player_ban:
-			pandora.rate(RATING_BAN);
-			Toast.makeText(getApplicationContext(), getString(R.string.baned_song), Toast.LENGTH_SHORT).show();
-			if(prefs.getBoolean("behave_nextOnBan", true)) {
-				updateForNewSong(pandora.next());
-			}
-			break;
-
-		case R.id.player_love:
-			pandora.rate(RATING_LOVE);
-			Toast.makeText(getApplicationContext(), getString(R.string.loved_song), Toast.LENGTH_SHORT).show();
-			break;
-
-		case R.id.player_pause:
-			pandora.pause();
-			break;
-
-		case R.id.player_next:
-			updateForNewSong(pandora.next());
-			break;
-		}
-	}
-
-	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 
@@ -174,8 +186,31 @@ public class PandoroidPlayer extends Activity {
 			return true;
 
 		default:
-			return super.onOptionsItemSelected(item);
+			return true;
 		}
+	}
+	
+	private class MenuListener implements MenuItem.OnMenuItemClickListener{
+
+		public boolean onMenuItemClick(MenuItem item) {
+			int id = item.getItemId();
+			if(id == BAN){
+				pandora.rate(RATING_BAN);
+				Toast.makeText(getApplicationContext(), getString(R.string.baned_song), Toast.LENGTH_SHORT).show();
+				if(prefs.getBoolean("behave_nextOnBan", true)) {
+					updateForNewSong(pandora.next());
+				}
+			} else if(id == LOVE){
+				pandora.rate(RATING_LOVE);
+				Toast.makeText(getApplicationContext(), getString(R.string.loved_song), Toast.LENGTH_SHORT).show();
+			} else if(id == PLAY){
+				pandora.pause();
+			} else if(id == SKIP){
+				updateForNewSong(pandora.next());
+			}
+			return false;
+		}
+		
 	}
 
 	/** Signs in the user and loads their initial data
