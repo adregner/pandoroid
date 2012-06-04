@@ -12,4 +12,6 @@
     <string name="signin_username">Username:</string>
     <string name="signin_password">Password:</string>
     <string name="signin_login">Login</string>
+    
+    <string name="pickStation">Select Station</string>
 </resources>

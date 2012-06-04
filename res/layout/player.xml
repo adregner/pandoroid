@@ -34,7 +34,66 @@
         android:layout_below="@+id/player_image"
         android:gravity="center"
         android:paddingTop="14dip"
+        android:visibility="gone"
         android:text="" >
     </TextView>
+
+    <RelativeLayout
+        android:id="@+id/player_buttons"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:gravity="center|bottom" >
+
+        <ImageView
+            android:id="@+id/player_ban"
+            android:src="@drawable/thumb_down_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:onClick="controlButtonPressed"
+            android:padding="10dip"
+            android:width="75dip" >
+        </ImageView>
+
+        <ImageView
+            android:id="@+id/player_love"
+            android:src="@drawable/thumb_up_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/player_ban"
+            android:layout_alignTop="@+id/player_ban"
+            android:layout_toRightOf="@+id/player_ban"
+            android:onClick="controlButtonPressed"
+            android:padding="10dip"
+            android:width="75dip" >
+        </ImageView>
+
+        <ImageView
+            android:id="@+id/player_pause"
+            android:src="@drawable/play_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/player_love"
+            android:layout_alignTop="@+id/player_love"
+            android:layout_toRightOf="@+id/player_love"
+            android:onClick="controlButtonPressed"
+            android:padding="10dip"
+            android:width="75dip" >
+        </ImageView>
+
+        <ImageView
+            android:id="@+id/player_next"
+            android:src="@drawable/skip_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/player_pause"
+            android:layout_alignTop="@+id/player_pause"
+            android:layout_toRightOf="@+id/player_pause"
+            android:onClick="controlButtonPressed"
+            android:padding="10dip"
+            android:width="75dip" >
+        </ImageView>
+    </RelativeLayout>
 
 </RelativeLayout>
