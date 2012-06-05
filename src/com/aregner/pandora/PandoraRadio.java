@@ -273,6 +273,7 @@ public class PandoraRadio {
 			}
 		}
 		catch(Exception e){
+			e.getMessage();
 			throw new Exception("API Change");
 		}
 		

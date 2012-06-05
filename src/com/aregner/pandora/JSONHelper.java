@@ -33,20 +33,17 @@ public abstract class JSONHelper {
 	 * Description: I have no clue why the JSON object doesn't implement this
 	 * 	within itself. It seems so logical to do so, but here's my
 	 * 	implementation, and it seems very darn complete to me. --Dylan Powers
-	 * Note: JSONHelper.toMap() and JSONHelper.toVector() do recurse into each 
-	 * 	other.
 	 */
 	public static Map<String, Object> toMap(JSONObject object){
 		Map<String, Object> mapping = new HashMap<String, Object>();
 		
-		//This iterator makes me nervous with my C++ background in iterators.
 		//These iterators are like gimped up shadows of what iterators should be.
 		@SuppressWarnings("rawtypes")
 		Iterator keys = object.keys();
 		
-		//Again, nervous about this "hasNext()" do I get the first key? It makes
-		//it sound like the first key is skipped :/
-        while (keys.hasNext()) { 
+		//Java's naming conventions are horrible. This will in fact get the
+        //the first key, and won't skip anything.
+		while (keys.hasNext()) { 
             String key = (String) keys.next();
             Object item = object.opt(key);
             if (item instanceof JSONObject){
