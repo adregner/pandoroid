@@ -38,7 +38,12 @@ public class PandoroidLogin extends SherlockActivity {
 		setTheme(R.style.Theme_Sherlock);
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.login);
+		
+		//Set the username
+		EditText user = (EditText)findViewById(R.id.login_username);
+		user.setText(PreferenceManager.getDefaultSharedPreferences(getBaseContext()).getString("pandora_username", ""));
 
+		this.getSupportActionBar().setTitle(R.string.signin_welcome);
 		((Button)findViewById(R.id.login_button)).setOnClickListener(new OnClickListener() {
 			public void onClick(View viewParam) {
 				String sUserName = ((EditText)findViewById(R.id.login_username)).getText().toString();

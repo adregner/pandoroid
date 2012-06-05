@@ -45,6 +45,7 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 
 public class PandoraRadioService extends Service {
 
@@ -155,12 +156,13 @@ public class PandoraRadioService extends Service {
 	}
 	
 	public void setNotification() {
-		Notification notification = new Notification(R.drawable.icon, "Pandoroid Radio", System.currentTimeMillis());
+		Notification notification = new Notification(R.drawable.notification_icon, "Pandoroid Radio", System.currentTimeMillis());
 		Intent notificationIntent = new Intent(this, PandoroidPlayer.class);
 		PendingIntent contentIntent = PendingIntent.getActivity(this, NOTIFICATION_SONG_PLAYING, notificationIntent, 0);
 		
 		notification.flags |= Notification.FLAG_ONGOING_EVENT | Notification.FLAG_FOREGROUND_SERVICE;
-		notification.setLatestEventInfo(getApplicationContext(), "Pandoroid Radio", "Playing "+getCurrentSong().getTitle(), contentIntent);
+		notification.setLatestEventInfo(getApplicationContext(), getCurrentSong().getTitle(),
+				getCurrentSong().getArtist()+" on "+getCurrentSong().getAlbum(), contentIntent);
 		//notificationManager.notify(NOTIFICATION_SONG_PLAYING, notification);
 		startForeground(NOTIFICATION_SONG_PLAYING, notification);
 	}
@@ -181,6 +183,7 @@ public class PandoraRadioService extends Service {
 		}
 		catch (Exception e){
 			e.getMessage();//Possibly rethrow or pass it along?
+			Log.e("Pandroroid","Exception logging in", e);
 		}
 	}
 	public void signOut() {

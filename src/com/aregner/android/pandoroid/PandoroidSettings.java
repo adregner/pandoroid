@@ -17,18 +17,21 @@
  */
 package com.aregner.android.pandoroid;
 
+import com.actionbarsherlock.app.SherlockPreferenceActivity;
 import com.aregner.android.pandoroid.R;
 
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 
-public class PandoroidSettings extends PreferenceActivity {
+public class PandoroidSettings extends SherlockPreferenceActivity {
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
+    	this.setTheme(R.style.Theme_Sherlock);
         super.onCreate(savedInstanceState);
         
         // Load the preferences from an XML resource
         addPreferencesFromResource(R.xml.preferences);
+        this.getSupportActionBar().setTitle(R.string.menu_settings);
     }
 }

@@ -14,4 +14,9 @@
     <string name="signin_login">Login</string>
     
     <string name="pickStation">Select Station</string>
+    
+    <!-- Menu Strings -->
+    <string name="menu_stations">Stations</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_logout">Logout</string>
 </resources>

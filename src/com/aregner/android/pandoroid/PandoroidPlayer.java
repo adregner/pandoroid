@@ -18,11 +18,12 @@
 package com.aregner.android.pandoroid;
 
 import com.actionbarsherlock.app.SherlockActivity;
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuItem;
+import com.actionbarsherlock.view.SubMenu;
 import com.aregner.android.pandoroid.R;
 import com.aregner.pandora.Song;
 
-import android.app.Activity;
-import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -32,9 +33,6 @@ import android.media.MediaPlayer.OnPreparedListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -80,14 +78,18 @@ public class PandoroidPlayer extends SherlockActivity {
 		}
 	}
 
-	/*
-	@Override
+	
 	public boolean onCreateOptionsMenu(Menu menu) {
-		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.player_menu, menu);
-		return true;
+		SubMenu sub = menu.addSubMenu("Options");
+		sub.add(0, R.id.menu_stations, Menu.NONE, R.string.menu_stations);
+		sub.add(0, R.id.menu_settings, Menu.NONE, R.string.menu_settings);
+		sub.add(0, R.id.menu_logout, Menu.NONE, R.string.menu_logout);
+		
+		MenuItem subMenu = sub.getItem();
+		subMenu.setIcon(R.drawable.menu_land);
+		subMenu.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+		return super.onCreateOptionsMenu(menu);
 	}
-	*/
 
 	@Override
 	protected void onStart() {
@@ -115,7 +117,7 @@ public class PandoroidPlayer extends SherlockActivity {
 
 		//top.setText(String.format("%s by %s", song.getTitle(), song.getArtist()));
 		imageDownloader.download(song.getAlbumCoverUrl(), image);
-		top.setText(String.format("By %s on %s", song.getArtist(), song.getAlbum()));
+		top.setText(String.format("%s\n%s", song.getArtist(), song.getAlbum()));
 	}
 
 	@Override
@@ -124,8 +126,9 @@ public class PandoroidPlayer extends SherlockActivity {
 			pandora.setCurrentStationId(data.getLongExtra("stationId", -1));
 			(new PlayStationTask()).execute();
 		}
-		else if(requestCode == REQUIRE_LOGIN_CREDS && resultCode == RESULT_OK) {
-			serviceSetup();
+		else if(requestCode == REQUIRE_LOGIN_CREDS) {
+			//serviceSetup();
+			new InitialSetupTask().execute();
 		}
 	}
 
@@ -155,8 +158,6 @@ public class PandoroidPlayer extends SherlockActivity {
 		}
 	}
 
-	/*
-	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 
@@ -181,7 +182,6 @@ public class PandoroidPlayer extends SherlockActivity {
 			return super.onOptionsItemSelected(item);
 		}
 	}
-	*/
 
 	/** Signs in the user and loads their initial data
 	 *     -> brings them toward a station               */
