@@ -2,9 +2,7 @@ Pandoroid Radio
 ===============
 Status: Functional!
 
-Notice: 
-
-	Desktop client AIR credential switch
+Notice: Desktop client AIR credential switch
 	
 In order to get higher quality audio (192kbps MP3), a switch was made to use credentials from the desktop client effectively breaking use of the app for all but those with Pandora One accounts.
 
