@@ -55,16 +55,16 @@ import org.json.JSONObject;
  * 	can be found here: http://pan-do-ra-api.wikia.com/wiki/Json/5 
  */
 public class PandoraRadio {
-	private static final String USER_AGENT = "com.aregner.pandora/0.1";
+	private static final String USER_AGENT = "com.aregner.pandora/0.3";
 	
 	//JSON API stuff
 	public static final String PROTOCOL_VERSION = "5";
-	private static final String RPC_URL = "tuner.pandora.com/services/json/";
-	private static final String DEVICE_MODEL = "android-generic";
-	private static final String PARTNER_USERNAME = "android";
-	private static final String PARTNER_PASSWORD = "AC7IBG09A3DTSYM4R41UJWL07VLN8JI7";
-	private static final String DECRYPT_CIPHER = "R=U!LH$O2B#";
-	private static final String ENCRYPT_CIPHER = "6#26FRL$ZWD";
+	private static final String RPC_URL = "internal-tuner.pandora.com/services/json/";
+	private static final String DEVICE_MODEL = "D01";
+	private static final String PARTNER_USERNAME = "pandora one";
+	private static final String PARTNER_PASSWORD = "TVCKIBGS9AO9TSYLNNFUML0743LH82D";
+	private static final String DECRYPT_CIPHER = "U#IO$RZPAB%VX2";
+	private static final String ENCRYPT_CIPHER = "2%3WCL*JU$MP]4";
 	private static final String MIME_TYPE = "text/plain"; //This probably isn't important
 	//END API
 	
@@ -267,7 +267,7 @@ public class PandoraRadio {
 					//This has to be in the same order as the request.
 					audio_url_mappings.put(AAC_64, audio_urls.get(0));
 					audio_url_mappings.put(MP3_128, audio_urls.get(1));
-					audio_url_mappings.put(MP3_192, audio_urls.get(2));
+					//audio_url_mappings.put(MP3_192, audio_urls.get(2)); //No longer supported
 				}
 				songs.add(new Song(song_data, audio_url_mappings));				
 			}

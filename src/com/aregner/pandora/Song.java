@@ -73,6 +73,9 @@ public class Song {
 
 			audio_urls = audio_urls_in;
 			
+			//Our 192kbps audio is hiding!
+			audio_urls.put(PandoraRadio.MP3_192, (String) ((Map<String,Object>) ((Map<String,Object>) d.get("audioUrlMap")).get("highQuality")).get("audioUrl"));
+			
 			tired = false;
 			message = "";
 			startTime = null;
