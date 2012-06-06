@@ -32,6 +32,7 @@ import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.ImageView;
@@ -55,6 +56,8 @@ public class PandoroidPlayer extends SherlockActivity {
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		//Disable StrictMode for 3.0+
+		StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitAll().build());
 		setTheme(R.style.Theme_Sherlock);
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.player);
@@ -275,11 +278,13 @@ public class PandoroidPlayer extends SherlockActivity {
 	@Override
 	protected void onPause() {
 		super.onPause();
+		dismissWaiting();
 		// Another activity is taking focus (this activity is about to be "paused").
 	}
 
 	@Override
 	protected void onStop() {
 		super.onStop();
+		dismissWaiting();
 	}
 }

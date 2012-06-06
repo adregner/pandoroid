@@ -20,7 +20,6 @@ package com.aregner.android.pandoroid;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.actionbarsherlock.app.SherlockListActivity;
 import com.aregner.android.pandoroid.R;
 import com.aregner.pandora.Station;
 
@@ -28,6 +27,7 @@ import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -40,16 +40,16 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 
-public class PandoroidStationSelect extends SherlockListActivity {
+public class PandoroidStationSelect extends ListActivity {
 	private PandoraRadioService pandora;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		setTheme(R.style.Theme_Sherlock);
+		//Disable StrictMode for 3.0+
+		StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitAll().build());
 		super.onCreate(savedInstanceState);
 		
-		this.getSupportActionBar().setTitle(R.string.pickStation);
 		pandora = PandoraRadioService.getInstance(true);
 		ArrayList<Station> stations = pandora.getStations();
 
@@ -72,14 +72,12 @@ public class PandoroidStationSelect extends SherlockListActivity {
 		PandoroidPlayer.dismissWaiting();
 	}
 
-	/*
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getMenuInflater();
 		inflater.inflate(R.menu.player_menu, menu);
 		return true;
 	}
-	*/
 
 	private class StationListAdapter extends BaseAdapter {
 

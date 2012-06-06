@@ -28,9 +28,7 @@ import com.aregner.pandora.Song;
 import com.aregner.pandora.Station;
 
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.ProgressDialog;
 import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
@@ -55,7 +53,7 @@ public class PandoraRadioService extends Service {
 	private PandoraRadio pandora;
 	private MediaPlayer media;
 	
-	private NotificationManager notificationManager;
+	//private NotificationManager notificationManager;
 	private TelephonyManager telephonyManager;
 	private SharedPreferences prefs;
 	
@@ -110,7 +108,7 @@ public class PandoraRadioService extends Service {
 			pandora = new PandoraRadio();
 			media = new MediaPlayer();
 			
-			notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+			//notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 			telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 			prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 
@@ -241,7 +239,7 @@ public class PandoraRadioService extends Service {
 	
 		}
 		catch (Exception e){
-			e.getMessage();
+			Log.e("Pandoroid", "Exception fetching stations: ", e);
 		}
 
 		return stations;
@@ -273,7 +271,7 @@ public class PandoraRadioService extends Service {
 		media.setOnCompletionListener((OnCompletionListener)listeners.get(OnCompletionListener.class));
 		media.setOnPreparedListener((OnPreparedListener)listeners.get(OnPreparedListener.class));
 		try {
-			media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_192));
+			media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_128));
 		} catch (IllegalArgumentException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

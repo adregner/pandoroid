@@ -21,6 +21,8 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Vector;
 
+import android.util.Log;
+
 
 public class Station implements Comparable<Station>, Serializable {
 	private static final long serialVersionUID = 1L;
@@ -69,8 +71,7 @@ public class Station implements Comparable<Station>, Serializable {
 			currentPlaylist = list;
 		}
 		catch (Exception e){
-			e.getMessage();
-			e.getStackTrace();
+			Log.e("Pandoroid","Exception getting playlist",e);
 		}
 
 		return currentPlaylist;

@@ -50,6 +50,9 @@ import javax.crypto.spec.SecretKeySpec;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import android.os.StrictMode;
+import android.util.Log;
+
 /*
  * Description: Uses Pandora's JSON v5 API. Documentation of the JSON API
  * 	can be found here: http://pan-do-ra-api.wikia.com/wiki/Json/5 
@@ -89,6 +92,8 @@ public class PandoraRadio {
 
 	
 	public PandoraRadio() {
+		//Disable StrictMode for 3.0+
+		StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitAll().build());
 		
 		pandora_rpc = new RPC(RPC_URL, MIME_TYPE, USER_AGENT);
 		standard_url_params = new HashMap<String, String>();
@@ -110,7 +115,7 @@ public class PandoraRadio {
 			this.partnerLogin();
 		}
 		catch (Exception e){
-			e.getMessage();
+			Log.e("Pandoroid", "Exception logging in", e);
 		}		
 	}
 	
@@ -253,7 +258,7 @@ public class PandoraRadio {
 			//Order matters in this URL request. The same order given here is 
 			//the order received.
 			request_args.put("additionalAudioUrl", 
-					         AAC_64 + "," + MP3_128 + "," + MP3_192);
+					         AAC_64 + "," + MP3_128);
 			
 			JSONObject response = this.doCall("station.getPlaylist", request_args, 
 					                          true, true, null);
@@ -264,16 +269,19 @@ public class PandoraRadio {
 				Map<String, String> audio_url_mappings = new HashMap<String, String>();
 				if (song_data.get("additionalAudioUrl") instanceof Vector<?>){
 					Vector<String> audio_urls = (Vector<String>) song_data.get("additionalAudioUrl");
-					
+					for(String cur: audio_urls){
+						Log.v("Pandoroid","audio_urls: "+cur);
+					}
 					//This has to be in the same order as the request.
 					audio_url_mappings.put(AAC_64, audio_urls.get(0));
 					audio_url_mappings.put(MP3_128, audio_urls.get(1));
-					audio_url_mappings.put(MP3_192, audio_urls.get(2));
+					//audio_url_mappings.put(MP3_192, audio_urls.get(2));
 				}
 				songs.add(new Song(song_data, audio_url_mappings));				
 			}
 		}
 		catch(Exception e){
+			Log.e("Pandoroid","Exception getting playlist - throwing API change exception", e);
 			throw new Exception("API Change");
 		}
 		
