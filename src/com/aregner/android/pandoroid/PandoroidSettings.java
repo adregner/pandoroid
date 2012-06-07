@@ -21,7 +21,6 @@ import com.actionbarsherlock.app.SherlockPreferenceActivity;
 import com.aregner.android.pandoroid.R;
 
 import android.os.Bundle;
-import android.preference.PreferenceActivity;
 
 public class PandoroidSettings extends SherlockPreferenceActivity {
     /** Called when the activity is first created. */

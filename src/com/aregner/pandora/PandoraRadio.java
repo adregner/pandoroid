@@ -24,26 +24,15 @@ package com.aregner.pandora;
 
 //import java.io.Console; //Not supported by android's JVM - used for testing this class with java6 on PC/Mac
 
-import java.net.URLEncoder;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 import java.security.GeneralSecurityException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.Security;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
 
@@ -268,6 +257,7 @@ public class PandoraRadio {
 				Map<String, Object> song_data = JSONHelper.toMap(songs_returned.getJSONObject(i));
 				Map<String, String> audio_url_mappings = new HashMap<String, String>();
 				if (song_data.get("additionalAudioUrl") instanceof Vector<?>){
+					@SuppressWarnings("unchecked")
 					Vector<String> audio_urls = (Vector<String>) song_data.get("additionalAudioUrl");
 					for(String cur: audio_urls){
 						Log.v("Pandoroid","audio_urls: "+cur);

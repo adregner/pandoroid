@@ -20,9 +20,7 @@ package com.aregner.pandora;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.methods.HttpPost;
@@ -31,7 +29,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.json.JSONObject;
 
 /*
  * Description: This is the RPC client implementation for interfacing with 

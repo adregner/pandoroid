@@ -17,8 +17,6 @@
  */
 package com.aregner.android.pandoroid;
 
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -30,11 +28,9 @@ import com.aregner.pandora.Station;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
@@ -180,7 +176,6 @@ public class PandoraRadioService extends Service {
 			pandora.connect(username, password);
 		}
 		catch (Exception e){
-			e.getMessage();//Possibly rethrow or pass it along?
 			Log.e("Pandroroid","Exception logging in", e);
 		}
 	}
@@ -272,24 +267,13 @@ public class PandoraRadioService extends Service {
 		media.setOnPreparedListener((OnPreparedListener)listeners.get(OnPreparedListener.class));
 		try {
 			media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_128));
-		} catch (IllegalArgumentException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IllegalStateException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		} catch (Exception e) {
+			Log.e("Pandoroid","Exception getting audio", e);
 		}
 		try {
 			media.prepare();
-		} catch (IllegalStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (Exception e) {
+			Log.e("Pandoroid","Exception getting audio",e);
 		}
 	}
 	public Song play() {

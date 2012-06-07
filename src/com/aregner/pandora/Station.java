@@ -34,7 +34,7 @@ public class Station implements Comparable<Station>, Serializable {
 	private String name;
 
 	transient private Song[] currentPlaylist;
-	transient private boolean useQuickMix;
+	//transient private boolean useQuickMix;
 	transient private PandoraRadio pandora;
 
 	public Station(HashMap<String, Object> d, PandoraRadio instance) {
@@ -45,7 +45,7 @@ public class Station implements Comparable<Station>, Serializable {
 		name = (String) d.get("stationName");
 
 		pandora = instance;
-		useQuickMix = false;
+		//useQuickMix = false;
 	}
 	
 	public Song[] getPlaylist(boolean forceDownload) {
@@ -61,7 +61,6 @@ public class Station implements Comparable<Station>, Serializable {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public Song[] getPlaylist() {		
 		
 		try{

@@ -17,11 +17,9 @@
  */
 package com.aregner.pandora;
 
-import java.security.GeneralSecurityException;
-import java.util.HashMap;
 import java.util.Map;
 
-import javax.crypto.BadPaddingException;
+import android.util.Log;
 
 public class Song {
 	private String album;
@@ -79,7 +77,7 @@ public class Song {
 			finished = false;
 			playlistTime = System.currentTimeMillis() / 1000L;
 		} catch(RuntimeException ex) {
-			ex.printStackTrace();
+			Log.e("Pandoroid","Runtime exception with song", ex);
 			return;
 		} //catch (BadPaddingException e) {
 //			e.printStackTrace();
