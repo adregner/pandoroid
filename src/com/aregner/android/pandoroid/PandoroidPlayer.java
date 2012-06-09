@@ -89,7 +89,7 @@ public class PandoroidPlayer extends SherlockActivity {
 		sub.add(0, R.id.menu_logout, Menu.NONE, R.string.menu_logout);
 		
 		MenuItem subMenu = sub.getItem();
-		subMenu.setIcon(R.drawable.menu_land);
+		subMenu.setIcon(R.drawable.ic_sysbar_menu);
 		subMenu.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
 		return super.onCreateOptionsMenu(menu);
 	}
@@ -113,7 +113,7 @@ public class PandoroidPlayer extends SherlockActivity {
 	}
 
 	protected void updateForNewSong(Song song) {
-		this.getSupportActionBar().setTitle(String.format(song.getTitle()));
+		this.getSupportActionBar().setTitle(String.format(""+song.getTitle()));
 		TextView top = (TextView) findViewById(R.id.player_topText);
 		//TextView bottom = (TextView) findViewById(R.id.player_bottomText);
 		ImageView image = (ImageView) findViewById(R.id.player_image);

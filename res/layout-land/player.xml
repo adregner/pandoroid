@@ -50,46 +50,33 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:gravity="center|right" >
-
+        
         <ImageView
-            android:id="@+id/player_ban"
-            android:src="@drawable/thumb_down_button"
+            android:id="@+id/player_next"
+            android:src="@drawable/ic_menu_forward"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="controlButtonPressed"
+            android:padding="10dip"
+            android:width="75dip" >
+        </ImageView>
+        
+        <ImageView
+            android:id="@+id/player_pause"
+            android:src="@drawable/ic_menu_play_clip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="controlButtonPressed"
+            android:layout_alignLeft="@+id/player_next"
+            android:layout_alignRight="@+id/player_next"
+            android:layout_below="@+id/player_next"
             android:padding="10dip"
             android:width="75dip" >
         </ImageView>
 
         <ImageView
             android:id="@+id/player_love"
-            android:src="@drawable/thumb_up_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignRight="@+id/player_ban"
-            android:layout_alignLeft="@+id/player_ban"
-            android:layout_below="@+id/player_ban"
-            android:onClick="controlButtonPressed"
-            android:padding="10dip"
-            android:width="75dip" >
-        </ImageView>
-
-        <ImageView
-            android:id="@+id/player_pause"
-            android:src="@drawable/play_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignLeft="@+id/player_love"
-            android:layout_alignRight="@+id/player_love"
-            android:layout_below="@+id/player_love"
-            android:onClick="controlButtonPressed"
-            android:padding="10dip"
-            android:width="75dip" >
-        </ImageView>
-
-        <ImageView
-            android:id="@+id/player_next"
-            android:src="@drawable/skip_button"
+            android:src="@drawable/ic_menu_star"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignLeft="@+id/player_pause"
@@ -99,6 +86,20 @@
             android:padding="10dip"
             android:width="75dip" >
         </ImageView>
+        
+        <ImageView
+            android:id="@+id/player_ban"
+            android:src="@drawable/ic_menu_block"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="controlButtonPressed"
+            android:layout_alignLeft="@+id/player_love"
+            android:layout_alignRight="@+id/player_love"
+            android:layout_below="@+id/player_love"
+            android:padding="10dip"
+            android:width="75dip" >
+        </ImageView>
+        
     </RelativeLayout>
 
 </RelativeLayout>
