@@ -15,10 +15,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.aregner.android.pandoroid;
+package com.tortel.android.pandoroid;
 
 import com.actionbarsherlock.app.SherlockPreferenceActivity;
-import com.aregner.android.pandoroid.R;
+import com.tortel.android.pandoroid.R;
 
 import android.os.Bundle;
 

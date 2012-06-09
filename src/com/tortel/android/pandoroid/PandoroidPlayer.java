@@ -15,14 +15,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.aregner.android.pandoroid;
+package com.tortel.android.pandoroid;
 
 import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuItem;
 import com.actionbarsherlock.view.SubMenu;
-import com.aregner.android.pandoroid.R;
-import com.aregner.pandora.Song;
+import com.tortel.android.pandoroid.R;
+import com.tortel.pandora.Song;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
