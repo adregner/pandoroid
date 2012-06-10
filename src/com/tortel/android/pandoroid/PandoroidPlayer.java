@@ -87,6 +87,7 @@ public class PandoroidPlayer extends SherlockActivity {
 		sub.add(0, R.id.menu_stations, Menu.NONE, R.string.menu_stations);
 		sub.add(0, R.id.menu_settings, Menu.NONE, R.string.menu_settings);
 		sub.add(0, R.id.menu_logout, Menu.NONE, R.string.menu_logout);
+		sub.add(0, R.id.menu_about, Menu.NONE, R.string.menu_about);
 		
 		MenuItem subMenu = sub.getItem();
 		subMenu.setIcon(R.drawable.ic_sysbar_menu);
@@ -180,6 +181,10 @@ public class PandoroidPlayer extends SherlockActivity {
 		case R.id.menu_settings:
 			startActivity(new Intent(getApplicationContext(), PandoroidSettings.class));
 			return true;
+		
+		case R.id.menu_about:
+			startActivity(new Intent(getApplicationContext(), AboutDialog.class));
+			return true;
 
 		default:
 			return super.onOptionsItemSelected(item);
@@ -209,7 +214,7 @@ public class PandoroidPlayer extends SherlockActivity {
 			} catch(Exception ex) {
 				ex.printStackTrace();
 			}
-			return pandora.isAlive();
+			return pandora != null && pandora.isAlive();
 		}
 
 		@Override

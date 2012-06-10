@@ -19,4 +19,10 @@
     <string name="menu_stations">Stations</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_logout">Logout</string>
+    <string name="menu_about">About</string>
+    
+    <!-- About Dialog Text -->
+    <string name="about">Pandoroid is an open-sourced Pandora client started by Andrew Regner. It is lisenced under the GPL, version 2+.\n
+This version contains updates by Dylan Powers (JSON Pandora API), and Scott Warner (Visual overhaul).\n
+You can view the source at GitHub (github.com/Tortel/pandoroid).</string>
 </resources>

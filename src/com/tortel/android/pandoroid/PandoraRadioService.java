@@ -81,7 +81,7 @@ public class PandoraRadioService extends Service {
 				try {
 					Thread.sleep(50);
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					Log.e("Pandoroid", "RadioService exception Sleeping", e);
 				}
 			}
 		}
