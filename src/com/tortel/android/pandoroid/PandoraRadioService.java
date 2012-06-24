@@ -171,14 +171,19 @@ public class PandoraRadioService extends Service {
 	}
 
 	/** methods for clients */
-	public void signIn(String username, String password) {
+	public boolean signIn(String username, String password) {
+		boolean toRet = false;
 		try{
-			pandora.connect(username, password);
+			toRet = pandora.connect(username, password);
 		}
 		catch (Exception e){
 			Log.e("Pandroroid","Exception logging in", e);
+			toRet = false;
 		}
+		
+		return toRet;
 	}
+	
 	public void signOut() {
 		if(media != null) {
 			if(isPlaying())
@@ -220,7 +225,6 @@ public class PandoraRadioService extends Service {
 		
 		try{
 			stations = pandora.getStations();
-		
 
 			(new AsyncTask<ArrayList<Station>, Void, Void>() {
 				@Override
@@ -239,10 +243,12 @@ public class PandoraRadioService extends Service {
 
 		return stations;
 	}
-	public void setCurrentStationId(long sid) {
-		if(sid < 0) return;
+	public boolean setCurrentStationId(long sid) {
+		if(sid < 0) return false;
 		currentStation = pandora.getStationById(sid);
+		return currentStation != null;
 	}
+	
 	public Station getCurrentStation() {
 		return currentStation;
 	}

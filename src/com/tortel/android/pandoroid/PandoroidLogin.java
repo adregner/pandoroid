@@ -20,14 +20,22 @@ package com.tortel.android.pandoroid;
 import com.actionbarsherlock.app.SherlockActivity;
 import com.tortel.android.pandoroid.R;
 
+import android.app.ProgressDialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 public class PandoroidLogin extends SherlockActivity {
+	private SharedPreferences prefs;
+	private PandoraRadioService pandora;
+	private static ProgressDialog waiting;
 
 	/** Called when the activity is first created. */
 	@Override
@@ -36,10 +44,22 @@ public class PandoroidLogin extends SherlockActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.login);
 		
-		//Set the username
+		prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+		//pandora = PandoraRadioService.getInstance(true);
+		
+		String username = prefs.getString("pandora_username", null);
+		String password = prefs.getString("pandora_password", null);
+		
+		
+		
+		//Set the username and/or login
 		EditText user = (EditText)findViewById(R.id.login_username);
-		user.setText(PreferenceManager.getDefaultSharedPreferences(getBaseContext()).getString("pandora_username", ""));
-
+		if(username != null){
+			user.setText(username);
+			if(password != null){
+				new LoginTask().execute();
+			}
+		}
 		this.getSupportActionBar().setTitle(R.string.signin_welcome);
 		((Button)findViewById(R.id.login_button)).setOnClickListener(new OnClickListener() {
 			public void onClick(View viewParam) {
@@ -48,34 +68,54 @@ public class PandoroidLogin extends SherlockActivity {
 
 				// this just catches the error if the program cant locate the GUI stuff
 				if(sUserName != null && sPassword != null && sUserName.length() > 1 && sPassword.length() > 1) {
-					boolean success = PreferenceManager.getDefaultSharedPreferences(getBaseContext()).edit()
+					boolean success = prefs.edit()
 						.putString("pandora_username", sUserName)
 						.putString("pandora_password", sPassword)
 						.commit();
 
 					if(success) {
-						setResult(RESULT_OK);
-						finish();
-						//finishActivityFromChild(child, PandoidPlayer.REQUIRE_LOGIN_CREDS);
-						//finishActivity(PandoroidPlayer.REQUIRE_LOGIN_CREDS);
+						new LoginTask().execute();
 					}
 				}
 			}
 		});
 	}
 
-	/*
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.player_menu, menu);
-		return true;
-	}
-	*/
-
 	@Override
 	protected void onResume() {
 		super.onResume();
-		PandoroidPlayer.dismissWaiting();
+	}
+	
+	private class LoginTask extends AsyncTask<String, Void, Boolean>{
+
+		protected void onPreExecute(){
+			waiting = ProgressDialog.show(PandoroidLogin.this, "",  getString(R.string.signing_in));
+		}
+		
+		@Override
+		protected Boolean doInBackground(String... params) {
+			String username = prefs.getString("pandora_username", null);
+			String password = prefs.getString("pandora_password", null);
+			if(pandora == null){
+				PandoraRadioService.createPandoraRadioService(getBaseContext());
+				pandora = PandoraRadioService.getInstance(true);
+			}
+			if(username == null || password == null){
+				return false;
+			}
+			return pandora != null && pandora.signIn(username, password);
+		}
+		
+		@Override
+		protected void onPostExecute(Boolean result){
+			waiting.dismiss();
+			if(result.booleanValue()){
+				//Start the PandoroidPlayer activity
+				startActivity(new Intent(PandoroidLogin.this, PandoroidPlayer.class));
+			} else {
+				Toast.makeText(PandoroidLogin.this, R.string.signin_failed, 2000).show();
+			}
+		}
+		
 	}
 }

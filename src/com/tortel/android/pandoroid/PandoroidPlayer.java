@@ -62,22 +62,19 @@ public class PandoroidPlayer extends SherlockActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.player);
 
-		if(PandoraRadioService.getInstance(false) == null) {
-			// handle for the preferences for us to use everywhere
-			prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-
-			// look for what we need to continue with pandora auth
-			String username = prefs.getString("pandora_username", null);
-			String password = prefs.getString("pandora_password", null);
-
-			if(username == null || password == null) {
-				// bring them to the login screen so they can enter what we need
-				startActivityForResult(new Intent(getApplicationContext(), PandoroidLogin.class), REQUIRE_LOGIN_CREDS);
+		pandora = PandoraRadioService.getInstance(false);
+		prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		
+		//Check for the last played station
+		long lastStationId = prefs.getLong("lastStationId", -1);
+		if(!pandora.isPlaying() && !pandora.isPlayable()){
+			if(!pandora.setCurrentStationId(lastStationId)){
+				//Get a station
+				startActivityForResult(new Intent(getApplicationContext(), PandoroidStationSelect.class), REQUIRE_SELECT_STATION);
+			} else {
+				//Set the station, and start playing
+				new PlayStationTask().execute();
 			}
-		}
-		else {
-			pandora = PandoraRadioService.getInstance(false);
-			updateForNewSong(pandora.getCurrentSong());
 		}
 	}
 
@@ -196,50 +193,23 @@ public class PandoroidPlayer extends SherlockActivity {
 	private class InitialSetupTask extends AsyncTask<Void, Void, Boolean> {
 		@Override
 		protected void onPreExecute() {
-			waiting = ProgressDialog.show(PandoroidPlayer.this, "",  getString(R.string.signing_in));
 		}
 
 		@Override
 		protected Boolean doInBackground(Void... arg) {
-			PandoraRadioService.createPandoraRadioService(getApplicationContext());
-			pandora = PandoraRadioService.getInstance(true);
-			
-			String username = prefs.getString("pandora_username", null);
-			String password = prefs.getString("pandora_password", null);
-			
-			try {
-				if (username != null && password != null){
-					pandora.signIn(username, password);
-				}
-			} catch(Exception ex) {
-				ex.printStackTrace();
-			}
-			return pandora != null && pandora.isAlive();
+			return true;
 		}
 
 		@Override
 		protected void onPostExecute(Boolean result) {
-
-			dismissWaiting();
-
-			if(result.booleanValue()) {
-
-				if(!pandora.isPlaying()) {
-
-					if(pandora.isPlayable()) {
-						// play it or resume playback or something smart like that
-						(new PlayStationTask()).execute();
-					}
-					else {
-						// ask them to select a station
-						startActivityForResult(new Intent(getApplicationContext(), PandoroidStationSelect.class), REQUIRE_SELECT_STATION);
-					}
+			if(!pandora.isPlaying()) {
+				if(pandora.isPlayable()) {
+					// play it or resume playback or something smart like that
+					(new PlayStationTask()).execute();
+				} else {
+					// ask them to select a station
+					startActivityForResult(new Intent(getApplicationContext(), PandoroidStationSelect.class), REQUIRE_SELECT_STATION);
 				}
-			}
-			else {
-				// failed to sign in for some reason
-				Toast.makeText(getApplicationContext(), getString(R.string.signin_failed), Toast.LENGTH_SHORT).show();
-				startActivityForResult(new Intent(getApplicationContext(), PandoroidLogin.class), REQUIRE_LOGIN_CREDS);
 			}
 		}
 	}
@@ -248,7 +218,7 @@ public class PandoroidPlayer extends SherlockActivity {
 	private class PlayStationTask extends AsyncTask<Void, Void, Void> {
 		@Override
 		protected void onPreExecute() {
-			waiting = ProgressDialog.show(PandoroidPlayer.this, "",  getString(R.string.loading, pandora.getCurrentStation().getName()));
+			waiting = ProgressDialog.show(PandoroidPlayer.this, "",  getString(R.string.loading));
 		}
 
 		@Override

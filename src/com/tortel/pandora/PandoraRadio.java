@@ -42,7 +42,7 @@ import org.json.JSONObject;
 import android.os.StrictMode;
 import android.util.Log;
 
-/*
+/**
  * Description: Uses Pandora's JSON v5 API. Documentation of the JSON API
  * 	can be found here: http://pan-do-ra-api.wikia.com/wiki/Json/5 
  */
@@ -108,7 +108,7 @@ public class PandoraRadio {
 		}		
 	}
 	
-	/*
+	/**
 	 * Description: Disabled
 	 */
 	public void bookmarkArtist(Station station, Song song) {
@@ -118,7 +118,7 @@ public class PandoraRadio {
 		//doCall("station.createArtistBookmark", args, null);
 	}
 	
-	/*
+	/**
 	 * Description: Disabled
 	 */
 	public void bookmarkSong(Station station, Song song) {
@@ -138,10 +138,10 @@ public class PandoraRadio {
 				         - this.sync_obtained_time));
 	}
 	
-	/*
-	 * Description: Logs a user in.
+	/**
+	 * Logs a user in.
 	 */
-	public void connect(String user, String password) throws Exception {
+	public boolean connect(String user, String password) throws Exception {
 		this.partnerLogin();
 		
 		Map<String, Object> request_args = new HashMap<String, Object>();
@@ -159,10 +159,11 @@ public class PandoraRadio {
 		this.user_auth_token = result.getString("userAuthToken");
 		this.standard_url_params.put("auth_token", user_auth_token);
 		this.standard_url_params.put("user_id", result.getString("userId"));
+		return user_auth_token != null;
 	}
 	
-	/*
-	 * Description: Effectively logs a user off.
+	/**
+	 * Effectively logs a user off.
 	 */
 	public void disconnect() {
 		this.standard_url_params.remove("user_id");
@@ -173,7 +174,7 @@ public class PandoraRadio {
 		}
 	}
 	
-	/*
+	/**
 	 * Description: Here we are making our remote procedure call specifically
 	 * 	using Pandora's JSON protocol. This will return a JSONObject holding
 	 * 	the contents of the results key in the response. If an error occurs
@@ -234,7 +235,7 @@ public class PandoraRadio {
 		return response.getJSONObject("result"); //Exception thrown if nonexistent
 	}
 	
-	/*
+	/**
 	 * Description: Gets a list of songs to be played.
 	 */
 	public Vector<Song> getPlaylist(String station_token) throws Exception{
@@ -278,7 +279,7 @@ public class PandoraRadio {
 		return songs;
 	}
 	
-	/*
+	/**
 	 * Description: <to be filled>
 	 */
 	public Station getStationById(long sid) {
@@ -294,7 +295,7 @@ public class PandoraRadio {
 	}
 	
 	
-	/*
+	/**
 	 * Description: Retrieves the available stations, saves them to a 
 	 * 	PandoraRadio member variable, and returns them.
 	 */
@@ -323,7 +324,7 @@ public class PandoraRadio {
 	}
 	
 
-	/*
+	/**
 	 * Description: Self explanatory function that converts from a hex string
 	 * 	to a plain string. One complicated portion of this to mention is that
 	 *  String types can do something rather odd when conversions are made
@@ -340,7 +341,7 @@ public class PandoraRadio {
 		return raw;
 	}
 	
-	/*
+	/**
 	 * Description: I had to look far and wide to find this implementation.
 	 * 	Java's builtin Integer.toHexString() function is absolutely atrocious.
 	 *  A person can't depend on it for any kind of formatting predictability.
@@ -364,7 +365,7 @@ public class PandoraRadio {
 	
 
 	
-	/*
+	/**
 	 * Description: This takes a Blowfish encrypted, hexadecimal string, and 
 	 *  decrypts it to a plain string form.
 	 */
@@ -377,7 +378,7 @@ public class PandoraRadio {
 	}
 	
 	
-	/*
+	/**
 	 * Description: This function encrypts a string using a Blowfish cipher, 
 	 * 	and returns	the hexadecimal representation of the encryption.
 	 */
@@ -399,7 +400,7 @@ public class PandoraRadio {
 	}
 
 
-	/*
+	/**
 	 * Description: This is the authorization for the app itself.
 	 */
 	private void partnerLogin() throws Exception{
@@ -419,7 +420,7 @@ public class PandoraRadio {
 		standard_url_params.put("auth_token", partner_auth_token);
 	}
 
-	/*
+	/**
 	 * Description: Disabled
 	 */
 	public void rate(Station station, Song song, boolean rating) {
@@ -453,7 +454,7 @@ public class PandoraRadio {
 		this.sync_obtained_time = System.currentTimeMillis() / 1000L; 
 	}
 	
-	/*
+	/**
 	 * Description: Disabled
 	 */
 	public void tired(Station station, Song song) {

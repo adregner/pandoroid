@@ -24,13 +24,15 @@ import com.tortel.android.pandoroid.R;
 import com.tortel.pandora.Station;
 
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.StrictMode;
+import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -41,40 +43,64 @@ import android.widget.AdapterView.OnItemClickListener;
 
 public class PandoroidStationSelect extends ListActivity {
 	private PandoraRadioService pandora;
+	private static ProgressDialog waiting;
+	private SharedPreferences prefs;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		//Disable StrictMode for 3.0+
-		StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitAll().build());
+		//StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitAll().build());
 		super.onCreate(savedInstanceState);
-		
-		pandora = PandoraRadioService.getInstance(true);
-		ArrayList<Station> stations = pandora.getStations();
-
-		ListView lv = getListView();
-		setListAdapter(new StationListAdapter(stations, this));
-		lv.setTextFilterEnabled(true);
-		lv.setOnItemClickListener(new OnItemClickListener() {
-			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-				//Station station = PandoraRadioService.getInstance(false).getStations().get(position);
-				setResult(RESULT_OK, (new Intent()).putExtra("stationId", id));
-				finish();
-				finishActivity(PandoroidPlayer.REQUIRE_SELECT_STATION);
-			}
-		});
+		prefs = PreferenceManager.getDefaultSharedPreferences(PandoroidStationSelect.this);
+		new StationFetcher().execute();
 	}
-
+	
+	/**
+	 * Task to get and fill the list
+	 */
+	private class StationFetcher extends AsyncTask<Void, Void, ArrayList<Station>>{
+		@Override
+		protected void onPreExecute(){
+			waiting = ProgressDialog.show(PandoroidStationSelect.this, "",  getString(R.string.loading));
+		}
+		
+		
+		@Override
+		protected ArrayList<Station> doInBackground(Void... params) {
+			pandora = PandoraRadioService.getInstance(true);
+			return pandora.getStations();
+		}
+		
+		@Override
+		protected void onPostExecute(ArrayList<Station> stations){
+			ListView lv = getListView();
+			setListAdapter(new StationListAdapter(stations, PandoroidStationSelect.this));
+			lv.setTextFilterEnabled(true);
+			lv.setOnItemClickListener(new OnItemClickListener() {
+				public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+					//Store it in the prefs
+					prefs.edit().putLong("lastStationId", id).apply();
+					setResult(RESULT_OK, (new Intent()).putExtra("stationId", id));
+					finish();
+					finishActivity(PandoroidPlayer.REQUIRE_SELECT_STATION);
+				}
+			});
+			waiting.dismiss();
+		}
+		
+	}
+	
+	
 	@Override
 	protected void onResume() {
 		super.onResume();
-		PandoroidPlayer.dismissWaiting();
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.player_menu, menu);
+		//MenuInflater inflater = getMenuInflater();
+		//inflater.inflate(R.menu.player_menu, menu);
 		return true;
 	}
 
