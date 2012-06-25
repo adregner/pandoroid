@@ -32,7 +32,6 @@ import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.ImageView;
@@ -100,11 +99,25 @@ public class PandoroidPlayer extends SherlockActivity {
 		super.onResume();
 		// The activity has become visible (it is now "resumed").
 		//TODO: Need to re-implement. It should check that the pandora service is started, or start it if needed
+		if(pandora.isPlaying()){
+			updateForNewSong(pandora.getCurrentSong());
+		} else if(pandora.isPlayable()){
+			try{
+			Song tmp = pandora.getCurrentSong();
+			if(tmp != null)
+				updateForNewSong(tmp);
+			} catch(Exception ex){
+				//Uh-oh, null pointer. Its not ready yet!
+				//TODO: Need a better way to handle this :/
+			}
+		}
 	}
 
 	protected void updateForNewSong(Song song) {
 		if(song == null){
 			Toast.makeText(this, R.string.retry, 2000).show();
+			new NextSongTask().execute();
+			return;
 		}
 		this.getSupportActionBar().setTitle(String.format(""+song.getTitle()));
 		TextView top = (TextView) findViewById(R.id.player_topText);

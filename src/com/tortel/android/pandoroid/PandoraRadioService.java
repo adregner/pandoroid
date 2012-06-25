@@ -255,6 +255,9 @@ public class PandoraRadioService extends Service {
 	public Song getCurrentSong() {
 		return currentPlaylist[currentSongIndex];
 	}
+	/**
+	 * True if the service has been initialized, and has a station
+	 */
 	public boolean isPlayable() {
 		return currentStation != null && pandora.isAlive();
 	}
