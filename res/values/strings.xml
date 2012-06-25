@@ -25,4 +25,16 @@
     <string name="about">Pandoroid is an open-sourced Pandora client started by Andrew Regner. It is licensed under the GPL, version 2+.\n
 This version contains updates by Dylan Powers (JSON Pandora API), and Scott Warner (Visual overhaul).\n
 You can view the source at GitHub (github.com/Tortel/pandoroid).</string>
+	
+    <!-- Preference Screen Strings -->
+    <string name="behavior">Behavior</string>
+    <string name="account">Account Setup</string>
+    <string name="username_title">Pandora.com account name</string>
+    <string name="username_desc">Email address (or other username) used for pandora.com</string>
+    <string name="password_title">Pandora.com password</string>
+    <string name="password_desc">Password for your pandora.com account</string>
+    <string name="skip_title">Next track on ban</string>
+    <string name="skip_desc">Skip to the next song when you "thumb down" a song.</string>
+    <string name="resume_title">Resume on Hangup</string>
+    <string name="resume_desc">Resume playback automatically when a call is ended.</string>
 </resources>
