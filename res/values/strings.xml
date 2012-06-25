@@ -6,6 +6,7 @@
     <string name="loading">Loading&#8230;</string>
     <string name="baned_song">Buzz-kill&#8230;</string>
     <string name="loved_song">Rock on!</string>
+    <string name="retry">Error getting song, retrying&#8230;</string>
     
     <!-- Login Screen Strings -->
     <string name="signin_welcome">Welcome to Pandoroid Radio</string>
