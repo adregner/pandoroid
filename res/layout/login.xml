@@ -9,58 +9,66 @@
  Notes: The username_text is the written text and the txt_username is the textbox. Same goes for the password
                 You are free to distribute, modify, and wreck for all I care. GPL ya!
 -->
- 
-<RelativeLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-   android:orientation="horizontal"
-   android:layout_width="fill_parent"
-   android:layout_height="fill_parent"
-   >
-   
-    <TextView 
-        android:text = "Welcome to Pandoroid Radio"           
-        android:layout_width="wrap_content" android:paddingTop="20dip"
-                android:layout_height="wrap_content"
-                android:layout_centerHorizontal="true"
-        android:id="@+id/login_welcome"/>
-       
-    <TextView 
-        android:text = "username:"  android:paddingTop="14dip"
-        android:layout_centerHorizontal="true"  
+ <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="horizontal" >
+
+    <TextView
+        android:id="@+id/login_welcome"
         android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/login_welcome"
-        android:id="@+id/login_txtUsername"/>
-   
-    <EditText 
-             android:layout_height="wrap_content"
-             android:layout_width="250px"
-             android:layout_centerHorizontal="true"
-             android:layout_below="@+id/login_txtUsername"
-             android:singleLine="true" android:id="@+id/login_username"/>
-             
-             
-    <TextView 
-        android:text = "password:"  android:paddingTop="14dip"
-        android:layout_centerHorizontal="true"  
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:paddingTop="20dip"
+        android:visibility="invisible"
+        android:text="@string/signin_welcome" />
+
+    <TextView
+        android:id="@+id/login_txtUsername"
         android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/login_username"
-        android:id="@+id/login_txtPassword"/>
-   
-    <EditText 
-                  android:password="true"
-             android:layout_height="wrap_content"
-             android:layout_width="250px" 
-             android:layout_centerHorizontal="true"
-             android:layout_below="@+id/login_txtPassword"
-             android:singleLine="true" android:id="@+id/login_password"/>
-   
-        <Button 
-        		android:text="Login" android:layout_width="110px" 
-                android:layout_height="wrap_content"
-                android:layout_centerHorizontal="true"
-                android:layout_below="@+id/login_password"
-                android:id="@+id/login_button" android:paddingTop="14dip"/>
-               
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/login_welcome"
+        android:layout_centerHorizontal="true"
+        android:paddingTop="14dip"
+        android:text="@string/signin_username" />
+
+    <EditText
+        android:inputType="textEmailAddress"
+        android:id="@+id/login_username"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/login_txtUsername"
+        android:layout_centerHorizontal="true"
+        android:singleLine="true" />
+
+    <TextView
+        android:id="@+id/login_txtPassword"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/login_username"
+        android:layout_centerHorizontal="true"
+        android:paddingTop="14dip"
+        android:text="@string/signin_password" />
+
+    <EditText
+        android:id="@+id/login_password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/login_txtPassword"
+        android:layout_centerHorizontal="true"
+        android:inputType="textPassword"
+        android:singleLine="true" />
+
+    <Button
+        android:id="@+id/login_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/login_password"
+        android:layout_centerHorizontal="true"
+        android:paddingTop="14dip"
+        android:paddingBottom="14dip"
+        android:paddingLeft="40dip"
+        android:paddingRight="40dip"
+        android:text="@string/signin_login" />
+
 </RelativeLayout>

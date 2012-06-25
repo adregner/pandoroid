@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="com.aregner.android.pandoroid"
-      android:versionCode="3" android:versionName="0.3">
-    <uses-sdk android:minSdkVersion="8" />
+      package="com.tortel.android.pandoroid"
+      android:versionCode="4" android:versionName="0.4a">
+    <uses-sdk android:minSdkVersion="10" android:targetSdkVersion="14" />
     <uses-permission android:name="android.permission.INTERNET"></uses-permission>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
 
     <application android:icon="@drawable/icon" android:label="@string/app_name">
-        <activity android:name="com.aregner.android.pandoroid.PandoroidPlayer" android:label="@string/app_name" android:clearTaskOnLaunch="true">
-            <intent-filter>
+                <activity android:name="com.tortel.android.pandoroid.PandoroidLogin" android:label="@string/app_name" android:noHistory="true">
+             <intent-filter>
                 <action android:name="android.intent.action.MAIN"></action>
                 <category android:name="android.intent.category.LAUNCHER"></category>
             </intent-filter>
         </activity>
-        <activity android:name="com.aregner.android.pandoroid.PandoroidStationSelect" android:noHistory="true"></activity>
-        <activity android:name="com.aregner.android.pandoroid.PandoroidSettings" android:noHistory="true"></activity>
-        <service android:name="com.aregner.android.pandoroid.PandoraRadioService" android:enabled="true" android:exported="false"></service>
-        <activity android:name="com.aregner.android.pandoroid.PandoroidLogin" android:noHistory="true"></activity>
-
+        <activity android:name="com.tortel.android.pandoroid.PandoroidPlayer" android:label="@string/app_name" android:clearTaskOnLaunch="true"></activity>
+        <activity android:name="com.tortel.android.pandoroid.PandoroidStationSelect" android:noHistory="true"></activity>
+        <activity android:name="com.tortel.android.pandoroid.PandoroidSettings" android:noHistory="true"></activity>
+        <service android:name="com.tortel.android.pandoroid.PandoraRadioService" android:enabled="true" android:exported="false"></service>
+        <activity android:name="com.tortel.android.pandoroid.AboutDialog" android:theme="@style/Theme.Sherlock.Dialog"></activity>
     </application>
 </manifest>

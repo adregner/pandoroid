@@ -17,18 +17,12 @@
 <!-- This is a primitive example showing the different types of preferences available. -->
 <PreferenceScreen
         xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <PreferenceCategory android:title="Account Setup"><EditTextPreference android:title="Pandora.com account name" android:dialogTitle="Pandora.com email address" android:key="pandora_username" android:summary="Email address (or other username) used for pandora.com."/><EditTextPreference android:title="Pandora.com password" android:dialogTitle="Pandora.com password" android:key="pandora_password" android:password="true" android:summary="Password for your pandora.com account."/>
-
+    <PreferenceCategory android:title="@string/account">
+        <EditTextPreference android:title="@string/username_title" android:dialogTitle="@string/username_title" android:key="pandora_username" android:summary="@string/username_desc"/>
+        <EditTextPreference android:title="@string/password_title" android:dialogTitle="@string/password_title" android:key="pandora_password" android:password="true" android:summary="@string/password_desc"/>
     </PreferenceCategory>
-    <PreferenceCategory android:title="Audio">
-        <ListPreference android:key="pandora_audioFormat" android:title="Audio Format" android:summary="Audio encoding format to request from the Pandora service." android:entryValues="@array/pandora_audioFormat_values" android:entries="@array/pandora_audioFormat_text" android:defaultValue="aacplus"></ListPreference>
-    </PreferenceCategory><PreferenceCategory android:title="Behavior">
-        <CheckBoxPreference android:key="behave_nextOnBan" android:summary='Skip to the next song when you "thumb down" a song.' android:title="Next track on ban" android:defaultValue="true"></CheckBoxPreference>
-        <CheckBoxPreference android:key="behave_resumeOnHangup" android:summary="Resume playback automatically when a call is ended." android:title="Resume on Hangup" android:defaultValue="true"></CheckBoxPreference>
-        
+    <PreferenceCategory android:title="@string/behavior">
+        <CheckBoxPreference android:key="behave_nextOnBan" android:summary="@string/skip_desc" android:title="@string/skip_title" android:defaultValue="true"></CheckBoxPreference>
+        <CheckBoxPreference android:key="behave_resumeOnHangup" android:summary="@string/resume_desc" android:title="@string/resume_title" android:defaultValue="true"></CheckBoxPreference>    
     </PreferenceCategory>
-                
-    
-    
 </PreferenceScreen>
