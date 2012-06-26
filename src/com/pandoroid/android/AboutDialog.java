@@ -16,11 +16,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.tortel.android.pandoroid;
+package com.pandoroid.android;
 
 import android.os.Bundle;
 import android.widget.TextView;
 import com.actionbarsherlock.app.SherlockActivity;
+import com.pandoroid.android.R;
 
 public class AboutDialog extends SherlockActivity {
 

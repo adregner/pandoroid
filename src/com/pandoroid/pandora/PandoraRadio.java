@@ -20,7 +20,7 @@
  * with Pandora Radio.  Other then the XmlRpc class which is based on the android
  * library, this class should run in any Java VM.
  */
-package com.tortel.pandora;
+package com.pandoroid.pandora;
 
 //import java.io.Console; //Not supported by android's JVM - used for testing this class with java6 on PC/Mac
 

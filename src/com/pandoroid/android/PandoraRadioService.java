@@ -15,15 +15,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.tortel.android.pandoroid;
+package com.pandoroid.android;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.tortel.android.pandoroid.R;
-import com.tortel.pandora.PandoraRadio;
-import com.tortel.pandora.Song;
-import com.tortel.pandora.Station;
+import com.pandoroid.pandora.PandoraRadio;
+import com.pandoroid.pandora.Song;
+import com.pandoroid.pandora.Station;
+import com.pandoroid.android.R;
 
 import android.app.Notification;
 import android.app.PendingIntent;
