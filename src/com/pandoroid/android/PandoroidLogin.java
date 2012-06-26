@@ -15,10 +15,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.tortel.android.pandoroid;
+package com.pandoroid.android;
 
 import com.actionbarsherlock.app.SherlockActivity;
-import com.tortel.android.pandoroid.R;
+import com.pandoroid.android.R;
 
 import android.app.ProgressDialog;
 import android.content.Intent;

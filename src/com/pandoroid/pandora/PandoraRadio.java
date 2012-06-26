@@ -20,7 +20,7 @@
  * with Pandora Radio.  Other then the XmlRpc class which is based on the android
  * library, this class should run in any Java VM.
  */
-package com.tortel.pandora;
+package com.pandoroid.pandora;
 
 //import java.io.Console; //Not supported by android's JVM - used for testing this class with java6 on PC/Mac
 
@@ -39,7 +39,6 @@ import javax.crypto.spec.SecretKeySpec;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import android.os.StrictMode;
 import android.util.Log;
 
 /**
@@ -81,9 +80,6 @@ public class PandoraRadio {
 
 	
 	public PandoraRadio() {
-		//Disable StrictMode for 3.0+
-		StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitAll().build());
-		
 		pandora_rpc = new RPC(RPC_URL, MIME_TYPE, USER_AGENT);
 		standard_url_params = new HashMap<String, String>();
 		stations = new ArrayList<Station>();
@@ -129,7 +125,7 @@ public class PandoraRadio {
 		//doCall("station.createBookmark", args, null);
 	}
 	
-	/*
+	/**
 	 * Description: Keeps track of the remote server's sync time.
 	 */
 	private int calcSync(){
