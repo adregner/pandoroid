@@ -39,7 +39,6 @@ import javax.crypto.spec.SecretKeySpec;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import android.os.StrictMode;
 import android.util.Log;
 
 /**
@@ -81,9 +80,6 @@ public class PandoraRadio {
 
 	
 	public PandoraRadio() {
-		//Disable StrictMode for 3.0+
-		StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitAll().build());
-		
 		pandora_rpc = new RPC(RPC_URL, MIME_TYPE, USER_AGENT);
 		standard_url_params = new HashMap<String, String>();
 		stations = new ArrayList<Station>();
