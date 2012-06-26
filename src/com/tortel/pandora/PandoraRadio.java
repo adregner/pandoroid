@@ -125,7 +125,7 @@ public class PandoraRadio {
 		//doCall("station.createBookmark", args, null);
 	}
 	
-	/*
+	/**
 	 * Description: Keeps track of the remote server's sync time.
 	 */
 	private int calcSync(){

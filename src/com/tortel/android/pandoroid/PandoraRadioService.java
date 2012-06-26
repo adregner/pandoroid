@@ -289,6 +289,9 @@ public class PandoraRadioService extends Service {
 		return play(0);
 	}
 	public Song play(int i) {
+		Song tmp = currentPlaylist[i];
+		if(tmp == null || tmp.getTitle() == null || tmp.getAlbum() == null)
+			return next();
 		media.start();
 		setNotification();
 		return currentPlaylist[i];
