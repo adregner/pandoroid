@@ -46,18 +46,31 @@ import android.util.Log;
  * 	can be found here: http://pan-do-ra-api.wikia.com/wiki/Json/5 
  */
 public class PandoraRadio {
-	private static final String USER_AGENT = "com.aregner.pandora/0.3";
+	private static final String USER_AGENT = "com.pandoroid.pandora/0.4";
 	
-	//JSON API stuff
+	/*
+	 * JSON API stuff
+	 */
 	public static final String PROTOCOL_VERSION = "5";
-	private static final String RPC_URL = "internal-tuner.pandora.com/services/json/";
-	private static final String DEVICE_MODEL = "D01";
-	private static final String PARTNER_USERNAME = "pandora one";
-	private static final String PARTNER_PASSWORD = "TVCKIBGS9AO9TSYLNNFUML0743LH82D";
-	private static final String DECRYPT_CIPHER = "U#IO$RZPAB%VX2";
-	private static final String ENCRYPT_CIPHER = "2%3WCL*JU$MP]4";
+	
+	//PandoraOne specific credentials
+	private static final String ONE_RPC_URL = "internal-tuner.pandora.com/services/json/";
+	private static final String ONE_DEVICE_ID = "D01";
+	private static final String ONE_PARTNER_USERNAME = "pandora one";
+	private static final String ONE_PARTNER_PASSWORD = "TVCKIBGS9AO9TSYLNNFUML0743LH82D";
+	private static final String ONE_DECRYPT_CIPHER = "U#IO$RZPAB%VX2";
+	private static final String ONE_ENCRYPT_CIPHER = "2%3WCL*JU$MP]4";
+	
+	//Android standard user specific credentials
+	private static final String AND_RPC_URL = "tuner.pandora.com/services/json/";
+	private static final String AND_DEVICE_ID = "android-generic";
+	private static final String AND_PARTNER_USERNAME = "android";
+	private static final String AND_PARTNER_PASSWORD = "AC7IBG09A3DTSYM4R41UJWL07VLN8JI7";
+	private static final String AND_DECRYPT_CIPHER = "R=U!LH$O2B#";
+	private static final String AND_ENCRYPT_CIPHER = "6#26FRL$ZWD";
+	
 	private static final String MIME_TYPE = "text/plain"; //This probably isn't important
-	//END API
+	/* END API */
 	
 	public static final long PLAYLIST_VALIDITY_TIME = 3600 * 3;
 	public static final String DEFAULT_AUDIO_FORMAT = "aacplus";
@@ -69,6 +82,7 @@ public class PandoraRadio {
 	//End Audio
 
 	private RPC pandora_rpc;
+	private PartnerCredentials credentials;
 	private Cipher blowfish_encode;
 	private Cipher blowfish_decode;
 	private String user_auth_token;
@@ -79,30 +93,19 @@ public class PandoraRadio {
 	private Map<String, String> standard_url_params;
 
 	
-	public PandoraRadio() {
-		pandora_rpc = new RPC(RPC_URL, MIME_TYPE, USER_AGENT);
+	public PandoraRadio(boolean is_pandora_one) {
 		standard_url_params = new HashMap<String, String>();
 		stations = new ArrayList<Station>();
+		credentials = new PartnerCredentials();
 		
 		try{
-			//We're using the built in Blowfish cipher here. Not too sure if 
-			//this works on Android 2.2 or lower
-			blowfish_encode = Cipher.getInstance("Blowfish/ECB/NoPadding"); //new Blowfish(/*PandoraKeys.out_key_p, PandoraKeys.out_key_s*/);
-			byte[] encrypt_key_data = ENCRYPT_CIPHER.getBytes();
-			SecretKeySpec key_spec = new SecretKeySpec(encrypt_key_data, "Blowfish");
-			blowfish_encode.init(Cipher.ENCRYPT_MODE, key_spec);
-			
-			blowfish_decode = Cipher.getInstance("Blowfish/ECB/NoPadding"); //new Blowfish(/*PandoraKeys.in_key_p, PandoraKeys.in_key_s*/);
-			byte[] decrypt_key_data = DECRYPT_CIPHER.getBytes();
-			key_spec = new SecretKeySpec(decrypt_key_data, "Blowfish");
-			blowfish_decode.init(Cipher.DECRYPT_MODE, key_spec);
-			
-			this.partnerLogin();
+			this.runPartnerLogin(is_pandora_one);
 		}
 		catch (Exception e){
 			Log.e("Pandoroid", "Exception logging in", e);
 		}		
 	}
+	
 	
 	/**
 	 * Description: Disabled
@@ -135,10 +138,16 @@ public class PandoraRadio {
 	}
 	
 	/**
-	 * Logs a user in.
+	 * Description: Logs a user in.
+	 * @param user
+	 * @param password
+	 * @return
+	 * @throws Exception
+	 * @throws RPCException
+	 * @throws SubscriberTypeException
 	 */
-	public boolean connect(String user, String password) throws Exception {
-		this.partnerLogin();
+	public boolean connect(String user, String password) throws Exception, RPCException, SubscriberTypeException {
+		//this.partnerLogin();
 		
 		Map<String, Object> request_args = new HashMap<String, Object>();
 		request_args.put("loginType", "user");
@@ -147,15 +156,29 @@ public class PandoraRadio {
 		request_args.put("partnerAuthToken", this.partner_auth_token);
 		
 		//One extra possible request token.
-		//request_args.put("includeDemographics", true); 
 		
 		JSONObject result = this.doCall("auth.userLogin", request_args, 
 				                        true, true, null);
-
-		this.user_auth_token = result.getString("userAuthToken");
-		this.standard_url_params.put("auth_token", user_auth_token);
-		this.standard_url_params.put("user_id", result.getString("userId"));
-		return user_auth_token != null;
+		
+		//I've contemplated multiple ways of handling these.
+		//If this is a PandoraOne subscriber and the credentials aren't correct
+		if (!result.getBoolean("hasAudioAds") && !isPandoraOneCredentials()){
+			throw new SubscriberTypeException(true, 
+					"The subscriber is Pandora One and default device credentials were given.");
+//			this.runPartnerLogin(true);
+		}
+		//If this is a non-PandoraOne subscriber and the credentials aren't correct
+		else if (result.getBoolean("hasAudioAds") && isPandoraOneCredentials()){
+			throw new SubscriberTypeException(false, 
+					"The subscriber is standard and Pandora One device credentials were given.");
+//			this.runPartnerLogin(false);
+		}
+		else{
+			this.user_auth_token = result.getString("userAuthToken");
+			this.standard_url_params.put("auth_token", user_auth_token);
+			this.standard_url_params.put("user_id", result.getString("userId"));
+			return user_auth_token != null;
+		}
 	}
 	
 	/**
@@ -176,12 +199,12 @@ public class PandoraRadio {
 	 * 	the contents of the results key in the response. If an error occurs
 	 * 	(ie "stat":"fail") an exception with the message body will be thrown.
 	 * Caution: When debugging, be sure to note that most data that flows 
-	 *  through here is time sensitive, and if stopped in the wrong places
-	 *  will cause "stat":"fail" responses from the remote server.
+	 *  through here is time sensitive, and if stopped in the wrong places,
+	 *  it will cause "stat":"fail" responses from the remote server.
 	 */
 	private JSONObject doCall(String method, Map<String, Object> json_params,
 						      boolean http_secure_flag, boolean encrypt,
-						      Map<String, String> opt_url_params) throws Exception{
+						      Map<String, String> opt_url_params) throws Exception, RPCException{
 		JSONObject response = null;
 		JSONObject request = null;
 		if (json_params != null){
@@ -217,10 +240,8 @@ public class PandoraRadio {
 		response = new JSONObject(response_string);
 		if (response.getString("stat").compareTo("ok") != 0){
 			if (response.getString("stat").compareTo("fail") == 0){
-				throw new Exception("RPC failure code: " +
-									response.getString("code") +
-									"; message: " +
-									response.getString("message"));
+				throw new RPCException(response.getInt("code"),
+									   response.getString("message"));
 			}
 			else{
 				throw new Exception("RPC unknown error. stat: " + 
@@ -267,10 +288,19 @@ public class PandoraRadio {
 				songs.add(new Song(song_data, audio_url_mappings));				
 			}
 		}
-		catch(Exception e){
-			Log.e("Pandoroid","Exception getting playlist - throwing API change exception", e);
-			throw new Exception("API Change");
+		catch(RPCException e){
+			if (2 <= e.code && e.code <= 11) {
+				Log.e("Pandoroid","Exception getting playlist - throwing API change exception", e);
+				throw new Exception("API Change");
+			}
+			else{ //It's probably something else.
+				throw e;
+			}
 		}
+//		catch(Exception e){
+//			Log.e("Pandoroid","Exception getting playlist - throwing API change exception", e);
+//			throw new Exception("API Change");
+//		}
 		
 		return songs;
 	}
@@ -296,8 +326,6 @@ public class PandoraRadio {
 	 * 	PandoraRadio member variable, and returns them.
 	 */
 	public ArrayList<Station> getStations() throws Exception {
-		// get stations
-		
 		JSONObject result = doCall("user.getStationList", null, 
 				                   false, true, null);
 		
@@ -359,6 +387,10 @@ public class PandoraRadio {
 		return user_auth_token != null;
 	}
 	
+	public boolean isPandoraOneCredentials(){
+		return (credentials.device_model == ONE_DEVICE_ID);
+	}
+	
 
 	
 	/**
@@ -399,11 +431,11 @@ public class PandoraRadio {
 	/**
 	 * Description: This is the authorization for the app itself.
 	 */
-	private void partnerLogin() throws Exception{
+	private void partnerLogin() throws Exception, RPCException{
 		Map<String, Object> partner_params = new HashMap<String, Object>(4);
-		partner_params.put("username", PARTNER_USERNAME);
-		partner_params.put("password", PARTNER_PASSWORD);
-		partner_params.put("deviceModel", DEVICE_MODEL);
+		partner_params.put("username", credentials.username);
+		partner_params.put("password", credentials.password);
+		partner_params.put("deviceModel", credentials.device_model);
 		partner_params.put("version", PROTOCOL_VERSION);
 		JSONObject partner_return = null;
 		
@@ -432,22 +464,84 @@ public class PandoraRadio {
 		//doCall("station.addFeedback", args, null);
 	}
 	
-	/*
+	/**
+	 * Description: This will run a partner login with the proper user
+	 * 	credentials as specified by the is_pandora_one variable.
+	 */
+	public void runPartnerLogin(boolean is_pandora_one) throws Exception, RPCException{
+		setCredentials(is_pandora_one);
+		this.partnerLogin();
+	}
+	
+	/**
+	 * Description: Sets the cipher keys up.
+	 * @throws Exception
+	 */
+	private void setCipher() throws Exception{
+		//We're using the built in Blowfish cipher here.
+		blowfish_encode = Cipher.getInstance("Blowfish/ECB/NoPadding");
+		byte[] encrypt_key_data = this.credentials.e_cipher.getBytes();
+		SecretKeySpec key_spec = new SecretKeySpec(encrypt_key_data, "Blowfish");
+		blowfish_encode.init(Cipher.ENCRYPT_MODE, key_spec);
+		
+		blowfish_decode = Cipher.getInstance("Blowfish/ECB/NoPadding");
+		byte[] decrypt_key_data = this.credentials.d_cipher.getBytes();
+		key_spec = new SecretKeySpec(decrypt_key_data, "Blowfish");
+		blowfish_decode.init(Cipher.DECRYPT_MODE, key_spec);
+	}
+	
+	/**
+	 * Description: This sets or resets (depending on how you look at it) the
+	 * 	credentials for the app's authentication. 
+	 * Postcondition: partnerLogin() will need to be called.
+	 * @param is_pandora_one
+	 * @throws Exception
+	 */
+	private void setCredentials(boolean is_pandora_one) throws Exception{
+		if (is_pandora_one){
+			credentials.rpc_url = ONE_RPC_URL;
+			credentials.device_model = ONE_DEVICE_ID;
+			credentials.username = ONE_PARTNER_USERNAME;
+			credentials.password = ONE_PARTNER_PASSWORD;
+			credentials.d_cipher = ONE_DECRYPT_CIPHER;
+			credentials.e_cipher = ONE_ENCRYPT_CIPHER;
+		}
+		else{
+			credentials.rpc_url = AND_RPC_URL;
+			credentials.device_model = AND_DEVICE_ID;
+			credentials.username = AND_PARTNER_USERNAME;
+			credentials.password = AND_PARTNER_PASSWORD;
+			credentials.d_cipher = AND_DECRYPT_CIPHER;
+			credentials.e_cipher = AND_ENCRYPT_CIPHER;
+		}		
+		this.sync_time = 0;
+		this.pandora_rpc = new RPC(this.credentials.rpc_url, MIME_TYPE, USER_AGENT);
+		this.setCipher();
+	}
+	
+	/**
 	 * Description: The sync time from the remote server is rather special.
 	 * 	It comes in hexadecimal form from which it must be dehexed to byte form,
 	 * 	then it must be decrypted with the Blowfish decryption. From there,
 	 *  it's hidden inside a string with 4 bytes of junk characters at the 
 	 *  beginning, and two white space characters at the end.
+	 *  Unfortunately Java is screwing with me in obtaining this time.
 	 */
-	private void setSync(String encoded_sync_time) throws Exception{		
-		//This time stamp contains a lot of junk in the string it's in.
-		String junk = pandoraDecrypt(encoded_sync_time); //First decrypt the hex
-		junk = junk.substring(4); //Remove the first 4 bytes of junk.
-		junk = junk.trim(); //Trim off the predictable white space chunks at the end.
-		long sync_time_obtained = Long.parseLong(junk);
-		
-		this.sync_time = sync_time_obtained;
+	private void setSync(String encoded_sync_time) throws Exception{
 		this.sync_obtained_time = System.currentTimeMillis() / 1000L; 
+		
+//		//This time stamp contains a lot of junk in the string it's in.
+//		String junk = pandoraDecrypt(encoded_sync_time); //First decrypt the hex
+//		
+//		//There is a problem with this algorithm and I suspect it's happening here
+//		//in regards to the junk.substring() function. 
+//		junk = junk.substring(4); //Remove the first 4 bytes of junk.
+//		junk = junk.trim(); //Trim off the predictable white space chunks at the end.
+//		this.sync_time = Long.parseLong(junk);
+		
+		//As long as our system clocks are accurate, using the system clock
+		//is a suitable (and potentially long term) solution to this issue.
+		this.sync_time = this.sync_obtained_time;
 	}
 	
 	/**
@@ -461,49 +555,4 @@ public class PandoraRadio {
 //		
 //		//doCall("listener.addTiredSong", args, null);
 	}
-
-
-//	public String test() throws Exception {
-//		// Right now this is just a little playing around with the idea of serializing Pandora data structures
-//		
-//		/*Console cons;
-//		char[] passwd;
-//		if ((cons = System.console()) != null && (passwd = cons.readPassword("[%s]", "Password:")) != null) {
-//			connect("andrew@aregner.com", new String(passwd));
-//			getStations();
-//			
-//			Station station = null;
-//			Iterator<Station> stationIter = stations.iterator();
-//			while(stationIter.hasNext()) {
-//				station = stationIter.next();
-//				if(station.getName().equals("0 - Pandoid Testing"))
-//					break;
-//			}
-//			System.out.println(station.getName());
-//
-//			Song song = station.getPlaylist("mp3-hifi")[1];
-//			System.out.println(song.getTitle());
-//			
-//			boolean rating = true;
-//
-//			//System.out.println("\nSerializing...");
-//			//(new ObjectOutputStream(System.out)).writeObject(station);
-//		}/**/
-//		
-//		return "test() method success";
-//	}
-//
-//	public static void main(String[] args) throws Exception {
-//		PandoraRadio pandora = new PandoraRadio();
-//		System.out.println(pandora.test());
-//	}
-	
-
-	
-
-	
-
-	
-
-
 }

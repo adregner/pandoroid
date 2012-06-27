@@ -21,8 +21,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.pandoroid.pandora.PandoraRadio;
+import com.pandoroid.pandora.RPCException;
 import com.pandoroid.pandora.Song;
 import com.pandoroid.pandora.Station;
+import com.pandoroid.pandora.SubscriberTypeException;
 import com.pandoroid.android.R;
 
 import android.app.Notification;
@@ -101,7 +103,7 @@ public class PandoraRadioService extends Service {
 		synchronized(lock) {
 			super.onCreate();
 			instance = this;
-			pandora = new PandoraRadio();
+			pandora = new PandoraRadio(false);
 			media = new MediaPlayer();
 			
 			//notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -173,12 +175,41 @@ public class PandoraRadioService extends Service {
 	/** methods for clients */
 	public boolean signIn(String username, String password) {
 		boolean toRet = false;
-		try{
-			toRet = pandora.connect(username, password);
-		}
-		catch (Exception e){
-			Log.e("Pandroroid","Exception logging in", e);
-			toRet = false;
+		int attempts = 3;
+		
+		//These exceptions do seem a little hackish and probably should be 
+		//cleaned up a bit.
+		while (attempts > 0){
+			try{
+				toRet = pandora.connect(username, password);
+				attempts = 0;
+			}
+			catch (SubscriberTypeException e){
+				//This multi-try block I'm not too fond of
+				try{
+					pandora.runPartnerLogin(e.is_pandora_one);
+				}
+				catch (Exception another_e){
+					Log.e("Pandroroid","Exception logging in", another_e);
+					toRet = false;
+					attempts = 0;
+				}
+			}
+			catch (RPCException e){
+				if (e.code == 13){
+					--attempts;
+				}
+				else {
+					Log.e("Pandroroid","Exception logging in", e);
+					toRet = false;
+					attempts = 0;
+				}
+			}
+			catch (Exception e){
+				Log.e("Pandroroid","Exception logging in", e);
+				toRet = false;
+				attempts = 0;
+			}
 		}
 		
 		return toRet;
@@ -275,7 +306,12 @@ public class PandoraRadioService extends Service {
 		media.setOnCompletionListener((OnCompletionListener)listeners.get(OnCompletionListener.class));
 		media.setOnPreparedListener((OnPreparedListener)listeners.get(OnPreparedListener.class));
 		try {
-			media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_128));
+			if (pandora.isPandoraOneCredentials()){
+				media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_192));
+			}
+			else{
+				media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_128));
+			}
 		} catch (Exception e) {
 			Log.e("Pandoroid","Exception getting audio", e);
 		}
