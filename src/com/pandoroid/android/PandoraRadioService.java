@@ -175,25 +175,23 @@ public class PandoraRadioService extends Service {
 	/** methods for clients */
 	public boolean signIn(String username, String password) {
 		boolean toRet = false;
+		boolean needs_partner_login = false;
+		boolean is_pandora_one_user = false;
 		int attempts = 3;
 		
-		//These exceptions do seem a little hackish and probably should be 
-		//cleaned up a bit.
+		//Low connectivity could cause reattempts to be need to be made
 		while (attempts > 0){
 			try{
+				if (needs_partner_login){
+					pandora.runPartnerLogin(is_pandora_one_user);
+					needs_partner_login = false;
+				}
 				toRet = pandora.connect(username, password);
 				attempts = 0;
 			}
 			catch (SubscriberTypeException e){
-				//This multi-try block I'm not too fond of
-				try{
-					pandora.runPartnerLogin(e.is_pandora_one);
-				}
-				catch (Exception another_e){
-					Log.e("Pandroroid","Exception logging in", another_e);
-					toRet = false;
-					attempts = 0;
-				}
+				needs_partner_login = true;
+				is_pandora_one_user = e.is_pandora_one;
 			}
 			catch (RPCException e){
 				if (e.code == 13){
@@ -210,8 +208,7 @@ public class PandoraRadioService extends Service {
 				toRet = false;
 				attempts = 0;
 			}
-		}
-		
+		}		
 		return toRet;
 	}
 	
