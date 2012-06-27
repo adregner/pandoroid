@@ -76,9 +76,9 @@ public class PandoraRadio {
 	public static final String DEFAULT_AUDIO_FORMAT = "aacplus";
 	
 	//Audio quality strings
-	public static String AAC_64 = "HTTP_64_AACPLUS_ADTS";
-	public static String MP3_128 = "HTTP_128_MP3";
-	public static String MP3_192 = "HTTP_192_MP3";
+	public static final String AAC_64 = "HTTP_64_AACPLUS_ADTS";
+	public static final String MP3_128 = "HTTP_128_MP3";
+	public static final String MP3_192 = "HTTP_192_MP3";
 	//End Audio
 
 	private RPC pandora_rpc;
@@ -147,8 +147,6 @@ public class PandoraRadio {
 	 * @throws SubscriberTypeException
 	 */
 	public boolean connect(String user, String password) throws Exception, RPCException, SubscriberTypeException {
-		//this.partnerLogin();
-		
 		Map<String, Object> request_args = new HashMap<String, Object>();
 		request_args.put("loginType", "user");
 		request_args.put("username", user);
@@ -289,7 +287,7 @@ public class PandoraRadio {
 			}
 		}
 		catch(RPCException e){
-			if (2 <= e.code && e.code <= 11) {
+			if (RPCException.URL_PARAM_MISSING_METHOD <= e.code && e.code <= RPCException.API_VERSION_NOT_SUPPORTED) {
 				Log.e("Pandoroid","Exception getting playlist - throwing API change exception", e);
 				throw new Exception("API Change");
 			}
@@ -449,19 +447,13 @@ public class PandoraRadio {
 	}
 
 	/**
-	 * Description: Disabled
+	 * Description: Sends a song rating to the remote server.
 	 */
-	public void rate(Station station, Song song, boolean rating) {
-//		Vector<Object> args = new Vector<Object>(7);
-//		args.add(String.valueOf(station.getId())); 
-//		args.add(song.getId()); 
-//		//args.add(song.getUserSeed());
-//		args.add(""/*testStrategy*/); 
-//		args.add(rating); 
-//		args.add(false); 
-		//args.add(song.getSongType());
-		
-		//doCall("station.addFeedback", args, null);
+	public void rate(Station station, Song song, boolean rating) throws Exception, RPCException{
+		Map<String, Object> feedback_params = new HashMap<String, Object>(2);
+		feedback_params.put("trackToken", song.getId());
+		feedback_params.put("isPositive", rating);
+		this.doCall("station.addFeedback", feedback_params, false, true, null);
 	}
 	
 	/**

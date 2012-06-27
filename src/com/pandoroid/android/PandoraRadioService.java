@@ -375,7 +375,11 @@ public class PandoraRadioService extends Service {
 		}
 		
 		boolean ratingBool = rating.equals(PandoroidPlayer.RATING_LOVE) ? true : false;
-		
-		pandora.rate(currentStation, currentPlaylist[currentSongIndex], ratingBool);
+		try{
+			pandora.rate(currentStation, currentPlaylist[currentSongIndex], ratingBool);
+		}
+		catch(Exception e){
+			Log.e("Pandoroid", "Exception sending a song rating", e);
+		}
 	}
 }
