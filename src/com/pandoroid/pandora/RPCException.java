@@ -4,6 +4,7 @@ public class RPCException extends Exception {
 	
 	//Error code constants
 	//See: http://pan-do-ra-api.wikia.com/wiki/Json/5#Error_codes
+	//Global
 	public final static int INTERNAL = 0;
 	public final static int MAINTENANCE_MODE = 1;
 	public final static int URL_PARAM_MISSING_METHOD = 2;
@@ -18,8 +19,9 @@ public class RPCException extends Exception {
 	public final static int API_VERSION_NOT_SUPPORTED = 11;
 	public final static int LICENSING_RESTRICTIONS = 12;
 	public final static int INSUFFICIENT_CONNECTIVITY = 13;
-	//public final static int UNKNOWN_METHOD_NAME???? = 14;
-	//public final static int WRONG_PROTOCOL?????? = 15;
+	public final static int UNKNOWN_METHOD_NAME = 14;
+	public final static int WRONG_PROTOCOL = 15;
+	//Method specific...Hence some are duplicated
 	public final static int READ_ONLY_MODE = 1000;
 	public final static int INVALID_AUTH_TOKEN = 1001;
 	public final static int INVALID_PARTNER_LOGIN = 1002;
@@ -43,16 +45,17 @@ public class RPCException extends Exception {
 	public final static int BIRTH_YEAR_INVALID = 1025;
 	public final static int BIRTH_YEAR_TOO_YOUNG = 1026;
 	public final static int INVALID_COUNTRY_CODE = 1027;
-	//public final static int INVALID_GENDER = ???;
+	public final static int INVALID_GENDER = 1027;
 	public final static int DEVICE_DISABLED = 1034;
 	public final static int DAILY_TRIAL_LIMIT_REACHED = 1035;
 	public final static int INVALID_SPONSOR = 1036;
 	public final static int USER_ALREADY_USED_TRIAL = 1037;
 	//End constants
 	
+	
 	public int code;
 	RPCException(int error_code, String message) {
 		super(message);
-		code = error_code;
+		this.code = error_code;
 	}
 }
