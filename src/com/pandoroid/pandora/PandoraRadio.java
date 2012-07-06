@@ -74,9 +74,11 @@ public class PandoraRadio {
 	
 	public static final long PLAYLIST_VALIDITY_TIME = 3600 * 3;
 	public static final String DEFAULT_AUDIO_FORMAT = "aacplus";
+	public static final long MIN_TIME_BETWEEN_PLAYLIST_CALLS = 60; //seconds
 	
 	//Audio quality strings
-	public static final String AAC_64 = "HTTP_64_AACPLUS_ADTS";
+	public static final String AAC_32 = "HTTP_32_AACPLUS";
+	public static final String AAC_64 = "HTTP_64_AACPLUS";
 	public static final String MP3_128 = "HTTP_128_MP3";
 	public static final String MP3_192 = "HTTP_192_MP3";
 	//End Audio
@@ -89,6 +91,7 @@ public class PandoraRadio {
 	private String partner_auth_token;
 	private long sync_time;
 	private long sync_obtained_time;
+	private long last_acquired_playlist_time;
 	private ArrayList<Station> stations;
 	private Map<String, String> standard_url_params;
 
@@ -97,6 +100,7 @@ public class PandoraRadio {
 		standard_url_params = new HashMap<String, String>();
 		stations = new ArrayList<Station>();
 		credentials = new PartnerCredentials();
+		this.last_acquired_playlist_time = 0;
 		
 		try{
 			this.runPartnerLogin(is_pandora_one);
@@ -250,10 +254,21 @@ public class PandoraRadio {
 		return response.getJSONObject("result"); //Exception thrown if nonexistent
 	}
 	
+	
 	/**
-	 * Description: Gets a list of songs to be played.
+	 * Description: Gets a list of songs to be played. This function should not
+	 * 	be called more frequently than MIN_TIME_BETWEEN_PLAYLIST_CALLS allows
+	 * 	or an error will result.
 	 */
+	@SuppressWarnings("unchecked")
 	public Vector<Song> getPlaylist(String station_token) throws Exception{
+		
+		//This protects against a temporary account suspension from too many 
+		//playlist requests.
+		if (isGetPlaylistCallValid()){
+			throw new Exception("Playlist calls are too frequent");
+		}
+		
 		Vector<Song> songs = new Vector<Song>();
 		
 		try{
@@ -263,31 +278,45 @@ public class PandoraRadio {
 			//Order matters in this URL request. The same order given here is 
 			//the order received.
 			request_args.put("additionalAudioUrl", 
-					         AAC_64 + "," + MP3_128);
+					         MP3_128 + "," + AAC_32);
 			
 			JSONObject response = this.doCall("station.getPlaylist", request_args, 
 					                          true, true, null);
 			
 			JSONArray songs_returned = response.getJSONArray("items");
 			for (int i = 0; i < songs_returned.length(); ++i){
-				Map<String, Object> song_data = JSONHelper.toMap(songs_returned.getJSONObject(i));
-				Map<String, String> audio_url_mappings = new HashMap<String, String>();
+				Map<String, Object> song_data = JSONHelper.toMap(songs_returned.getJSONObject(i));				
+				ArrayList<PandoraAudioUrl> audio_url_mappings = new ArrayList<PandoraAudioUrl>();
 				if (song_data.get("additionalAudioUrl") instanceof Vector<?>){
-					@SuppressWarnings("unchecked")
 					Vector<String> audio_urls = (Vector<String>) song_data.get("additionalAudioUrl");
 					for(String cur: audio_urls){
 						Log.v("Pandoroid","audio_urls: "+cur);
 					}
 					//This has to be in the same order as the request.
-					audio_url_mappings.put(AAC_64, audio_urls.get(0));
-					audio_url_mappings.put(MP3_128, audio_urls.get(1));
-					//audio_url_mappings.put(MP3_192, audio_urls.get(2)); //No longer supported
+					audio_url_mappings.add(new PandoraAudioUrl(MP3_128, 128, audio_urls.get(0)));
+					audio_url_mappings.add(new PandoraAudioUrl(AAC_32, 32, audio_urls.get(1)));
 				}
-				songs.add(new Song(song_data, audio_url_mappings));				
+				//MP3_192 data
+				if (isPandoraOneCredentials()){
+					audio_url_mappings.add(new PandoraAudioUrl(
+						(Map<String,Object>) (
+							(Map<String,Object>) song_data.get("audioUrlMap")
+							                 ).get("highQuality")
+							                                  ));
+				}
+				//AAC_64 data
+				audio_url_mappings.add(new PandoraAudioUrl(
+					(Map<String,Object>) (
+						(Map<String,Object>) song_data.get("audioUrlMap")
+						                 ).get("mediumQuality")
+						                                   ));			    
+			    songs.add(new Song(song_data, audio_url_mappings));
 			}
 		}
 		catch(RPCException e){
-			if (RPCException.URL_PARAM_MISSING_METHOD <= e.code && e.code <= RPCException.API_VERSION_NOT_SUPPORTED) {
+			if (RPCException.URL_PARAM_MISSING_METHOD <= e.code 
+										&& 
+				e.code <= RPCException.API_VERSION_NOT_SUPPORTED) {
 				Log.e("Pandoroid","Exception getting playlist - throwing API change exception", e);
 				throw new Exception("API Change");
 			}
@@ -295,11 +324,8 @@ public class PandoraRadio {
 				throw e;
 			}
 		}
-//		catch(Exception e){
-//			Log.e("Pandoroid","Exception getting playlist - throwing API change exception", e);
-//			throw new Exception("API Change");
-//		}
 		
+		this.last_acquired_playlist_time = System.currentTimeMillis() / 1000L;		
 		return songs;
 	}
 	
@@ -383,6 +409,12 @@ public class PandoraRadio {
 	
 	public boolean isAlive() {
 		return user_auth_token != null;
+	}
+	
+	private boolean isGetPlaylistCallValid(){
+		return this.last_acquired_playlist_time > (
+		  (System.currentTimeMillis() / 1000L) - MIN_TIME_BETWEEN_PLAYLIST_CALLS
+		                                          );
 	}
 	
 	public boolean isPandoraOneCredentials(){

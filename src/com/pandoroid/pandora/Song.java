@@ -17,6 +17,10 @@
  */
 package com.pandoroid.pandora;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.LinkedList;
 import java.util.Map;
 
 import android.util.Log;
@@ -24,79 +28,49 @@ import android.util.Log;
 public class Song {
 	private String album;
 	private String artist;
-	//private String artistMusicId;
-	//private String audioUrl;
 	private String fileGain;
-	//private String identity;
 	private String musicId;
 	private Integer rating;
 	private String stationId;
 	private String title;
-	//private String userSeed;
 	private String songDetailURL;
 	private String albumDetailURL;
 	private String album_art_url;
-	//private Integer songType;
-	private Map<String, String> audio_urls;
-
 	private boolean tired;
 	private String message;
 	private Object startTime;
 	private boolean finished;
 	private long playlistTime;
-	//private PandoraRadio pandora;
 
-	public Song(Map<String,Object> d, Map<String, String> audio_urls_in) {
-		try {
-			//pandora = instance;
-			
-			album = (String) d.get("albumName");
-			artist = (String) d.get("artistName");
-			//artistMusicId = (String) d.get("artistMusicId");
-			//audioUrl = (String) d.get("audioURL"); // needs to be hacked, see below
-			fileGain = (String) d.get("trackGain");
-			//identity = (String) d.get("identity");
-			musicId = (String) d.get("trackToken");
-			rating = (Integer) d.get("songRating");
-			stationId = (String) d.get("stationId");
-			title = (String) d.get("songName");
-			//userSeed = (String) d.get("userSeed");
-			songDetailURL = (String) d.get("songDetailURL");
-			albumDetailURL = (String) d.get("albumDetailURL");
-			album_art_url = (String) d.get("albumArtUrl");
-			//songType = (Integer) d.get("songType");
+	private LinkedList<PandoraAudioUrl> audio_urls;
 
-			//int aul = audioUrl.length();
-			//audioUrl = audioUrl.substring(0, aul-48) + pandora.pandoraDecrypt(audioUrl.substring(aul-48));
 
-			audio_urls = audio_urls_in;
-			
-			if (((String) ((Map<String,Object>) ((Map<String,Object>) d.get("audioUrlMap")).get("highQuality")).get("bitrate")).compareTo("192") == 0){
-				audio_urls.put(PandoraRadio.MP3_192, (String) ((Map<String,Object>) ((Map<String,Object>) d.get("audioUrlMap")).get("highQuality")).get("audioUrl"));
-			}
-			
-			tired = false;
-			message = "";
-			startTime = null;
-			finished = false;
-			playlistTime = System.currentTimeMillis() / 1000L;
-		} catch(RuntimeException ex) {
-			Log.e("Pandoroid","Runtime exception with song", ex);
-			return;
-		} //catch (BadPaddingException e) {
-//			e.printStackTrace();
-//		} catch (GeneralSecurityException e) {
-//			e.printStackTrace();
-//		}
+	public Song(Map<String,Object> d, List<PandoraAudioUrl> audio_urls_in) {		
+		album = (String) d.get("albumName");
+		artist = (String) d.get("artistName");
+		fileGain = (String) d.get("trackGain");
+		musicId = (String) d.get("trackToken");
+		rating = (Integer) d.get("songRating");
+		stationId = (String) d.get("stationId");
+		title = (String) d.get("songName");
+		songDetailURL = (String) d.get("songDetailURL");
+		albumDetailURL = (String) d.get("albumDetailURL");
+		album_art_url = (String) d.get("albumArtUrl");			
+		
+		this.audio_urls = new LinkedList<PandoraAudioUrl>();
+		
+		//Let's sort the audio_urls from highest to lowest;
+		Collections.sort(audio_urls_in);
+		for (int i = audio_urls_in.size(); i > 0; --i){
+			audio_urls.add(audio_urls_in.get(i));
+		}
+		
+		tired = false;
+		message = "";
+		startTime = null;
+		finished = false;
+		playlistTime = System.currentTimeMillis() / 1000L;
 	}
-
-//	public int getSongType() {
-//		return songType.intValue();
-//	}
-
-//	public String getUserSeed() {
-//		return userSeed;
-//	}
 
 	public String getId() {
 		return musicId;
@@ -107,8 +81,16 @@ public class Song {
 	}
 
 	public String getAudioUrl(String audio_quality) {
-		return audio_urls.get(audio_quality);
+		ListIterator<PandoraAudioUrl> iter = audio_urls.listIterator();
+		while (iter.hasNext()){
+			PandoraAudioUrl next = iter.next();
+			if (audio_quality.compareTo(next.m_type) == 0){
+				return next.m_url;
+			}
+		}
+		return null;
 	}
+	
 	public String getAlbumCoverUrl() {
 		return album_art_url;
 	}
@@ -124,15 +106,9 @@ public class Song {
 	public Integer getRating() {
 		return rating;
 	}
-//	public String getArtistMusicId() {
-//		return artistMusicId;
-//	}
 	public String getFileGain() {
 		return fileGain;
 	}
-//	public String getIdentity() {
-//		return identity;
-//	}
 	public String getStationId() {
 		return stationId;
 	}
