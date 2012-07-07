@@ -2,8 +2,9 @@ package com.pandoroid.pandora;
 
 public class RPCException extends Exception {
 	
-	//Error code constants
-	//See: http://pan-do-ra-api.wikia.com/wiki/Json/5#Error_codes
+	/*Error code constants
+	 * See: http://pan-do-ra-api.wikia.com/wiki/Json/5#Error_codes
+	 */
 	//Global
 	public final static int INTERNAL = 0;
 	public final static int MAINTENANCE_MODE = 1;
@@ -50,7 +51,7 @@ public class RPCException extends Exception {
 	public final static int DAILY_TRIAL_LIMIT_REACHED = 1035;
 	public final static int INVALID_SPONSOR = 1036;
 	public final static int USER_ALREADY_USED_TRIAL = 1037;
-	//End constants
+	/* End constants */
 	
 	
 	public int code;

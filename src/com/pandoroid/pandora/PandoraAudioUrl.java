@@ -2,6 +2,11 @@ package com.pandoroid.pandora;
 
 import java.util.Map;
 
+/**
+ * @author Dylan Powers <dylan.kyle.powers@gmail.com>
+ * Description: Holds data relevant to the URL of a song retrieved from Pandora.
+ *
+ */
 public class PandoraAudioUrl implements Comparable<PandoraAudioUrl>{
 	public String m_type;
 	public int m_bitrate;
@@ -22,22 +27,22 @@ public class PandoraAudioUrl implements Comparable<PandoraAudioUrl>{
 		}
 		else {
 			this.m_type = "unknown";
-		}			
-
+		}
+		
 		this.m_bitrate = Integer.parseInt((String) extended_audio_url.get("bitrate"));
-		this.m_url = (String) extended_audio_url.get("audio_url");			
+		this.m_url = (String) extended_audio_url.get("audioUrl");
 	}
 	
 	private boolean is_AAC_64(Map<String, Object> extended_audio_url){
-		return ((String) extended_audio_url.get("bitrate") == "64"
-				             &&
-				(String) extended_audio_url.get("encoding") == "aacplus");
+		return (((String) extended_audio_url.get("bitrate")).compareTo("64") == 0
+				                          &&
+				((String) extended_audio_url.get("encoding")).compareTo("aacplus") == 0);
 	}
 	
 	private boolean is_MP3_192(Map<String, Object> extended_audio_url){
-		return ((String) extended_audio_url.get("bitrate") == "192"
-							&&
-				(String) extended_audio_url.get("encoding") == "mp3");
+		return (((String) extended_audio_url.get("bitrate")).compareTo("192") == 0
+							         &&
+	            ((String) extended_audio_url.get("encoding")).compareTo("mp3") == 0);
 	}
 	
 	public int compareTo(PandoraAudioUrl comparable){

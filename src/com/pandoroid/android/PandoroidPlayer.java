@@ -59,20 +59,7 @@ public class PandoroidPlayer extends SherlockActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.player);
 
-		pandora = PandoraRadioService.getInstance(false);
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		
-		//Check for the last played station
-		long lastStationId = prefs.getLong("lastStationId", -1);
-		if(!pandora.isPlaying() && !pandora.isPlayable()){
-			if(!pandora.setCurrentStationId(lastStationId)){
-				//Get a station
-				startActivityForResult(new Intent(getApplicationContext(), PandoroidStationSelect.class), REQUIRE_SELECT_STATION);
-			} else {
-				//Set the station, and start playing
-				new PlayStationTask().execute();
-			}
-		}
 	}
 
 	
@@ -92,6 +79,15 @@ public class PandoroidPlayer extends SherlockActivity {
 	@Override
 	protected void onStart() {
 		super.onStart();
+		pandora = PandoraRadioService.getInstance(false);
+		
+		if (pandora == null){
+			PandoraRadioService.createPandoraRadioService(getBaseContext());
+			PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
+		}
+		else if (!pandora.isAlive()){
+			PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
+		}
 	}
 
 	@Override
@@ -99,16 +95,36 @@ public class PandoroidPlayer extends SherlockActivity {
 		super.onResume();
 		// The activity has become visible (it is now "resumed").
 		//TODO: Need to re-implement. It should check that the pandora service is started, or start it if needed
-		if(pandora.isPlaying()){
-			updateForNewSong(pandora.getCurrentSong());
-		} else if(pandora.isPlayable()){
-			try{
-			Song tmp = pandora.getCurrentSong();
-			if(tmp != null)
-				updateForNewSong(tmp);
-			} catch(Exception ex){
-				//Uh-oh, null pointer. Its not ready yet!
-				//TODO: Need a better way to handle this :/
+//		if (pandora == null || !pandora.isAlive()){
+//
+//			PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
+//		}
+		if (pandora != null){
+			if(pandora.isPlaying()){
+				updateForNewSong(pandora.getCurrentSong());
+			} 
+			else if(pandora.isPlayable()){
+				try{
+					Song tmp = pandora.getCurrentSong();
+				if(tmp != null)
+					updateForNewSong(tmp);
+				} catch(Exception ex){
+					//Uh-oh, null pointer. Its not ready yet!
+					//TODO: Need a better way to handle this :/
+				}
+			}
+			else if (!pandora.isPlaying() && !pandora.isPlayable()){
+				
+				//Check for the last played station
+				long lastStationId = prefs.getLong("lastStationId", -1);
+				
+				if(!pandora.setCurrentStationId(lastStationId)){
+					//Get a station
+					startActivityForResult(new Intent(getApplicationContext(), PandoroidStationSelect.class), REQUIRE_SELECT_STATION);
+				} else {
+					//Set the station, and start playing
+					new PlayStationTask().execute();
+				}
 			}
 		}
 	}

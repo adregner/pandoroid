@@ -61,7 +61,9 @@ public class Song {
 		
 		//Let's sort the audio_urls from highest to lowest;
 		Collections.sort(audio_urls_in);
-		for (int i = audio_urls_in.size(); i > 0; --i){
+		int i = audio_urls_in.size();
+		while (i > 0){
+			--i;
 			audio_urls.add(audio_urls_in.get(i));
 		}
 		
@@ -77,9 +79,25 @@ public class Song {
 	}
 
 	public boolean isStillValid() {
-		return ((System.currentTimeMillis() / 1000L) - playlistTime) < PandoraRadio.PLAYLIST_VALIDITY_TIME;
+		return ((System.currentTimeMillis() / 1000L) - playlistTime) < 
+					PandoraRadio.PLAYLIST_VALIDITY_TIME;
 	}
 
+
+	
+	public String getAlbumCoverUrl() {
+		return album_art_url;
+	}
+	
+	/**
+	 * Description: Returns a linked list of PandoraAudioUrls sorted from highest
+	 * 	to lowest audio quality.
+	 * @return
+	 */
+	public LinkedList<PandoraAudioUrl> getSortedAudioUrls(){
+		return this.audio_urls;
+	}
+	
 	public String getAudioUrl(String audio_quality) {
 		ListIterator<PandoraAudioUrl> iter = audio_urls.listIterator();
 		while (iter.hasNext()){
@@ -91,9 +109,6 @@ public class Song {
 		return null;
 	}
 	
-	public String getAlbumCoverUrl() {
-		return album_art_url;
-	}
 	public String getTitle() {
 		return title;
 	}

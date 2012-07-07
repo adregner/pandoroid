@@ -45,7 +45,8 @@ public class PandoroidLogin extends SherlockActivity {
 		setContentView(R.layout.login);
 		
 		prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-		//pandora = PandoraRadioService.getInstance(true);
+		//PandoraRadioService.createPandoraRadioService(getBaseContext());
+		pandora = PandoraRadioService.getInstance(false);
 		
 		String username = prefs.getString("pandora_username", null);
 		String password = prefs.getString("pandora_password", null);
@@ -66,7 +67,7 @@ public class PandoroidLogin extends SherlockActivity {
 				String sUserName = ((EditText)findViewById(R.id.login_username)).getText().toString();
 				String sPassword = ((EditText)findViewById(R.id.login_password)).getText().toString();
 
-				// this just catches the error if the program cant locate the GUI stuff
+				// this just catches the error if the program can't locate the GUI stuff
 				if(sUserName != null && sPassword != null && sUserName.length() > 1 && sPassword.length() > 1) {
 					boolean success = prefs.edit()
 						.putString("pandora_username", sUserName)
@@ -97,7 +98,6 @@ public class PandoroidLogin extends SherlockActivity {
 			String username = prefs.getString("pandora_username", null);
 			String password = prefs.getString("pandora_password", null);
 			if(pandora == null){
-				PandoraRadioService.createPandoraRadioService(getBaseContext());
 				pandora = PandoraRadioService.getInstance(true);
 			}
 			if(username == null || password == null){
@@ -112,6 +112,7 @@ public class PandoroidLogin extends SherlockActivity {
 			if(result.booleanValue()){
 				//Start the PandoroidPlayer activity
 				startActivity(new Intent(PandoroidLogin.this, PandoroidPlayer.class));
+				//finish();
 			} else {
 				Toast.makeText(PandoroidLogin.this, R.string.signin_failed, 2000).show();
 			}

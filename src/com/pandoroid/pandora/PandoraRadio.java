@@ -30,9 +30,12 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
 
@@ -44,6 +47,7 @@ import android.util.Log;
 /**
  * Description: Uses Pandora's JSON v5 API. Documentation of the JSON API
  * 	can be found here: http://pan-do-ra-api.wikia.com/wiki/Json/5 
+ *  A network connection is required before any operation can take place.
  */
 public class PandoraRadio {
 	private static final String USER_AGENT = "com.pandoroid.pandora/0.4";
@@ -95,19 +99,15 @@ public class PandoraRadio {
 	private ArrayList<Station> stations;
 	private Map<String, String> standard_url_params;
 
-	
-	public PandoraRadio(boolean is_pandora_one) {
+	/**
+	 * 
+	 */
+	public PandoraRadio(){
 		standard_url_params = new HashMap<String, String>();
 		stations = new ArrayList<Station>();
 		credentials = new PartnerCredentials();
-		this.last_acquired_playlist_time = 0;
-		
-		try{
-			this.runPartnerLogin(is_pandora_one);
-		}
-		catch (Exception e){
-			Log.e("Pandoroid", "Exception logging in", e);
-		}		
+		last_acquired_playlist_time = 0;
+			
 	}
 	
 	
@@ -150,14 +150,19 @@ public class PandoraRadio {
 	 * @throws RPCException
 	 * @throws SubscriberTypeException
 	 */
-	public boolean connect(String user, String password) throws Exception, RPCException, SubscriberTypeException {
+	public boolean connect(String user, String password) throws Exception, 
+	                                                            RPCException, 
+	                                                            SubscriberTypeException {
+		if (!this.isPartnerAuthorized()){
+			throw new Exception("Improper call to connect(), " +
+					                      "the application is not authorized.");
+		}
+		
 		Map<String, Object> request_args = new HashMap<String, Object>();
 		request_args.put("loginType", "user");
 		request_args.put("username", user);
 		request_args.put("password", password);
 		request_args.put("partnerAuthToken", this.partner_auth_token);
-		
-		//One extra possible request token.
 		
 		JSONObject result = this.doCall("auth.userLogin", request_args, 
 				                        true, true, null);
@@ -166,13 +171,13 @@ public class PandoraRadio {
 		//If this is a PandoraOne subscriber and the credentials aren't correct
 		if (!result.getBoolean("hasAudioAds") && !isPandoraOneCredentials()){
 			throw new SubscriberTypeException(true, 
-					"The subscriber is Pandora One and default device credentials were given.");
+				"The subscriber is Pandora One and default device credentials were given.");
 //			this.runPartnerLogin(true);
 		}
 		//If this is a non-PandoraOne subscriber and the credentials aren't correct
 		else if (result.getBoolean("hasAudioAds") && isPandoraOneCredentials()){
 			throw new SubscriberTypeException(false, 
-					"The subscriber is standard and Pandora One device credentials were given.");
+				"The subscriber is standard and Pandora One device credentials were given.");
 //			this.runPartnerLogin(false);
 		}
 		else{
@@ -204,9 +209,12 @@ public class PandoraRadio {
 	 *  through here is time sensitive, and if stopped in the wrong places,
 	 *  it will cause "stat":"fail" responses from the remote server.
 	 */
-	private JSONObject doCall(String method, Map<String, Object> json_params,
-						      boolean http_secure_flag, boolean encrypt,
-						      Map<String, String> opt_url_params) throws Exception, RPCException{
+	private JSONObject doCall(String method, 
+			                  Map<String, Object> json_params,
+						      boolean http_secure_flag, 
+						      boolean encrypt,
+						      Map<String, String> opt_url_params) throws Exception, 
+						                                                 RPCException{
 		JSONObject response = null;
 		JSONObject request = null;
 		if (json_params != null){
@@ -265,8 +273,13 @@ public class PandoraRadio {
 		
 		//This protects against a temporary account suspension from too many 
 		//playlist requests.
-		if (isGetPlaylistCallValid()){
+		if (!isGetPlaylistCallValid()){
 			throw new Exception("Playlist calls are too frequent");
+		}
+		
+		if (!this.isUserAuthorized()){
+			throw new Exception("Improper call to getPlaylist(), " +
+					                    "the user has not been logged in yet.");
 		}
 		
 		Vector<Song> songs = new Vector<Song>();
@@ -289,9 +302,9 @@ public class PandoraRadio {
 				ArrayList<PandoraAudioUrl> audio_url_mappings = new ArrayList<PandoraAudioUrl>();
 				if (song_data.get("additionalAudioUrl") instanceof Vector<?>){
 					Vector<String> audio_urls = (Vector<String>) song_data.get("additionalAudioUrl");
-					for(String cur: audio_urls){
-						Log.v("Pandoroid","audio_urls: "+cur);
-					}
+//					for(String cur: audio_urls){
+//						Log.v("Pandoroid","audio_urls: "+cur);
+//					}
 					//This has to be in the same order as the request.
 					audio_url_mappings.add(new PandoraAudioUrl(MP3_128, 128, audio_urls.get(0)));
 					audio_url_mappings.add(new PandoraAudioUrl(AAC_32, 32, audio_urls.get(1)));
@@ -350,6 +363,11 @@ public class PandoraRadio {
 	 * 	PandoraRadio member variable, and returns them.
 	 */
 	public ArrayList<Station> getStations() throws Exception {
+		if (!this.isUserAuthorized()){
+			throw new Exception("Improper call to getStations(), " +
+					                    "the user has not been logged in yet.");
+		}
+		
 		JSONObject result = doCall("user.getStationList", null, 
 				                   false, true, null);
 		
@@ -408,17 +426,25 @@ public class PandoraRadio {
 
 	
 	public boolean isAlive() {
-		return user_auth_token != null;
+		return isUserAuthorized();
 	}
 	
 	private boolean isGetPlaylistCallValid(){
-		return this.last_acquired_playlist_time > (
+		return this.last_acquired_playlist_time < (
 		  (System.currentTimeMillis() / 1000L) - MIN_TIME_BETWEEN_PLAYLIST_CALLS
 		                                          );
 	}
 	
 	public boolean isPandoraOneCredentials(){
 		return (credentials.device_model == ONE_DEVICE_ID);
+	}
+	
+	private boolean isPartnerAuthorized(){
+		return (this.partner_auth_token != null);
+	}
+	
+	private boolean isUserAuthorized(){
+		return (this.user_auth_token != null);
 	}
 	
 
@@ -481,7 +507,7 @@ public class PandoraRadio {
 	/**
 	 * Description: Sends a song rating to the remote server.
 	 */
-	public void rate(Station station, Song song, boolean rating) throws Exception, RPCException{
+	public void rate(Song song, boolean rating) throws Exception, RPCException{
 		Map<String, Object> feedback_params = new HashMap<String, Object>(2);
 		feedback_params.put("trackToken", song.getId());
 		feedback_params.put("isPositive", rating);
@@ -492,7 +518,8 @@ public class PandoraRadio {
 	 * Description: This will run a partner login with the proper user
 	 * 	credentials as specified by the is_pandora_one variable.
 	 */
-	public void runPartnerLogin(boolean is_pandora_one) throws Exception, RPCException{
+	public void runPartnerLogin(boolean is_pandora_one) throws Exception, 
+	                                                           RPCException{
 		setCredentials(is_pandora_one);
 		this.partnerLogin();
 	}
@@ -501,7 +528,9 @@ public class PandoraRadio {
 	 * Description: Sets the cipher keys up.
 	 * @throws Exception
 	 */
-	private void setCipher() throws Exception{
+	private void setCipher() throws NoSuchAlgorithmException, 
+	                                NoSuchPaddingException,
+	                                InvalidKeyException {
 		//We're using the built in Blowfish cipher here.
 		blowfish_encode = Cipher.getInstance("Blowfish/ECB/NoPadding");
 		byte[] encrypt_key_data = this.credentials.e_cipher.getBytes();
@@ -540,7 +569,13 @@ public class PandoraRadio {
 		}		
 		this.sync_time = 0;
 		this.pandora_rpc = new RPC(this.credentials.rpc_url, MIME_TYPE, USER_AGENT);
-		this.setCipher();
+		try {
+			this.setCipher();
+		}
+		catch (Exception e){
+			Log.e("Pandoroid", "Fatal error in cipher", e);
+			throw new Exception("Cipher error", e);
+		}
 	}
 	
 	/**

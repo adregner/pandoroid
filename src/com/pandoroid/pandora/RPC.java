@@ -30,7 +30,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.impl.client.DefaultHttpClient;
 
-/*
+/**
  * Description: This is the RPC client implementation for interfacing with 
  * 	Pandora's servers. At the moment it uses Pandora's JSON API, but will
  *  hopefully be useful for whatever Pandora throws at us in the future.
@@ -41,7 +41,7 @@ public class RPC {
 	private String request_url;
 	private String user_agent;
 	
-	/*
+	/**
 	 * Description: Our constructor class. This will set our default parameters
 	 * 	for subsequent http requests, along with the MIME type for our entity
 	 *  (i.e. 'text/plain' for the current JSON protocol), and the partial URL 
@@ -56,7 +56,7 @@ public class RPC {
 		user_agent = default_user_agent;				
 	}
 	
-	/*
+	/**
 	 * Description: This function contacts the remote server with a string
 	 * 	type data package (could be JSON), and returns the remote server's 
 	 * 	response in a string.
@@ -139,7 +139,7 @@ public class RPC {
 		return ret_data;
 	}
 	
-	/*
+	/**
 	 * Description: Here we create a URL method string with the parameters
 	 * 	given. It automatically applies the '?' character to the beginning
 	 *  of strings, so multiple calls to this function will create an invalid 

@@ -68,6 +68,7 @@ public class PandoraRadioService extends Service {
 	// static usefullness
 	private static PandoraRadioService instance;
 	private static Object lock = new Object();
+	private static Object pandora_lock = new Object();
 
 	public static void createPandoraRadioService(Context context) {
 		synchronized(lock) {
@@ -103,7 +104,10 @@ public class PandoraRadioService extends Service {
 		synchronized(lock) {
 			super.onCreate();
 			instance = this;
-			pandora = new PandoraRadio(false);
+			
+			pandora = new PandoraRadio();
+			(new PandoraDeviceLoginTask()).execute(Boolean.valueOf(false));
+			
 			media = new MediaPlayer();
 			
 			//notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -183,15 +187,20 @@ public class PandoraRadioService extends Service {
 		while (attempts > 0){
 			try{
 				if (needs_partner_login){
-					pandora.runPartnerLogin(is_pandora_one_user);
-					needs_partner_login = false;
+					synchronized(pandora_lock){
+						pandora.runPartnerLogin(is_pandora_one_user);
+					}
+						needs_partner_login = false;
 				}
-				toRet = pandora.connect(username, password);
+				synchronized(pandora_lock){
+					toRet = pandora.connect(username, password);
+				}
 				attempts = 0;
 			}
 			catch (SubscriberTypeException e){
 				needs_partner_login = true;
 				is_pandora_one_user = e.is_pandora_one;
+				Log.i("Pandoroid", "Wrong subscriber type. Running partner login");
 			}
 			catch (RPCException e){
 				if (e.code == 13){
@@ -373,10 +382,34 @@ public class PandoraRadioService extends Service {
 		
 		boolean ratingBool = rating.equals(PandoroidPlayer.RATING_LOVE) ? true : false;
 		try{
-			pandora.rate(currentStation, currentPlaylist[currentSongIndex], ratingBool);
+			pandora.rate(currentPlaylist[currentSongIndex], ratingBool);
 		}
 		catch(Exception e){
 			Log.e("Pandoroid", "Exception sending a song rating", e);
+		}
+	}
+	
+	private class PandoraDeviceLoginTask extends AsyncTask<Boolean, Void, Boolean>{
+		protected Boolean doInBackground(Boolean... subscriber_type){
+			Boolean success_flag = false;
+			try {
+				synchronized(pandora_lock){
+					pandora.runPartnerLogin(subscriber_type[0].booleanValue());
+				}
+				success_flag = true;
+			}
+			catch (RPCException e){
+				Log.e("Pandoroid", "RPC error", e);
+			}
+			catch (Exception e){
+				Log.e("Pandoroid", "Fatal error initializing PandoraRadio", e);
+			}
+			
+			return success_flag;
+		}
+		
+		protected void onPostExecute(Boolean... success){
+			//Maybe we could do something with this information eventually....
 		}
 	}
 }
