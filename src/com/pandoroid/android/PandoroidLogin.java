@@ -111,8 +111,9 @@ public class PandoroidLogin extends SherlockActivity {
 			waiting.dismiss();
 			if(result.booleanValue()){
 				//Start the PandoroidPlayer activity
-				startActivity(new Intent(PandoroidLogin.this, PandoroidPlayer.class));
-				//finish();
+				//startActivity(new Intent(PandoroidLogin.this, PandoroidPlayer.class));
+				finish();
+				
 			} else {
 				Toast.makeText(PandoroidLogin.this, R.string.signin_failed, 2000).show();
 			}

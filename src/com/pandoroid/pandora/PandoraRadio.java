@@ -110,6 +110,16 @@ public class PandoraRadio {
 			
 	}
 	
+	public static int audioQualityCompare(String value, String relative_to) throws Exception{
+		int str1_magnitude = getRelativeAudioQualityMagnitude(value);
+		int str2_magnitude = getRelativeAudioQualityMagnitude(relative_to);
+		if (str1_magnitude != -1 && str2_magnitude != -1){
+			return (str1_magnitude - str2_magnitude);
+		}		
+		else{
+			throw new Exception("Invalid strings to compare");
+		}
+	}
 	
 	/**
 	 * Description: Disabled
@@ -342,15 +352,32 @@ public class PandoraRadio {
 		return songs;
 	}
 	
+	
+	public static int getRelativeAudioQualityMagnitude(String quality_string){
+		if (quality_string.compareTo(MP3_192) == 0){
+			return 4;
+		}
+		if (quality_string.compareTo(MP3_128) == 0){
+			return 3;
+		}
+		if (quality_string.compareTo(AAC_64) == 0){
+			return 2;
+		}
+		if (quality_string.compareTo(AAC_32) == 0){
+			return 1;
+		}
+		return -1;
+	}
+	
 	/**
 	 * Description: <to be filled>
 	 */
-	public Station getStationById(long sid) {
+	public Station getStationById(String sid) {
 		Iterator<Station> stationIter = stations.iterator();
 		Station station = null;
 		while(stationIter.hasNext()) {
 			station = stationIter.next();
-			if(station.getId() == sid) {
+			if(station.getStationId().compareTo(sid) == 0) {
 				return station;
 			}
 		}
@@ -503,6 +530,8 @@ public class PandoraRadio {
 		setSync(partner_return.getString("syncTime"));
 		standard_url_params.put("auth_token", partner_auth_token);
 	}
+	
+
 
 	/**
 	 * Description: Sends a song rating to the remote server.

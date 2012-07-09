@@ -44,6 +44,25 @@ public class Song {
 
 	private LinkedList<PandoraAudioUrl> audio_urls;
 
+	public Song(){
+		album = "";
+		artist = "";
+		fileGain = "";
+		musicId = "";
+		rating = 0;
+		stationId = "";
+		title = "";
+		songDetailURL = "";
+		albumDetailURL = "";
+		album_art_url = "";			
+		
+		audio_urls = new LinkedList<PandoraAudioUrl>();		
+		tired = false;
+		message = "";
+		startTime = null;
+		finished = false;
+		playlistTime = System.currentTimeMillis() / 1000L;
+	}
 
 	public Song(Map<String,Object> d, List<PandoraAudioUrl> audio_urls_in) {		
 		album = (String) d.get("albumName");
@@ -57,7 +76,7 @@ public class Song {
 		albumDetailURL = (String) d.get("albumDetailURL");
 		album_art_url = (String) d.get("albumArtUrl");			
 		
-		this.audio_urls = new LinkedList<PandoraAudioUrl>();
+		audio_urls = new LinkedList<PandoraAudioUrl>();
 		
 		//Let's sort the audio_urls from highest to lowest;
 		Collections.sort(audio_urls_in);

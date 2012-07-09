@@ -36,6 +36,7 @@ import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
+import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
@@ -49,17 +50,21 @@ public class PandoraRadioService extends Service {
 	
 	// tools this service uses
 	private PandoraRadio pandora;
-	private MediaPlayer media;
+	public MediaPlaybackController song_playback;
+	//private MediaPlayer media;
 	
 	//private NotificationManager notificationManager;
 	private TelephonyManager telephonyManager;
+	private ConnectivityManager connectivity_manager;
 	private SharedPreferences prefs;
 	
 	// tracking/organizing what we are doing
 	private Station currentStation;
-	private Song[] currentPlaylist;
-	private Song[] nextPlaylist;
-	private int currentSongIndex;
+	private String audio_quality;
+	private boolean paused;
+	//private Song[] currentPlaylist;
+	//private Song[] nextPlaylist;
+	//private int currentSongIndex;
 	private HashMap<Class<?>,Object> listeners = new HashMap<Class<?>,Object>();
 
 	protected PandoraDB db;
@@ -105,12 +110,14 @@ public class PandoraRadioService extends Service {
 			super.onCreate();
 			instance = this;
 			
+			paused = false;
 			pandora = new PandoraRadio();
 			(new PandoraDeviceLoginTask()).execute(Boolean.valueOf(false));
 			
-			media = new MediaPlayer();
+			//media = new MediaPlayer();
 			
 			//notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+			connectivity_manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 			telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 			prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 
@@ -122,22 +129,23 @@ public class PandoraRadioService extends Service {
 					switch(state) {
 
 					case TelephonyManager.CALL_STATE_IDLE:
-						if(pausedForRing && !media.isPlaying()) {
+						if(pausedForRing && song_playback != null) {
 							if(prefs.getBoolean("behave_resumeOnHangup", true)) {
-								media.start();
+								song_playback.play();
 								setNotification();
-								pausedForRing = false;
 							}
 						}
+						
+						pausedForRing = false;
 						break;
 
 					case TelephonyManager.CALL_STATE_OFFHOOK:
 					case TelephonyManager.CALL_STATE_RINGING:
-						if(media.isPlaying()) {
-							// pausing it this way keeps the notification up there
-							media.pause();
-							pausedForRing = true;
-						}
+						if(song_playback != null) {
+							song_playback.pause();
+						}					
+
+						pausedForRing = true;						
 						break;
 					}
 				}
@@ -156,25 +164,31 @@ public class PandoraRadioService extends Service {
 	}
 	
 	public void setNotification() {
-		Notification notification = new Notification(R.drawable.notification_icon, "Pandoroid Radio", System.currentTimeMillis());
+		Notification notification = new Notification(R.drawable.notification_icon, 
+				                                     "Pandoroid Radio", 
+				                                     System.currentTimeMillis());
 		Intent notificationIntent = new Intent(this, PandoroidPlayer.class);
-		PendingIntent contentIntent = PendingIntent.getActivity(this, NOTIFICATION_SONG_PLAYING, notificationIntent, 0);
+		PendingIntent contentIntent = PendingIntent.getActivity(this, 
+				                                                NOTIFICATION_SONG_PLAYING, 
+				                                                notificationIntent, 
+				                                                0);
 		
 		notification.flags |= Notification.FLAG_ONGOING_EVENT | Notification.FLAG_FOREGROUND_SERVICE;
-		notification.setLatestEventInfo(getApplicationContext(), getCurrentSong().getTitle(),
-				getCurrentSong().getArtist()+" on "+getCurrentSong().getAlbum(), contentIntent);
+		Song tmp_song = song_playback.getSong();
+		notification.setLatestEventInfo(getApplicationContext(), tmp_song.getTitle(),
+				tmp_song.getArtist()+" on "+tmp_song.getAlbum(), contentIntent);
 		//notificationManager.notify(NOTIFICATION_SONG_PLAYING, notification);
 		startForeground(NOTIFICATION_SONG_PLAYING, notification);
 	}
 
 	/**  */
-	private class PrepareNextPlaylistTask extends AsyncTask<Void, Void, Void> {
-		@Override
-		protected Void doInBackground(Void... arg0) {
-			nextPlaylist = currentStation.getPlaylist();
-			return null;
-		}
-	}
+//	private class PrepareNextPlaylistTask extends AsyncTask<Void, Void, Void> {
+//		@Override
+//		protected Void doInBackground(Void... arg0) {
+//			nextPlaylist = currentStation.getPlaylist();
+//			return null;
+//		}
+//	}
 
 	/** methods for clients */
 	public boolean signIn(String username, String password) {
@@ -190,7 +204,13 @@ public class PandoraRadioService extends Service {
 					synchronized(pandora_lock){
 						pandora.runPartnerLogin(is_pandora_one_user);
 					}
-						needs_partner_login = false;
+					needs_partner_login = false;
+				}
+				if (is_pandora_one_user){
+					audio_quality = PandoraRadio.MP3_192;
+				}
+				else {
+					audio_quality = PandoraRadio.MP3_128;
 				}
 				synchronized(pandora_lock){
 					toRet = pandora.connect(username, password);
@@ -222,11 +242,8 @@ public class PandoraRadioService extends Service {
 	}
 	
 	public void signOut() {
-		if(media != null) {
-			if(isPlaying())
-				media.stop();
-			media.release();
-			media = null;
+		if(song_playback != null) {
+			song_playback.stop();
 		}
 
 		if(pandora != null) {
@@ -237,9 +254,11 @@ public class PandoraRadioService extends Service {
 		instance = null;
 		stopSelf();
 	}
+	
 	public boolean isAlive() {
 		return pandora.isAlive();
 	}
+	
 	public ArrayList<Station> getStations(boolean forceDownload) {
 		if(forceDownload) {
 			return getStations();
@@ -280,100 +299,128 @@ public class PandoraRadioService extends Service {
 
 		return stations;
 	}
-	public boolean setCurrentStationId(long sid) {
-		if(sid < 0) return false;
+	public boolean setCurrentStationId(String sid) {
+		if(sid.compareTo("") == 0) return false;
 		currentStation = pandora.getStationById(sid);
+		setPlaybackController();
 		return currentStation != null;
 	}
 	
 	public Station getCurrentStation() {
 		return currentStation;
 	}
-	public Song getCurrentSong() {
-		return currentPlaylist[currentSongIndex];
-	}
+	
 	/**
 	 * True if the service has been initialized, and has a station
 	 */
-	public boolean isPlayable() {
-		return currentStation != null && pandora.isAlive();
+//	public boolean isPlayable() {
+//		return currentStation != null && song_playback != null;
+//	}
+//	public boolean isPlaying() {
+//		return media.isPlaying();
+//	}
+//	public void prepare() {
+//		currentPlaylist = currentStation.getPlaylist();
+//		prepare(0);
+//	}
+//	public void prepare(int i) {
+//		currentSongIndex = i;
+//		media.reset();
+//		
+//		media.setOnCompletionListener((OnCompletionListener)listeners.get(OnCompletionListener.class));
+//		media.setOnPreparedListener((OnPreparedListener)listeners.get(OnPreparedListener.class));
+//		//media.setOnBufferingUpdateListener(listener)
+//		try {
+//			if (pandora.isPandoraOneCredentials()){
+//				media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_192));
+//			}
+//			else{
+//				media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_128));
+//			}
+//		} catch (Exception e) {
+//			Log.e("Pandoroid","Exception getting audio", e);
+//		}
+//		try {
+//			media.prepare();
+//		} catch (Exception e) {
+//			Log.e("Pandoroid","Exception getting audio",e);
+//		}
+//	}
+	public Song play() {
+		song_playback.play();
+		setNotification();
+		return song_playback.getSong();
 	}
-	public boolean isPlaying() {
-		return media.isPlaying();
-	}
-	public void prepare() {
-		currentPlaylist = currentStation.getPlaylist();
-		prepare(0);
-	}
-	public void prepare(int i) {
-		currentSongIndex = i;
-		media.reset();
-		
-		media.setOnCompletionListener((OnCompletionListener)listeners.get(OnCompletionListener.class));
-		media.setOnPreparedListener((OnPreparedListener)listeners.get(OnPreparedListener.class));
-		try {
-			if (pandora.isPandoraOneCredentials()){
-				media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_192));
+//	public Song play(int i) {
+//		Song tmp = currentPlaylist[i];
+//		if(tmp == null || tmp.getTitle() == null || tmp.getAlbum() == null)
+//			return next();
+//		media.start();
+//		setNotification();
+//		return currentPlaylist[i];
+//	}
+	public void pause() {
+		if(song_playback != null) {
+			if (!paused){
+				song_playback.pause();			
+				paused = true;
+				stopForeground(true);
 			}
 			else{
-				media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_128));
+				play();
+				paused = false;
 			}
-		} catch (Exception e) {
-			Log.e("Pandoroid","Exception getting audio", e);
-		}
-		try {
-			media.prepare();
-		} catch (Exception e) {
-			Log.e("Pandoroid","Exception getting audio",e);
 		}
 	}
-	public Song play() {
-		return play(0);
-	}
-	public Song play(int i) {
-		Song tmp = currentPlaylist[i];
-		if(tmp == null || tmp.getTitle() == null || tmp.getAlbum() == null)
-			return next();
-		media.start();
-		setNotification();
-		return currentPlaylist[i];
-	}
-	public void pause() {
-		if(media.isPlaying()) {
-			media.pause();
-			stopForeground(true);
-		}
-		else {
-			media.start();
-			setNotification();
-		}
-	}
-	public Song next() {
-		// play the next song in the current list
-		if(currentPlaylist != null && (++currentSongIndex < currentPlaylist.length)) {
-			prepare(currentSongIndex);
-
-			// prepare the next playlist if we are nearing the end
-			if(currentSongIndex + 1 >= currentPlaylist.length) {
-				(new PrepareNextPlaylistTask()).execute();
+	
+//	public Song next() {
+//		// play the next song in the current list
+////		if(currentPlaylist != null && (++currentSongIndex < currentPlaylist.length)) {
+////			prepare(currentSongIndex);
+////
+////			// prepare the next playlist if we are nearing the end
+////			if(currentSongIndex + 1 >= currentPlaylist.length) {
+////				(new PrepareNextPlaylistTask()).execute();
+////			}
+////
+////			return play(currentSongIndex);
+////		}
+////		// switch to a pre-fetched playlist for the next one
+////		else if(nextPlaylist != null) {
+////			currentPlaylist = nextPlaylist;
+////			nextPlaylist = null;
+////			prepare(0);
+////			return play();
+////		}
+////		// we don't have anything
+////		else {
+////			// get a new playlist
+////			prepare();
+////			return play();
+////		}
+//	}
+	
+	private void setPlaybackController(){
+		if (currentStation != null){
+			try{	
+				if (song_playback == null){		
+					song_playback = new MediaPlaybackController(currentStation.getStationIdToken(),
+							                                    audio_quality,
+							                                    audio_quality,
+							                                    pandora,
+							                                    connectivity_manager);						                                    
+				}
+				else{
+					song_playback.reset(currentStation.getStationIdToken(), pandora);
+				}
+			} 
+			catch (Exception e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+				song_playback = null;
 			}
-
-			return play(currentSongIndex);
-		}
-		// switch to a pre-fetched playlist for the next one
-		else if(nextPlaylist != null) {
-			currentPlaylist = nextPlaylist;
-			nextPlaylist = null;
-			prepare(0);
-			return play();
-		}
-		// we don't have anything
-		else {
-			// get a new playlist
-			prepare();
-			return play();
 		}
 	}
+	
 	public void rate(String rating) {
 		if(rating == PandoroidPlayer.RATING_NONE) {
 			// cannot set rating to none
@@ -382,11 +429,27 @@ public class PandoraRadioService extends Service {
 		
 		boolean ratingBool = rating.equals(PandoroidPlayer.RATING_LOVE) ? true : false;
 		try{
-			pandora.rate(currentPlaylist[currentSongIndex], ratingBool);
+			pandora.rate(song_playback.getSong(), ratingBool);
 		}
 		catch(Exception e){
 			Log.e("Pandoroid", "Exception sending a song rating", e);
 		}
+	}
+	
+	public void startPlayback(){
+		if (song_playback == null){
+			setPlaybackController();
+		}
+		else {
+			song_playback.setOnNewSongListener(
+					(OnNewSongListener) listeners.get(OnNewSongListener.class)
+					                          );
+			
+			Thread t = new Thread(song_playback);
+			t.start();
+			//Log.d("Pandoroid", "Inappropriate call to startPlayback", new Exception());
+		}
+		
 	}
 	
 	private class PandoraDeviceLoginTask extends AsyncTask<Boolean, Void, Boolean>{

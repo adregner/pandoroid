@@ -76,14 +76,6 @@ public class Station implements Comparable<Station>, Serializable {
 		return currentPlaylist;
 	}
 
-	public long getId() {
-		try {
-			return Long.parseLong(id);
-		} catch(NumberFormatException ex) {
-			return id.hashCode();
-		}
-	}
-
 	public String getName() {
 		return name;
 	}

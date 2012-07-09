@@ -93,6 +93,7 @@ public class PandoroidPlayer extends SherlockActivity {
 	@Override
 	protected void onResume() {
 		super.onResume();
+		pandora = PandoraRadioService.getInstance(false);
 		// The activity has become visible (it is now "resumed").
 		//TODO: Need to re-implement. It should check that the pandora service is started, or start it if needed
 //		if (pandora == null || !pandora.isAlive()){
@@ -100,41 +101,56 @@ public class PandoroidPlayer extends SherlockActivity {
 //			PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
 //		}
 		if (pandora != null){
-			if(pandora.isPlaying()){
-				updateForNewSong(pandora.getCurrentSong());
-			} 
-			else if(pandora.isPlayable()){
-				try{
-					Song tmp = pandora.getCurrentSong();
-				if(tmp != null)
-					updateForNewSong(tmp);
-				} catch(Exception ex){
-					//Uh-oh, null pointer. Its not ready yet!
-					//TODO: Need a better way to handle this :/
+			
+			pandora.setListener(OnNewSongListener.class, new OnNewSongListener() {
+				public void onNewSong(Song song) {
+					updateForNewSong(song);
 				}
-			}
-			else if (!pandora.isPlaying() && !pandora.isPlayable()){
-				
-				//Check for the last played station
-				long lastStationId = prefs.getLong("lastStationId", -1);
+			});
+			if (pandora.song_playback == null){
+	//			else if(pandora.isPlayable()){
+	//				try{
+	//					Song tmp = pandora.getCurrentSong();
+	////				if(tmp != null)
+	////					updateForNewSong(tmp);
+	////				} catch(Exception ex){
+	////					//Uh-oh, null pointer. Its not ready yet!
+	////					//TODO: Need a better way to handle this :/
+	////				}
+	//			}
+				//if (!pandora.isPlaying() && !pandora.isPlayable()){
+					
+					//Check for the last played station
+				String lastStationId = "";
+				try {
+					lastStationId = prefs.getString("lastStationId", "");
+				}
+				catch (ClassCastException e){
+					prefs.edit().remove("lastStationId").commit();
+				}
 				
 				if(!pandora.setCurrentStationId(lastStationId)){
 					//Get a station
 					startActivityForResult(new Intent(getApplicationContext(), PandoroidStationSelect.class), REQUIRE_SELECT_STATION);
 				} else {
 					//Set the station, and start playing
-					new PlayStationTask().execute();
+					//new PlayStationTask().execute();
+	
+					pandora.startPlayback();
 				}
+			}
+			else{
+				updateForNewSong(pandora.song_playback.getSong());
 			}
 		}
 	}
 
 	protected void updateForNewSong(Song song) {
-		if(song == null){
-			Toast.makeText(this, R.string.retry, 2000).show();
-			new NextSongTask().execute();
-			return;
-		}
+//		if(song == null){
+////			Toast.makeText(this, R.string.retry, 2000).show();
+////			new NextSongTask().execute();
+//			return;
+//		}
 		this.getSupportActionBar().setTitle(String.format(""+song.getTitle()));
 		TextView top = (TextView) findViewById(R.id.player_topText);
 		//TextView bottom = (TextView) findViewById(R.id.player_bottomText);
@@ -148,19 +164,21 @@ public class PandoroidPlayer extends SherlockActivity {
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if(requestCode == REQUIRE_SELECT_STATION && resultCode == RESULT_OK) {
-			pandora.setCurrentStationId(data.getLongExtra("stationId", -1));
-			(new PlayStationTask()).execute();
+			
+
+			//new PlayStationTask().execute();
+			pandora.setCurrentStationId(data.getStringExtra("stationId"));
+			pandora.startPlayback();
 		}
 	}
 
 	public void controlButtonPressed(View button) {
 		switch(button.getId()) {
-
 		case R.id.player_ban:
 			pandora.rate(RATING_BAN);
 			Toast.makeText(getApplicationContext(), getString(R.string.baned_song), Toast.LENGTH_SHORT).show();
 			if(prefs.getBoolean("behave_nextOnBan", true)) {
-				new NextSongTask().execute();
+				pandora.song_playback.skip();
 			}
 			break;
 
@@ -174,7 +192,7 @@ public class PandoroidPlayer extends SherlockActivity {
 			break;
 
 		case R.id.player_next:
-			new NextSongTask().execute();
+			pandora.song_playback.skip();
 			break;
 		}
 	}
@@ -209,60 +227,60 @@ public class PandoroidPlayer extends SherlockActivity {
 	}
 
 	/** Prepares a selected station to be played */
-	private class PlayStationTask extends AsyncTask<Void, Void, Void> {
-		@Override
-		protected void onPreExecute() {
-			waiting = ProgressDialog.show(PandoroidPlayer.this, "",  getString(R.string.loading));
-		}
-
-		@Override
-		protected Void doInBackground(Void... arg0) {
-			pandora.setListener(OnCompletionListener.class, new OnCompletionListener() {
-				public void onCompletion(MediaPlayer mp) {
-					updateForNewSong(pandora.next());
-				}
-			});
-			pandora.setListener(OnPreparedListener.class, new OnPreparedListener() {
-				public void onPrepared(MediaPlayer mp) {
-				}
-			});
-			pandora.prepare();
-
-			return null;
-		}
-
-		@Override
-		protected void onPostExecute(Void result) {
-			updateForNewSong(pandora.play());
-			dismissWaiting();
-		}
-	}
+//	private class PlayStationTask extends AsyncTask<Void, Void, Void> {
+//		@Override
+//		protected void onPreExecute() {
+//			waiting = ProgressDialog.show(PandoroidPlayer.this, "",  getString(R.string.loading));
+//		}
+//
+//		@Override
+//		protected Void doInBackground(Void... arg0) {
+//			pandora.setListener(OnNewSongListener.class, new OnNewSongListener() {
+//				public void onNewSong(Song song) {
+//					updateForNewSong(song);
+//				}
+//			});
+////			pandora.setListener(OnPreparedListener.class, new OnPreparedListener() {
+////				public void onPrepared(MediaPlayer mp) {
+////				}
+////			});
+//			//pandora.prepare();
+//
+//			return null;
+//		}
+//
+//		@Override
+//		protected void onPostExecute(Void result) {
+//			//updateForNewSong(pandora.play());
+//			dismissWaiting();
+//		}
+//	}
 	
 	/**
 	 * Class to get the next song, and update the UI
 	 */
-	private class NextSongTask extends AsyncTask<Void, Void, Song>{
-		@Override
-		protected void onPreExecute(){
-			waiting = ProgressDialog.show(PandoroidPlayer.this, "",  getString(R.string.loading));
-		}
-		
-		@Override
-		protected Song doInBackground(Void...voids){
-			return pandora.next();
-		}
-		
-		@Override
-		protected void onPostExecute(Song song){
-			dismissWaiting();
-			if(song == null){
-				Toast.makeText(PandoroidPlayer.this, R.string.retry, 2000).show();
-				new NextSongTask().execute();
-			} else {
-				updateForNewSong(song);
-			}
-		}
-	}
+//	private class NextSongTask extends AsyncTask<Void, Void, Song>{
+//		@Override
+//		protected void onPreExecute(){
+//			waiting = ProgressDialog.show(PandoroidPlayer.this, "",  getString(R.string.loading));
+//		}
+//		
+//		@Override
+//		protected Song doInBackground(Void...voids){
+//			return pandora.next();
+//		}
+//		
+//		@Override
+//		protected void onPostExecute(Song song){
+//			dismissWaiting();
+//			if(song == null){
+//				Toast.makeText(PandoroidPlayer.this, R.string.retry, 2000).show();
+//				new NextSongTask().execute();
+//			} else {
+//				updateForNewSong(song);
+//			}
+//		}
+//	}
 	
 	
 	public static void dismissWaiting() {

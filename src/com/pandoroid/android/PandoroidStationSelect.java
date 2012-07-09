@@ -80,8 +80,9 @@ public class PandoroidStationSelect extends ListActivity {
 			lv.setOnItemClickListener(new OnItemClickListener() {
 				public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 					//Store it in the prefs
-					prefs.edit().putLong("lastStationId", id).apply();
-					setResult(RESULT_OK, (new Intent()).putExtra("stationId", id));
+					String str_id = Long.toString(id);
+					prefs.edit().putString("lastStationId", str_id).apply();
+					setResult(RESULT_OK, (new Intent()).putExtra("stationId", str_id));
 					finish();
 					finishActivity(PandoroidPlayer.REQUIRE_SELECT_STATION);
 				}
@@ -121,9 +122,9 @@ public class PandoroidStationSelect extends ListActivity {
 		public Station getItem(int position) {
 			return stations.get(position);
 		}
-
+ 
 		public long getItemId(int position) {
-			return stations.get(position).getId();
+			return Long.parseLong(stations.get(position).getStationId());
 		}
 
 		public View getView(int position, View convertView, ViewGroup parent) {
