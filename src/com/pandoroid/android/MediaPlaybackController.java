@@ -21,6 +21,7 @@ import android.content.Context;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -76,6 +77,8 @@ public class MediaPlaybackController implements Runnable{
 	 * 	to the playback controller.
 	 */
 	public void run(){
+		NetworkInfo active_network_info;
+		
 		instantiateInstance();
 	
 		synchronized(player_lock){
@@ -88,7 +91,11 @@ public class MediaPlaybackController implements Runnable{
 		setNeedNextSong(true);
 		Boolean alive = Boolean.valueOf(true);
 		while(alive.booleanValue()){
-			if (m_net_conn.getActiveNetworkInfo().isConnected()){
+			
+			//Prevent a null pointer exception in case an active network is not
+			//available.
+			active_network_info = m_net_conn.getActiveNetworkInfo();
+			if (active_network_info != null && active_network_info.isConnected()){
 				if (isPlayQueueLow()){
 					pushMoreSongs();
 				}
