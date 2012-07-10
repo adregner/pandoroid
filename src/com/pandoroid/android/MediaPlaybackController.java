@@ -1,3 +1,20 @@
+/* This file is part of Pandoroid
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
 package com.pandoroid.android;
 
 import android.content.Context;
@@ -7,7 +24,6 @@ import android.net.ConnectivityManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-import android.view.View;
 
 import com.pandoroid.pandora.PandoraRadio;
 import com.pandoroid.pandora.Song;
@@ -20,11 +36,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * @author Dylan Powers <dylan.kyle.powers@gmail.com>
- * Description: This is a controller for the playback of songs.
+ * Description: This is a controller for the playback of songs (If a person 
+ *  wanted to it probably wouldn't be too hard to make it use generic types 
+ *  and feed it any kind of media that the Android media player supports).
  * 	All public methods (except run() of course) can be called and expected to
- *  have a near instantaneous return and hence are safe to run on the main thread
- *  of execution.
+ *  have a near instantaneous return and hence are safe to run on the main 
+ *  thread of execution. Some extensibility ideas are to set more listeners, 
+ *  and actually implement the continuous playback engine.
+ * @author Dylan Powers <dylan.kyle.powers@gmail.com>
  */
 public class MediaPlaybackController implements Runnable{	
 	public MediaPlaybackController(String station_token, 
@@ -52,6 +71,10 @@ public class MediaPlaybackController implements Runnable{
  		setAudioQuality(min_quality, max_quality);
 	}
 	
+	/**
+	 * Description: This is what the thread calls when started. It is the core
+	 * 	to the playback controller.
+	 */
 	public void run(){
 		instantiateInstance();
 	
@@ -95,18 +118,32 @@ public class MediaPlaybackController implements Runnable{
 		m_play_queue.clear();
 	}
 	
+	/**
+	 * Description: Does what it says and gets the song that's currently playing.
+	 * @return
+	 */
 	public Song getSong(){
 		//Only an exceptionally short lockup in exceptional instances
 		//should ever occur here.
 		return getActiveSong(); 
 	}
 	
+	/**
+	 * Description: Checks if the playback controller is alive, or in other 
+	 *  terms if the thread has been started and the stop command hasn't been 
+	 *  called. The majority of commands only have significance when this is 
+	 *  true.
+	 * @return
+	 */
 	public boolean isAlive(){
 		synchronized(m_alive){
 			return m_alive.booleanValue();
 		}
 	}
 	
+	/**
+	 * Description: Starts/resumes media playback.
+	 */
 	public void play(){
 		Thread t = new Thread(new Runnable(){
 			public void run(){
@@ -122,6 +159,9 @@ public class MediaPlaybackController implements Runnable{
 		t.start();
 	}
 	
+	/**
+	 * Description: Pauses media playback.
+	 */
 	public void pause(){
 		Thread t = new Thread(new Runnable(){
 			public void run(){
@@ -141,11 +181,27 @@ public class MediaPlaybackController implements Runnable{
 		t.start();
 	}
 	
+	/**
+	 * Description: Resets the media playback controller to use the specified
+	 * 	station_token, and the updated PandoraRadio instance. Note that this
+	 * 	doesn't actually start the controller back up. That must be done 
+	 * 	externally.
+	 * @param station_token
+	 * @param pandora_remote
+	 */
 	public void reset(String station_token, PandoraRadio pandora_remote){
 		Thread t = new Thread(new ResetThread(station_token, pandora_remote));
 		t.start();
 	}
 	
+	/**
+	 * Description: Sets the audio quality range to be played. Set both the same
+	 * 	for constant quality playback. This is thread safe and can be called at
+	 * 	any moment (the controller can be dead or alive).
+	 * @param min_quality
+	 * @param max_quality
+	 * @throws Exception
+	 */
 	public void setAudioQuality(String min_quality, String max_quality) throws Exception{
 		if (isValidAudioQualityRange(min_quality, max_quality)){
 			Thread t = new Thread(new SetAudioQualityThread(min_quality, 
@@ -158,7 +214,12 @@ public class MediaPlaybackController implements Runnable{
 	}
 	
 	/**
-	 * Description: It is an error to call this after the thread has been started.
+	 * Description: This sets a listener for a method to occur on the main
+	 *  thread of execution when a new song is played.
+	 *  It is an error to call this after the playback controller
+	 *  has been started (because we're too lazy to make this thread safe haha). 
+	 *  This is the only function where it can only be called when
+	 *  isAlive() returns false.
 	 * @param listener
 	 * @throws Exception 
 	 */
@@ -171,6 +232,9 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	/**
+	 * Description: Skips to the next song.
+	 */
 	public void skip(){
 		Thread t = new Thread(new Runnable(){
 			public void run(){
@@ -178,7 +242,9 @@ public class MediaPlaybackController implements Runnable{
 					synchronized(player_lock){					
 						if (m_player.isPlaying()){
 							m_player.pause(); //I'm thinking this should prevent
-							                  //any "abruptness" in playback.
+							                  //any "abruptness" in playback...
+							                  //or I could be full of beans.
+											  // --Dylan
 						}
 					}				
 					setNeedNextSong(true);
@@ -189,6 +255,11 @@ public class MediaPlaybackController implements Runnable{
 		t.start();
 	}
 	
+	/**
+	 * Description: Stops media playback, and the controller. The only way to
+	 * 	restart playback and the controller is to restart the thread it resides
+	 *  in.
+	 */
 	public void stop(){
 		Thread t = new Thread(new Runnable(){
 			public void run(){
@@ -201,35 +272,44 @@ public class MediaPlaybackController implements Runnable{
 	
 
 
-
 	/* private */
+	
+	//Our locks for thread safety.
 	private Object player_lock;
 	private Object quality_lock;
 	
+	//Other variables required for the controller to run.
 	private Song m_active_song;
 	private Boolean m_alive;
-	
-	private Exchanger<Boolean> m_stop_exchanger;
-	
-	private OnNewSongListener m_new_song_listener;
-	private Boolean m_need_next_song;
 	private String m_min_quality;
 	private String m_max_quality;
+	private OnNewSongListener m_new_song_listener;
+	private Boolean m_need_next_song;
+	private ConnectivityManager m_net_conn;
 	private PandoraRadio m_pandora_remote;
 	private boolean m_pause;
 	private LinkedList<Song> m_play_queue;
-	private Thread m_running_playback_thread;
 	private MediaPlayer m_player;
+	private Thread m_running_playback_thread;
 	private String m_station_token;
-	private ConnectivityManager m_net_conn;
+	private Exchanger<Boolean> m_stop_exchanger;
 	private Boolean m_valid_play_command;
 	
+	/**
+	 * Description: Thread safe getter for m_active_song.
+	 * @return
+	 */
 	private Song getActiveSong(){
 		synchronized(m_active_song){
 			return m_active_song;
 		}
 	}
 	
+	/**
+	 * Description: Upon start of the controller, some threading prep work needs
+	 *  to be done before it can fully run. This function provides that prep 
+	 *  work.
+	 */
 	private void instantiateInstance(){
 		if (isAlive()){
 			stopTask();			
@@ -242,6 +322,11 @@ public class MediaPlaybackController implements Runnable{
 		m_running_playback_thread = Thread.currentThread();
 	}
 	
+	/**
+	 * Description: Checks to make sure another thread doesn't exist with 
+	 * 	the controller running.
+	 * @return
+	 */
 	private boolean isAnotherInstanceRunning(){
 		if (m_running_playback_thread != null){
 			if (m_running_playback_thread.isAlive()){
@@ -252,27 +337,54 @@ public class MediaPlaybackController implements Runnable{
 		return false;
 	}
 	
+	/**
+	 * Description: Thread safe method of inquiring if another song is needed.
+	 * @return
+	 */
 	private boolean isNewSongNeeded(){
 		synchronized(m_need_next_song){			
 			return m_need_next_song.booleanValue();
 		}
 	}
 	
+	/**
+	 * Description: Thread safe method of inquiring if a play command to the 
+	 * 	media player is valid.
+	 * @return
+	 */
 	private boolean isPlayCommandValid(){
 		synchronized(m_valid_play_command){
 			return m_valid_play_command.booleanValue();
 		}
 	}
 	
+	/**
+	 * Description: Checks to see if the play queue is low and should be 
+	 * 	refilled.
+	 * @return
+	 */
 	private boolean isPlayQueueLow(){
 		return (m_play_queue.size() <= 1);
 	}
 	
+	/**
+	 * Description: Checks to see if two given audio format strings are of a 
+	 * 	valid quality range. This is false if min_quality is greater than
+	 *  max_quality.
+	 * @param min_quality
+	 * @param max_quality
+	 * @return
+	 * @throws Exception if the strings aren't audio_quality strings as defined
+	 * 	by the constants in the class PandoraRadio.
+	 */
 	private boolean isValidAudioQualityRange(String min_quality, 
 			                                 String max_quality) throws Exception{
 		return (PandoraRadio.audioQualityCompare(min_quality, max_quality) >= 0);
 	}
 	
+	/**
+	 * Description: Prepares a song so it can be played by the media player.
+	 */
 	private void prepareSong(){
 		try {
 			m_player.setDataSource(getActiveSong().getAudioUrl(m_max_quality));
@@ -289,6 +401,9 @@ public class MediaPlaybackController implements Runnable{
 		catch (IOException e) {}
 	}
 	
+	/**
+	 * Description: Pushes more songs to the play queue.
+	 */
 	private void pushMoreSongs(){
 		Vector<Song> new_songs = null;
 		try{
@@ -302,6 +417,12 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	/**
+	 * Description: Thread safe method of setting the active song. If new song
+	 * 	is null, then an empty song will be added to keep m_active_song from
+	 * 	being null.
+	 * @param new_song
+	 */
 	private void setActiveSong(Song new_song){
 		if (new_song == null){
 			new_song = new Song();
@@ -318,7 +439,7 @@ public class MediaPlaybackController implements Runnable{
 	}
 	
 	/**
-	 * Description:
+	 * Description: Gets a new song ready for playback.
 	 * Precondition: m_play_queue is not null
 	 */
 	private void setNewSong(){
@@ -338,12 +459,20 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	/**
+	 * Thread safe method of setting m_need_next_song.
+	 * @param new_val
+	 */
 	private void setNeedNextSong(boolean new_val){
 		synchronized(m_need_next_song){
 			m_need_next_song = Boolean.valueOf(new_val);
 		}
 	}
 	
+	/**
+	 * Thread safe method of setting m_valid_play_command.
+	 * @param new_value
+	 */
 	private void setPlayCommandValid(boolean new_value){
 		synchronized(m_valid_play_command){
 			m_valid_play_command = Boolean.valueOf(new_value);
@@ -351,8 +480,9 @@ public class MediaPlaybackController implements Runnable{
 	}
 	
 	/**
-	 * @description
-	 * Description: Will not return until the playback is stopped.
+	 * Description: Does the job of stopping the playback controller. It will
+	 *  not return until the playback is stopped, but that doesn't necessarily
+	 *  mean the controller thread has ended.
 	 */
 	private void stopTask(){
 		if (isAlive()){
@@ -363,12 +493,19 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	/**
+	 * Description: Implements the OnCompletionListener for the media player.
+	 */
 	private class MediaCompletionListener implements OnCompletionListener{
 		public void onCompletion(MediaPlayer mp){
 			setNeedNextSong(true);
 		}
 	}
 	
+	/**
+	 * Description: A runnable class for resetting the controller with the new
+	 * 	values.
+	 */
 	private class ResetThread implements Runnable{
 		public String station_token;
 		public PandoraRadio pandora_remote;
@@ -385,6 +522,10 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	/**
+	 * Description: A runnable class that's thread safe and sets the audio 
+	 * 	quality minimum and maximum.
+	 */
 	private class SetAudioQualityThread implements Runnable{
 		public String min;
 		public String max;
@@ -401,8 +542,4 @@ public class MediaPlaybackController implements Runnable{
 			}
 		}
 	}
-	
-
-	
-
 }

@@ -16,13 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-/* This class is designed to be used as a stand-alone Java module for interacting
- * with Pandora Radio.  Other then the XmlRpc class which is based on the android
- * library, this class should run in any Java VM.
- */
-package com.pandoroid.pandora;
 
-//import java.io.Console; //Not supported by android's JVM - used for testing this class with java6 on PC/Mac
+package com.pandoroid.pandora;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +43,11 @@ import android.util.Log;
  * Description: Uses Pandora's JSON v5 API. Documentation of the JSON API
  * 	can be found here: http://pan-do-ra-api.wikia.com/wiki/Json/5 
  *  A network connection is required before any operation can take place.
+ *  If a person is bored, and wants to work on something, they could split
+ *  off the authentication component from this class while making both this
+ *  and the authentication component inherit from the RPC class 
+ *  (and also beef up the RPC class a bit). It would also be helpful
+ *  to give this class a more meaningful name.
  */
 public class PandoraRadio {
 	private static final String USER_AGENT = "com.pandoroid.pandora/0.4";

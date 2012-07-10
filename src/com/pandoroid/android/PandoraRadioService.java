@@ -44,6 +44,10 @@ import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+/**
+ * Description: Someone really needs to give this class some loving, document
+ *  it up, organize it, and make it thread safe.
+ */
 public class PandoraRadioService extends Service {
 
 	private static final int NOTIFICATION_SONG_PLAYING = 1;
@@ -51,9 +55,7 @@ public class PandoraRadioService extends Service {
 	// tools this service uses
 	private PandoraRadio pandora;
 	public MediaPlaybackController song_playback;
-	//private MediaPlayer media;
 	
-	//private NotificationManager notificationManager;
 	private TelephonyManager telephonyManager;
 	private ConnectivityManager connectivity_manager;
 	private SharedPreferences prefs;
@@ -62,9 +64,6 @@ public class PandoraRadioService extends Service {
 	private Station currentStation;
 	private String audio_quality;
 	private boolean paused;
-	//private Song[] currentPlaylist;
-	//private Song[] nextPlaylist;
-	//private int currentSongIndex;
 	private HashMap<Class<?>,Object> listeners = new HashMap<Class<?>,Object>();
 
 	protected PandoraDB db;
@@ -114,9 +113,7 @@ public class PandoraRadioService extends Service {
 			pandora = new PandoraRadio();
 			(new PandoraDeviceLoginTask()).execute(Boolean.valueOf(false));
 			
-			//media = new MediaPlayer();
 			
-			//notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 			connectivity_manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 			telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 			prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
@@ -155,7 +152,6 @@ public class PandoraRadioService extends Service {
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		//return START_REDELIVER_INTENT;
 		return START_STICKY;
 	}
 	
@@ -177,18 +173,9 @@ public class PandoraRadioService extends Service {
 		Song tmp_song = song_playback.getSong();
 		notification.setLatestEventInfo(getApplicationContext(), tmp_song.getTitle(),
 				tmp_song.getArtist()+" on "+tmp_song.getAlbum(), contentIntent);
-		//notificationManager.notify(NOTIFICATION_SONG_PLAYING, notification);
 		startForeground(NOTIFICATION_SONG_PLAYING, notification);
 	}
 
-	/**  */
-//	private class PrepareNextPlaylistTask extends AsyncTask<Void, Void, Void> {
-//		@Override
-//		protected Void doInBackground(Void... arg0) {
-//			nextPlaylist = currentStation.getPlaylist();
-//			return null;
-//		}
-//	}
 
 	/** methods for clients */
 	public boolean signIn(String username, String password) {
@@ -264,7 +251,6 @@ public class PandoraRadioService extends Service {
 			return getStations();
 		}
 		else {
-			// TODO : build a "fake" list of stations that the PandoraRadio controller doesn't know about???
 			HashMap<String, Object>[] stationsData = db.getStations();
 			ArrayList<Station> stations = new ArrayList<Station>(stationsData.length);
 			
@@ -310,95 +296,32 @@ public class PandoraRadioService extends Service {
 		return currentStation;
 	}
 	
-	/**
-	 * True if the service has been initialized, and has a station
-	 */
-//	public boolean isPlayable() {
-//		return currentStation != null && song_playback != null;
-//	}
-//	public boolean isPlaying() {
-//		return media.isPlaying();
-//	}
-//	public void prepare() {
-//		currentPlaylist = currentStation.getPlaylist();
-//		prepare(0);
-//	}
-//	public void prepare(int i) {
-//		currentSongIndex = i;
-//		media.reset();
-//		
-//		media.setOnCompletionListener((OnCompletionListener)listeners.get(OnCompletionListener.class));
-//		media.setOnPreparedListener((OnPreparedListener)listeners.get(OnPreparedListener.class));
-//		//media.setOnBufferingUpdateListener(listener)
-//		try {
-//			if (pandora.isPandoraOneCredentials()){
-//				media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_192));
-//			}
-//			else{
-//				media.setDataSource( currentPlaylist[i].getAudioUrl(PandoraRadio.MP3_128));
-//			}
-//		} catch (Exception e) {
-//			Log.e("Pandoroid","Exception getting audio", e);
-//		}
-//		try {
-//			media.prepare();
-//		} catch (Exception e) {
-//			Log.e("Pandoroid","Exception getting audio",e);
-//		}
-//	}
-	public Song play() {
-		song_playback.play();
-		setNotification();
-		return song_playback.getSong();
-	}
-//	public Song play(int i) {
-//		Song tmp = currentPlaylist[i];
-//		if(tmp == null || tmp.getTitle() == null || tmp.getAlbum() == null)
-//			return next();
-//		media.start();
-//		setNotification();
-//		return currentPlaylist[i];
-//	}
-	public void pause() {
-		if(song_playback != null) {
+	public Song playPause(){
+		if (song_playback != null){
 			if (!paused){
-				song_playback.pause();			
-				paused = true;
-				stopForeground(true);
+				pause();
+				return song_playback.getSong();
 			}
 			else{
-				play();
-				paused = false;
+				return play();
 			}
 		}
+		return null;
+	}
+
+	private Song play() {
+		song_playback.play();
+		setNotification();
+		paused = false;
+		return song_playback.getSong();
 	}
 	
-//	public Song next() {
-//		// play the next song in the current list
-////		if(currentPlaylist != null && (++currentSongIndex < currentPlaylist.length)) {
-////			prepare(currentSongIndex);
-////
-////			// prepare the next playlist if we are nearing the end
-////			if(currentSongIndex + 1 >= currentPlaylist.length) {
-////				(new PrepareNextPlaylistTask()).execute();
-////			}
-////
-////			return play(currentSongIndex);
-////		}
-////		// switch to a pre-fetched playlist for the next one
-////		else if(nextPlaylist != null) {
-////			currentPlaylist = nextPlaylist;
-////			nextPlaylist = null;
-////			prepare(0);
-////			return play();
-////		}
-////		// we don't have anything
-////		else {
-////			// get a new playlist
-////			prepare();
-////			return play();
-////		}
-//	}
+	private void pause() {
+		song_playback.pause();			
+		paused = true;
+		stopForeground(true);
+	}
+	
 	
 	private void setPlaybackController(){
 		if (currentStation != null){
@@ -448,7 +371,6 @@ public class PandoraRadioService extends Service {
 
 			Thread t = new Thread(song_playback);
 			t.start();
-			//Log.d("Pandoroid", "Inappropriate call to startPlayback", new Exception());
 		}
 		
 	}
