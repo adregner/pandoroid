@@ -151,6 +151,7 @@ public class PandoroidPlayer extends SherlockActivity {
 ////			new NextSongTask().execute();
 //			return;
 //		}
+		pandora.setNotification();
 		this.getSupportActionBar().setTitle(String.format(""+song.getTitle()));
 		TextView top = (TextView) findViewById(R.id.player_topText);
 		//TextView bottom = (TextView) findViewById(R.id.player_bottomText);
