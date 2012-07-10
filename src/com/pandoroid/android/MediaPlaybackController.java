@@ -42,21 +42,25 @@ public class MediaPlaybackController implements Runnable{
 		m_net_conn = net_connectivity;
 		m_station_token = station_token;
 		m_stop_exchanger = new Exchanger<Boolean>();
-		m_alive = false;
+		m_alive = Boolean.valueOf(false);
 		m_need_next_song = Boolean.valueOf(false);
 		m_pause = false;
 		m_new_song_listener = new OnNewSongListener(){
 								  		public void onNewSong(Song song){}
 								                     };
+        m_valid_play_command = Boolean.valueOf(false);								                     
  		setAudioQuality(min_quality, max_quality);
 	}
 	
 	public void run(){
+		instantiateInstance();
+	
 		synchronized(player_lock){
 			m_player = new MediaPlayer();
 			m_player.setOnCompletionListener(new MediaCompletionListener());
-			m_alive = true;
 		}
+		
+		setAlive(true);
 		
 		setNeedNextSong(true);
 		Boolean alive = Boolean.valueOf(true);
@@ -66,28 +70,29 @@ public class MediaPlaybackController implements Runnable{
 					pushMoreSongs();
 				}
 				if (isNewSongNeeded()){
-					setNeedNextSong(false);
 					synchronized(player_lock){
 						setNewSong();
-						if (!m_pause){
-							m_player.start();
-						}
 					}
 				}
 			}
 			
 			synchronized(player_lock){
-				if (!m_pause && m_player.isPlaying() == false){
+				if (!m_pause && m_player.isPlaying() == false && isPlayCommandValid()){
 					m_player.start();
 				}
 			}
 			
-			try {				
-				m_stop_exchanger.exchange(alive, 1, TimeUnit.SECONDS); //Sleep for 1 second
+			try {	
+				//Sleep for 1 second
+				alive = m_stop_exchanger.exchange(alive, 1, TimeUnit.SECONDS); 
 			} 
 			catch (InterruptedException e) {} //We don't care
 			catch (TimeoutException e) {} //Yes we do want this to happen
 		}
+		setPlayCommandValid(false);
+		m_player.release();		
+		setActiveSong(null);
+		m_play_queue.clear();
 	}
 	
 	public Song getSong(){
@@ -96,15 +101,20 @@ public class MediaPlaybackController implements Runnable{
 		return getActiveSong(); 
 	}
 	
+	public boolean isAlive(){
+		synchronized(m_alive){
+			return m_alive.booleanValue();
+		}
+	}
+	
 	public void play(){
 		Thread t = new Thread(new Runnable(){
 			public void run(){
-				synchronized(player_lock){
-					//We aren't actually going to pause it, but rather put this
-					//command in a "queue" so to speak. Pause commands are 
-					//always urgent, but for play commands it can wait until
-					//the proper moment.
-					m_pause = false;
+				if (isPlayCommandValid()){
+					synchronized(player_lock){	
+						m_player.start();
+						m_pause = false;
+					}
 				}
 			}
 		});
@@ -115,14 +125,14 @@ public class MediaPlaybackController implements Runnable{
 	public void pause(){
 		Thread t = new Thread(new Runnable(){
 			public void run(){
-				synchronized(player_lock){
-					if (m_alive){
+				if (isAlive()){
+					synchronized(player_lock){
 						//Pause commands are under all likely hood very urgent
 						//and should be executed as soon as possible.
 						m_pause = true;
 						if (m_player.isPlaying()){
 							m_player.pause();
-						}
+						}						
 					}
 				}
 			}
@@ -147,22 +157,32 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
-	public void setOnNewSongListener(OnNewSongListener listener){
-		m_new_song_listener = listener;
+	/**
+	 * Description: It is an error to call this after the thread has been started.
+	 * @param listener
+	 * @throws Exception 
+	 */
+	public void setOnNewSongListener(OnNewSongListener listener) throws Exception{
+		if (!isAlive()){
+			m_new_song_listener = listener;
+		}
+		else{
+			throw new Exception("Illegal call to set the new song listener.");
+		}
 	}
 	
 	public void skip(){
 		Thread t = new Thread(new Runnable(){
 			public void run(){
-				synchronized(player_lock){
-					if (m_alive){
+				if (isAlive()){
+					synchronized(player_lock){					
 						if (m_player.isPlaying()){
 							m_player.pause(); //I'm thinking this should prevent
 							                  //any "abruptness" in playback.
 						}
-					}
+					}				
+					setNeedNextSong(true);
 				}
-				setNeedNextSong(true);
 			}
 		});
 		
@@ -187,7 +207,7 @@ public class MediaPlaybackController implements Runnable{
 	private Object quality_lock;
 	
 	private Song m_active_song;
-	private boolean m_alive;
+	private Boolean m_alive;
 	
 	private Exchanger<Boolean> m_stop_exchanger;
 	
@@ -198,9 +218,11 @@ public class MediaPlaybackController implements Runnable{
 	private PandoraRadio m_pandora_remote;
 	private boolean m_pause;
 	private LinkedList<Song> m_play_queue;
+	private Thread m_running_playback_thread;
 	private MediaPlayer m_player;
 	private String m_station_token;
 	private ConnectivityManager m_net_conn;
+	private Boolean m_valid_play_command;
 	
 	private Song getActiveSong(){
 		synchronized(m_active_song){
@@ -208,9 +230,37 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	private void instantiateInstance(){
+		if (isAlive()){
+			stopTask();			
+		}
+		if (isAnotherInstanceRunning()){
+			try {
+				m_running_playback_thread.join();
+			} catch (InterruptedException e) {}
+		}
+		m_running_playback_thread = Thread.currentThread();
+	}
+	
+	private boolean isAnotherInstanceRunning(){
+		if (m_running_playback_thread != null){
+			if (m_running_playback_thread.isAlive()){
+				return true;
+			}			
+		}
+		
+		return false;
+	}
+	
 	private boolean isNewSongNeeded(){
 		synchronized(m_need_next_song){			
 			return m_need_next_song.booleanValue();
+		}
+	}
+	
+	private boolean isPlayCommandValid(){
+		synchronized(m_valid_play_command){
+			return m_valid_play_command.booleanValue();
 		}
 	}
 	
@@ -227,6 +277,7 @@ public class MediaPlaybackController implements Runnable{
 		try {
 			m_player.setDataSource(getActiveSong().getAudioUrl(m_max_quality));
 			m_player.prepare();
+			setPlayCommandValid(true);
 		} 
 		catch (IllegalArgumentException e) {
 			Log.e("Pandoroid", e.getMessage(), e);
@@ -252,8 +303,17 @@ public class MediaPlaybackController implements Runnable{
 	}
 	
 	private void setActiveSong(Song new_song){
+		if (new_song == null){
+			new_song = new Song();
+		}
 		synchronized(m_active_song){
 			m_active_song = new_song;
+		}
+	}
+	
+	private void setAlive(boolean new_liveness){
+		synchronized(m_alive){
+			m_alive = Boolean.valueOf(new_liveness);
 		}
 	}
 	
@@ -262,15 +322,20 @@ public class MediaPlaybackController implements Runnable{
 	 * Precondition: m_play_queue is not null
 	 */
 	private void setNewSong(){
+		setPlayCommandValid(false);
 		m_player.reset();
-		setActiveSong(m_play_queue.pollFirst());
-		Handler handler = new Handler(Looper.getMainLooper());
-		handler.post(new Runnable(){
-			public void run(){		
-				m_new_song_listener.onNewSong(getActiveSong());
-			}
-		});
-		prepareSong();
+		if (m_play_queue.peek() != null){
+			setNeedNextSong(false);
+			setActiveSong(m_play_queue.pollFirst());
+
+			Handler handler = new Handler(Looper.getMainLooper());
+			handler.post(new Runnable(){
+				public void run(){		
+					m_new_song_listener.onNewSong(getActiveSong());
+				}
+			});
+			prepareSong();
+		}
 	}
 	
 	private void setNeedNextSong(boolean new_val){
@@ -279,17 +344,23 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	private void setPlayCommandValid(boolean new_value){
+		synchronized(m_valid_play_command){
+			m_valid_play_command = Boolean.valueOf(new_value);
+		}
+	}
+	
+	/**
+	 * @description
+	 * Description: Will not return until the playback is stopped.
+	 */
 	private void stopTask(){
-		synchronized(player_lock){
-			if (m_alive){
-				try {
-					m_alive = false;
-					m_stop_exchanger.exchange(false);
-				} catch (InterruptedException e) {}
-			}
-			m_player.release();
-		}	
-		setActiveSong(null);
+		if (isAlive()){
+			setAlive(false);
+			try {					
+				m_stop_exchanger.exchange(false);
+			} catch (InterruptedException e) {}
+		}
 	}
 	
 	private class MediaCompletionListener implements OnCompletionListener{

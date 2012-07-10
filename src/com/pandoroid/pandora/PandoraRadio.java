@@ -96,6 +96,7 @@ public class PandoraRadio {
 	private long sync_time;
 	private long sync_obtained_time;
 	private long last_acquired_playlist_time;
+	private String last_acquired_playlist_station;
 	private ArrayList<Station> stations;
 	private Map<String, String> standard_url_params;
 
@@ -107,6 +108,7 @@ public class PandoraRadio {
 		stations = new ArrayList<Station>();
 		credentials = new PartnerCredentials();
 		last_acquired_playlist_time = 0;
+		last_acquired_playlist_station = new String();
 			
 	}
 	
@@ -283,7 +285,7 @@ public class PandoraRadio {
 		
 		//This protects against a temporary account suspension from too many 
 		//playlist requests.
-		if (!isGetPlaylistCallValid()){
+		if (!isGetPlaylistCallValid(station_token)){
 			throw new Exception("Playlist calls are too frequent");
 		}
 		
@@ -348,7 +350,10 @@ public class PandoraRadio {
 			}
 		}
 		
-		this.last_acquired_playlist_time = System.currentTimeMillis() / 1000L;		
+		
+		this.last_acquired_playlist_time = System.currentTimeMillis() / 1000L;
+		this.last_acquired_playlist_station = station_token;
+		
 		return songs;
 	}
 	
@@ -456,10 +461,18 @@ public class PandoraRadio {
 		return isUserAuthorized();
 	}
 	
-	private boolean isGetPlaylistCallValid(){
-		return this.last_acquired_playlist_time < (
-		  (System.currentTimeMillis() / 1000L) - MIN_TIME_BETWEEN_PLAYLIST_CALLS
-		                                          );
+	private boolean isGetPlaylistCallValid(String station_token){
+		if ((station_token.compareTo(last_acquired_playlist_station) == 0)
+				                             &&
+            (this.last_acquired_playlist_time < (		
+        		  (System.currentTimeMillis() / 1000L) - MIN_TIME_BETWEEN_PLAYLIST_CALLS
+		                                        )
+		    )
+		   ){
+			return false;
+			
+		}
+		return true;
 	}
 	
 	public boolean isPandoraOneCredentials(){

@@ -408,7 +408,11 @@ public class PandoraRadioService extends Service {
 							                                    audio_quality,
 							                                    audio_quality,
 							                                    pandora,
-							                                    connectivity_manager);						                                    
+							                                    connectivity_manager);
+					song_playback.setOnNewSongListener(
+							(OnNewSongListener) listeners.get(OnNewSongListener.class)
+							                          );
+					
 				}
 				else{
 					song_playback.reset(currentStation.getStationIdToken(), pandora);
@@ -441,10 +445,7 @@ public class PandoraRadioService extends Service {
 			setPlaybackController();
 		}
 		else {
-			song_playback.setOnNewSongListener(
-					(OnNewSongListener) listeners.get(OnNewSongListener.class)
-					                          );
-			
+
 			Thread t = new Thread(song_playback);
 			t.start();
 			//Log.d("Pandoroid", "Inappropriate call to startPlayback", new Exception());
