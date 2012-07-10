@@ -78,7 +78,7 @@ public class PandoraRadio {
 	
 	public static final long PLAYLIST_VALIDITY_TIME = 3600 * 3;
 	public static final String DEFAULT_AUDIO_FORMAT = "aacplus";
-	public static final long MIN_TIME_BETWEEN_PLAYLIST_CALLS = 60; //seconds
+	public static final long MIN_TIME_BETWEEN_PLAYLIST_CALLS = 30; //seconds
 	
 	//Audio quality strings
 	public static final String AAC_32 = "HTTP_32_AACPLUS";
@@ -464,7 +464,7 @@ public class PandoraRadio {
 	private boolean isGetPlaylistCallValid(String station_token){
 		if ((station_token.compareTo(last_acquired_playlist_station) == 0)
 				                             &&
-            (this.last_acquired_playlist_time < (		
+            (this.last_acquired_playlist_time > (		
         		  (System.currentTimeMillis() / 1000L) - MIN_TIME_BETWEEN_PLAYLIST_CALLS
 		                                        )
 		    )
