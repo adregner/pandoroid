@@ -17,5 +17,5 @@
 package com.pandoroid.playback;
 
 public abstract class OnPlaybackHaltedListener {
-	public abstract void OnPlaybackHalted(int halt_code); 
+	public abstract void OnPlaybackHalted(int halt_code, int countdown_time); 
 }

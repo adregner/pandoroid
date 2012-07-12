@@ -19,6 +19,7 @@ package com.pandoroid.playback;
 
 import android.content.Context;
 import android.media.MediaPlayer;
+import android.media.MediaPlayer.OnBufferingUpdateListener;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -47,34 +48,53 @@ import java.util.concurrent.TimeoutException;
  * @author Dylan Powers <dylan.kyle.powers@gmail.com>
  */
 public class MediaPlaybackController implements Runnable{	
+	
+	/* 
+	 * Public 
+	 */
+	
+	public static final int HALT_STATE_NO_NETWORK = 0;
+	public static final int HALT_STATE_NO_INTERNET = 1;
+	public static final int HALT_STATE_BUFFERING = 2;
+	
+	//This is for when a switch of networks occurs and the whole song has to
+	//be buffered over again.
+	public static final int HALT_STATE_REBUFFERING = 3; 
+	
 	public MediaPlaybackController(String station_token, 
 			                       String min_quality,
 			                       String max_quality,
 			                       PandoraRadio pandora_remote,
 			                       ConnectivityManager net_connectivity) throws Exception{
-		player_lock = new Object();
-		quality_lock = new Object();
-		m_active_song = new Song();
-		
-
-		m_play_queue = new LinkedList<Song>();
 		m_pandora_remote = pandora_remote;
 		m_net_conn = net_connectivity;
 		m_station_token = station_token;
-		m_stop_exchanger = new Exchanger<Boolean>();
+ 		setAudioQuality(min_quality, max_quality);
+ 		
+ 		//Lock initialization
+		player_lock = new Object();
+		quality_lock = new Object();
+		
+		//Other generic initialization
+		m_active_song = new Song();
 		m_alive = Boolean.valueOf(false);
 		m_need_next_song = Boolean.valueOf(false);
 		m_pause = false;
+		m_play_queue = new LinkedList<Song>();		
+		m_stop_exchanger = new Exchanger<Boolean>();
+        m_valid_play_command = Boolean.valueOf(false);	
+
+        //Listener initialization
 		m_new_song_listener = new OnNewSongListener(){
 								  		public void onNewSong(Song song){}
 								                     };
-        m_valid_play_command = Boolean.valueOf(false);								                     
- 		setAudioQuality(min_quality, max_quality);
+							                     
+
 	}
 	
 	/**
-	 * Description: This is what the thread calls when started. It is the core
-	 * 	to the playback controller.
+	 * Description: This is what the thread calls when started. It is the engine
+	 * 	behind the media playback controller.
 	 */
 	public void run(){
 		NetworkInfo active_network_info;
@@ -84,6 +104,14 @@ public class MediaPlaybackController implements Runnable{
 		synchronized(player_lock){
 			m_player = new MediaPlayer();
 			m_player.setOnCompletionListener(new MediaCompletionListener());
+			m_player.setOnBufferingUpdateListener(new OnBufferingUpdateListener(){
+				public void onBufferingUpdate(MediaPlayer mp, int percent){
+					Log.d("Pandoroid", Long.toString(System.currentTimeMillis()/1000L) + 
+							          ": The song \"" + getSong().getTitle() + 
+							           "\" is buffered to " + Integer.toString(percent) +
+							           "%");
+				}
+			});
 		}
 		
 		setAlive(true);
@@ -123,6 +151,14 @@ public class MediaPlaybackController implements Runnable{
 		m_player.release();		
 		setActiveSong(null);
 		m_play_queue.clear();
+	}
+	
+	/**
+	 * Description: Gets the quality string of the audio currently playing.
+	 * @return
+	 */
+	public String getCurrentQuality(){
+		return getMaxQuality();
 	}
 	
 	/**
@@ -225,8 +261,7 @@ public class MediaPlaybackController implements Runnable{
 	 *  thread of execution when a new song is played.
 	 *  It is an error to call this after the playback controller
 	 *  has been started (because we're too lazy to make this thread safe haha). 
-	 *  This is the only function where it can only be called when
-	 *  isAlive() returns false.
+	 *  This function can only be called when isAlive() returns false.
 	 * @param listener
 	 * @throws Exception 
 	 */
@@ -239,6 +274,15 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	/**
+	 * Description: This sets a listener for a method to occur on the main
+	 *  thread of execution when playback continues after it has been halted.
+	 *  It is an error to call this after the playback controller
+	 *  has been started (because we're too lazy to make this thread safe haha). 
+	 *  This function can only be called when isAlive() returns false.
+	 * @param listener
+	 * @throws Exception
+	 */
 	public void setOnPlaybackContinuedListener(OnPlaybackContinuedListener listener) throws Exception{
 		if (!isAlive()){
 			//listener goes here
@@ -248,6 +292,16 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	/**
+	 * Description: This sets a listener for a method to occur on the main
+	 *  thread of execution when playback has been halted due to network
+	 *  conditions.
+	 *  It is an error to call this after the playback controller
+	 *  has been started (because we're too lazy to make this thread safe haha). 
+	 *  This function can only be called when isAlive() returns false.
+	 * @param listener
+	 * @throws Exception
+	 */
 	public void setOnPlaybackHaltedListener(OnPlaybackHaltedListener listener) throws Exception{
 		if (!isAlive()){
 			//listener goes here
@@ -294,10 +348,13 @@ public class MediaPlaybackController implements Runnable{
 		
 		t.start();
 	}
+	/* End Public */
 	
 
 
-	/* private */
+	/*
+	 * Private 
+	 */
 	
 	//Our locks for thread safety.
 	private Object player_lock;
@@ -321,7 +378,7 @@ public class MediaPlaybackController implements Runnable{
 	private Boolean m_valid_play_command;
 	
 	/**
-	 * Description: Thread safe getter for m_active_song.
+	 * Description: Thread safe accessor for m_active_song.
 	 * @return
 	 */
 	private Song getActiveSong(){
@@ -330,12 +387,19 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	/**
+	 * Description: Thread safe accessor for m_max_quality.
+	 * @return
+	 */
 	private String getMaxQuality(){
 		synchronized(quality_lock){
 			return m_max_quality;
 		}
 	}
 	
+	/**
+	 * Description: Thread safe accessor for m_min_quality.
+	 */
 	private String getMinQuality(){
 		synchronized(quality_lock){
 			return m_min_quality;
@@ -424,7 +488,7 @@ public class MediaPlaybackController implements Runnable{
 	 */
 	private void prepareSong(){
 		try {
-			m_player.setDataSource(getActiveSong().getAudioUrl(m_max_quality));
+			m_player.setDataSource(getActiveSong().getAudioUrl(getMaxQuality()));
 			m_player.prepare();
 			setPlayCommandValid(true);
 		} 
@@ -469,6 +533,10 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	/**
+	 * Description: Thread safe method for setting m_alive.
+	 * @param new_liveness
+	 */
 	private void setAlive(boolean new_liveness){
 		synchronized(m_alive){
 			m_alive = Boolean.valueOf(new_liveness);
@@ -476,7 +544,7 @@ public class MediaPlaybackController implements Runnable{
 	}
 	
 	/**
-	 * Description: Gets a new song ready for playback.
+	 * Description: Sets a new song ready for playback.
 	 * Precondition: m_play_queue is not null
 	 */
 	private void setNewSong(){
@@ -497,7 +565,7 @@ public class MediaPlaybackController implements Runnable{
 	}
 	
 	/**
-	 * Thread safe method of setting m_need_next_song.
+	 * Description: Thread safe method of setting m_need_next_song.
 	 * @param new_val
 	 */
 	private void setNeedNextSong(boolean new_val){
@@ -507,7 +575,7 @@ public class MediaPlaybackController implements Runnable{
 	}
 	
 	/**
-	 * Thread safe method of setting m_valid_play_command.
+	 * Description: Thread safe method of setting m_valid_play_command.
 	 * @param new_value
 	 */
 	private void setPlayCommandValid(boolean new_value){
@@ -579,4 +647,6 @@ public class MediaPlaybackController implements Runnable{
 			}
 		}
 	}
+	
+	/* End Private */
 }
