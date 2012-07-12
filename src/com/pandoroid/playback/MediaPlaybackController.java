@@ -15,7 +15,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-package com.pandoroid.android;
+package com.pandoroid.playback;
 
 import android.content.Context;
 import android.media.MediaPlayer;
@@ -239,6 +239,24 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	public void setOnPlaybackContinuedListener(OnPlaybackContinuedListener listener) throws Exception{
+		if (!isAlive()){
+			//listener goes here
+		}
+		else{
+			throw new Exception("Illegal call to set the playback continued listener.");
+		}
+	}
+	
+	public void setOnPlaybackHaltedListener(OnPlaybackHaltedListener listener) throws Exception{
+		if (!isAlive()){
+			//listener goes here
+		}
+		else{
+			throw new Exception("Illegal call to set the playback halted listener.");
+		}
+	}
+	
 	/**
 	 * Description: Skips to the next song.
 	 */
@@ -309,6 +327,18 @@ public class MediaPlaybackController implements Runnable{
 	private Song getActiveSong(){
 		synchronized(m_active_song){
 			return m_active_song;
+		}
+	}
+	
+	private String getMaxQuality(){
+		synchronized(quality_lock){
+			return m_max_quality;
+		}
+	}
+	
+	private String getMinQuality(){
+		synchronized(quality_lock){
+			return m_min_quality;
 		}
 	}
 	

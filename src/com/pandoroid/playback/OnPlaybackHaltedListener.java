@@ -14,14 +14,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.pandoroid.android;
+package com.pandoroid.playback;
 
-import com.pandoroid.pandora.Song;
-
-/**
- * Description: An abstract class for an OnNewSongListener.
- * @author Dylan Powers <dylan.kyle.powers@gmail.com>
- */
-public abstract class OnNewSongListener {
-	public abstract void onNewSong(Song song);
+public abstract class OnPlaybackHaltedListener {
+	public abstract void OnPlaybackHalted(int halt_code); 
 }

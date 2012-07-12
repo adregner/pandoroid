@@ -25,6 +25,8 @@ import com.pandoroid.pandora.RPCException;
 import com.pandoroid.pandora.Song;
 import com.pandoroid.pandora.Station;
 import com.pandoroid.pandora.SubscriberTypeException;
+import com.pandoroid.playback.MediaPlaybackController;
+import com.pandoroid.playback.OnNewSongListener;
 import com.pandoroid.android.R;
 
 import android.app.Notification;

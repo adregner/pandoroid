@@ -22,6 +22,7 @@ import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuItem;
 import com.actionbarsherlock.view.SubMenu;
 import com.pandoroid.pandora.Song;
+import com.pandoroid.playback.OnNewSongListener;
 import com.pandoroid.android.R;
 
 import android.app.ProgressDialog;
