@@ -243,9 +243,37 @@ public class PandoroidPlayer extends SherlockActivity {
 	        // service that we know is running in our own process, we can
 	        // cast its IBinder to a concrete class and directly access it.
 	        pandora = ((PandoraRadioService.PandoraRadioBinder)service).getService();
-			if (!pandora.isAlive()){
-				
+		    m_is_bound = true;
+			if (!pandora.isAlive()){				
 				PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
+			}
+			else{// (pandora != null && pandora.isAlive()){
+				pandora.setListener(OnNewSongListener.class, new OnNewSongListener() {
+					public void onNewSong(Song song) {
+						updateForNewSong(song);
+					}
+				});
+				if (pandora.song_playback == null){
+					String lastStationId = "";
+					try {
+						lastStationId = prefs.getString("lastStationId", "");
+					}
+					catch (ClassCastException e){
+						prefs.edit().remove("lastStationId").commit();
+					}
+					
+					if(!pandora.setCurrentStationId(lastStationId)){
+						//Get a station
+						startActivityForResult(new Intent(getApplicationContext(), 
+								               PandoroidStationSelect.class), 
+								               REQUIRE_SELECT_STATION);
+					} else {	
+						pandora.startPlayback();
+					}
+				}
+				else{
+					updateForNewSong(pandora.song_playback.getSong());
+				}
 			}
 	    }
 
@@ -255,10 +283,15 @@ public class PandoroidPlayer extends SherlockActivity {
 	        // Because it is running in our same process, we should never
 	        // see this happen.
 	        pandora = null;
+	        m_is_bound = false;
 	    }  
 	};
 
 	void doBindService() {
+		
+		//This is the master service start
+		startService(new Intent(this, PandoraRadioService.class));
+		
 	    // Establish a connection with the service.  We use an explicit
 	    // class name because we want a specific service implementation that
 	    // we know will be running in our own process (and thus won't be
@@ -266,14 +299,15 @@ public class PandoroidPlayer extends SherlockActivity {
 	    bindService(new Intent(this, 
 	                PandoraRadioService.class), 
 	                m_connection, Context.BIND_AUTO_CREATE);
-	    m_is_bound = true;
+
+
+
 	}
 
 	void doUnbindService() {
 	    if (m_is_bound) {
 	        // Detach our existing connection.
 	        unbindService(m_connection);
-	        m_is_bound = false;
 	    }
 	}
 

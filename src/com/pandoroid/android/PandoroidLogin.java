@@ -125,7 +125,8 @@ public class PandoroidLogin extends SherlockActivity {
 	        // service that we know is running in our own process, we can
 	        // cast its IBinder to a concrete class and directly access it.
 	        pandora = ((PandoraRadioService.PandoraRadioBinder)service).getService();
-	        
+		    m_is_bound = true;
+		    
 			String username = prefs.getString("pandora_username", null);
 			String password = prefs.getString("pandora_password", null);
 			
@@ -145,6 +146,7 @@ public class PandoroidLogin extends SherlockActivity {
 	        // Because it is running in our same process, we should never
 	        // see this happen.
 	        pandora = null;
+	        m_is_bound = false;
 	    }  
 	};
 
@@ -156,7 +158,6 @@ public class PandoroidLogin extends SherlockActivity {
 	    bindService(new Intent(this, 
 	                PandoraRadioService.class), 
 	                m_connection, Context.BIND_AUTO_CREATE);
-	    m_is_bound = true;
 	}
 
 	void doUnbindService() {
