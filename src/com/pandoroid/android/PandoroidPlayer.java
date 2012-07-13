@@ -94,12 +94,7 @@ public class PandoroidPlayer extends SherlockActivity {
 //		if (pandora == null || !pandora.isAlive()){
 //			PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
 //		}
-		if (pandora != null && pandora.isAlive()){
-			pandora.setListener(OnNewSongListener.class, new OnNewSongListener() {
-				public void onNewSong(Song song) {
-					updateForNewSong(song);
-				}
-			});
+		if (m_is_bound && pandora.isAlive()){
 			if (pandora.song_playback == null){
 				String lastStationId = "";
 				try {
@@ -119,7 +114,7 @@ public class PandoroidPlayer extends SherlockActivity {
 				}
 			}
 			else{
-				updateForNewSong(pandora.song_playback.getSong());
+				songRefresh(pandora.song_playback.getSong());
 			}
 		}
 	}
@@ -130,8 +125,11 @@ public class PandoroidPlayer extends SherlockActivity {
 	}
 
 	protected void updateForNewSong(Song song) {
-
 		pandora.setNotification();
+		songRefresh(song);
+	}
+	
+	protected void songRefresh(Song song){
 		this.getSupportActionBar().setTitle(String.format(""+song.getTitle()));
 		TextView top = (TextView) findViewById(R.id.player_topText);
 		//TextView bottom = (TextView) findViewById(R.id.player_bottomText);
@@ -272,7 +270,7 @@ public class PandoroidPlayer extends SherlockActivity {
 					}
 				}
 				else{
-					updateForNewSong(pandora.song_playback.getSong());
+					songRefresh(pandora.song_playback.getSong());
 				}
 			}
 	    }
