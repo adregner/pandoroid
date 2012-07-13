@@ -25,13 +25,17 @@ import com.pandoroid.pandora.Song;
 import com.pandoroid.android.R;
 
 import android.app.ProgressDialog;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.ImageView;
@@ -46,11 +50,13 @@ public class PandoroidPlayer extends SherlockActivity {
 	public static final String RATING_BAN = "ban";
 	public static final String RATING_LOVE = "love";
 	public static final String RATING_NONE = null;
+	
+	//private static final String STATE_IMAGE = "imageDownloader";
 
 	private static ProgressDialog waiting;
 	private PandoraRadioService pandora;
 	private SharedPreferences prefs;
-	private ImageDownloader imageDownloader = new ImageDownloader();
+	private boolean m_is_bound;
 
 	/** Called when the activity is first created. */
 	@Override
@@ -60,7 +66,12 @@ public class PandoroidPlayer extends SherlockActivity {
 		setContentView(R.layout.player);
 
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		doBindService();
 	}
+	
+//	public void onRestoreInstanceState(Bundle savedInstanceState){
+//		super.onRestoreInstanceState(savedInstanceState);
+//	}
 
 	
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -79,24 +90,11 @@ public class PandoroidPlayer extends SherlockActivity {
 	@Override
 	protected void onStart() {
 		super.onStart();
-		pandora = PandoraRadioService.getInstance(false);
 		
-		if (pandora == null){
-			PandoraRadioService.createPandoraRadioService(getBaseContext());
-			PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
-		}
-		else if (!pandora.isAlive()){
-			PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
-		}
-	}
-
-	@Override
-	protected void onResume() {
-		super.onResume();
-		pandora = PandoraRadioService.getInstance(false);
-
-		if (pandora != null){
-			
+//		if (pandora == null || !pandora.isAlive()){
+//			PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
+//		}
+		if (pandora != null && pandora.isAlive()){
 			pandora.setListener(OnNewSongListener.class, new OnNewSongListener() {
 				public void onNewSong(Song song) {
 					updateForNewSong(song);
@@ -113,7 +111,9 @@ public class PandoroidPlayer extends SherlockActivity {
 				
 				if(!pandora.setCurrentStationId(lastStationId)){
 					//Get a station
-					startActivityForResult(new Intent(getApplicationContext(), PandoroidStationSelect.class), REQUIRE_SELECT_STATION);
+					startActivityForResult(new Intent(getApplicationContext(), 
+							               PandoroidStationSelect.class), 
+							               REQUIRE_SELECT_STATION);
 				} else {	
 					pandora.startPlayback();
 				}
@@ -122,6 +122,11 @@ public class PandoroidPlayer extends SherlockActivity {
 				updateForNewSong(pandora.song_playback.getSong());
 			}
 		}
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
 	}
 
 	protected void updateForNewSong(Song song) {
@@ -133,7 +138,7 @@ public class PandoroidPlayer extends SherlockActivity {
 		ImageView image = (ImageView) findViewById(R.id.player_image);
 
 		//top.setText(String.format("%s by %s", song.getTitle(), song.getArtist()));
-		imageDownloader.download(song.getAlbumCoverUrl(), image);
+		pandora.image_downloader.download(song.getAlbumCoverUrl(), image);
 		top.setText(String.format("%s\n%s", song.getArtist(), song.getAlbum()));
 	}
 
@@ -214,9 +219,62 @@ public class PandoroidPlayer extends SherlockActivity {
 		// Another activity is taking focus (this activity is about to be "paused").
 	}
 
+//	public void onSaveInstanceState(Bundle savedInstanceState){
+//		savedInstanceState
+//	}
+	
 	@Override
 	protected void onStop() {
 		super.onStop();
 		dismissWaiting();
 	}
+	
+	protected void onDestroy(){
+		super.onDestroy();
+		doUnbindService();
+	}
+	
+	//Necessary service stuff taken straight from the developer reference for Service
+	private ServiceConnection m_connection = new ServiceConnection() {
+	    public void onServiceConnected(ComponentName className, IBinder service) {
+	        // This is called when the connection with the service has been
+	        // established, giving us the service object we can use to
+	        // interact with the service.  Because we have bound to a explicit
+	        // service that we know is running in our own process, we can
+	        // cast its IBinder to a concrete class and directly access it.
+	        pandora = ((PandoraRadioService.PandoraRadioBinder)service).getService();
+			if (!pandora.isAlive()){
+				
+				PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
+			}
+	    }
+
+	    public void onServiceDisconnected(ComponentName className) {
+	        // This is called when the connection with the service has been
+	        // unexpectedly disconnected -- that is, its process crashed.
+	        // Because it is running in our same process, we should never
+	        // see this happen.
+	        pandora = null;
+	    }  
+	};
+
+	void doBindService() {
+	    // Establish a connection with the service.  We use an explicit
+	    // class name because we want a specific service implementation that
+	    // we know will be running in our own process (and thus won't be
+	    // supporting component replacement by other applications).
+	    bindService(new Intent(this, 
+	                PandoraRadioService.class), 
+	                m_connection, Context.BIND_AUTO_CREATE);
+	    m_is_bound = true;
+	}
+
+	void doUnbindService() {
+	    if (m_is_bound) {
+	        // Detach our existing connection.
+	        unbindService(m_connection);
+	        m_is_bound = false;
+	    }
+	}
+
 }

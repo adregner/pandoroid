@@ -21,10 +21,14 @@ import com.actionbarsherlock.app.SherlockActivity;
 import com.pandoroid.android.R;
 
 import android.app.ProgressDialog;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -35,6 +39,7 @@ import android.widget.Toast;
 public class PandoroidLogin extends SherlockActivity {
 	private SharedPreferences prefs;
 	private PandoraRadioService pandora;
+	private boolean m_is_bound;
 	private static ProgressDialog waiting;
 
 	/** Called when the activity is first created. */
@@ -46,21 +51,9 @@ public class PandoroidLogin extends SherlockActivity {
 		
 		prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 		//PandoraRadioService.createPandoraRadioService(getBaseContext());
-		pandora = PandoraRadioService.getInstance(false);
-		
-		String username = prefs.getString("pandora_username", null);
-		String password = prefs.getString("pandora_password", null);
-		
-		
-		
-		//Set the username and/or login
-		EditText user = (EditText)findViewById(R.id.login_username);
-		if(username != null){
-			user.setText(username);
-			if(password != null){
-				new LoginTask().execute();
-			}
-		}
+		doBindService();		
+
+
 		this.getSupportActionBar().setTitle(R.string.signin_welcome);
 		((Button)findViewById(R.id.login_button)).setOnClickListener(new OnClickListener() {
 			public void onClick(View viewParam) {
@@ -87,6 +80,11 @@ public class PandoroidLogin extends SherlockActivity {
 		super.onResume();
 	}
 	
+	protected void onDestroy(){
+		super.onDestroy();
+		doUnbindService();
+	}
+	
 	private class LoginTask extends AsyncTask<String, Void, Boolean>{
 
 		protected void onPreExecute(){
@@ -97,9 +95,6 @@ public class PandoroidLogin extends SherlockActivity {
 		protected Boolean doInBackground(String... params) {
 			String username = prefs.getString("pandora_username", null);
 			String password = prefs.getString("pandora_password", null);
-			if(pandora == null){
-				pandora = PandoraRadioService.getInstance(true);
-			}
 			if(username == null || password == null){
 				return false;
 			}
@@ -119,5 +114,56 @@ public class PandoroidLogin extends SherlockActivity {
 			}
 		}
 		
+	}
+	
+	//Necessary service stuff taken straight from the developer reference for Service
+	private ServiceConnection m_connection = new ServiceConnection() {
+	    public void onServiceConnected(ComponentName className, IBinder service) {
+	        // This is called when the connection with the service has been
+	        // established, giving us the service object we can use to
+	        // interact with the service.  Because we have bound to a explicit
+	        // service that we know is running in our own process, we can
+	        // cast its IBinder to a concrete class and directly access it.
+	        pandora = ((PandoraRadioService.PandoraRadioBinder)service).getService();
+	        
+			String username = prefs.getString("pandora_username", null);
+			String password = prefs.getString("pandora_password", null);
+			
+			//Set the username and/or login
+			EditText user = (EditText)findViewById(R.id.login_username);
+			if(username != null){
+				user.setText(username);
+				if(password != null){
+					new LoginTask().execute();
+				}
+			}
+	    }
+
+	    public void onServiceDisconnected(ComponentName className) {
+	        // This is called when the connection with the service has been
+	        // unexpectedly disconnected -- that is, its process crashed.
+	        // Because it is running in our same process, we should never
+	        // see this happen.
+	        pandora = null;
+	    }  
+	};
+
+	void doBindService() {
+	    // Establish a connection with the service.  We use an explicit
+	    // class name because we want a specific service implementation that
+	    // we know will be running in our own process (and thus won't be
+	    // supporting component replacement by other applications).
+	    bindService(new Intent(this, 
+	                PandoraRadioService.class), 
+	                m_connection, Context.BIND_AUTO_CREATE);
+	    m_is_bound = true;
+	}
+
+	void doUnbindService() {
+	    if (m_is_bound) {
+	        // Detach our existing connection.
+	        unbindService(m_connection);
+	        m_is_bound = false;
+	    }
 	}
 }
