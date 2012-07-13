@@ -126,8 +126,8 @@ public class PandoraRadioService extends Service {
     
 	@Override
 	public void onCreate() {
-		synchronized(lock) {
-			super.onCreate();
+		//synchronized(lock) {
+			//super.onCreate();
 			
 			paused = false;
 			pandora = new PandoraRadio();
@@ -168,12 +168,20 @@ public class PandoraRadioService extends Service {
 					}
 				}
 			}, PhoneStateListener.LISTEN_CALL_STATE);
-		}
+		//}
 	}
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		return START_STICKY;
+	}
+	
+	public void onDestroy() {
+		if (song_playback != null){
+			song_playback.stop();
+		}
+		stopForeground(true);
+		return;
 	}
 	
 	public void setListener(Class<?> klass, Object listener) {
