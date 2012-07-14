@@ -95,6 +95,11 @@ public class PandoroidPlayer extends SherlockActivity {
 //			PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
 //		}
 		if (m_is_bound && pandora.isAlive()){
+			pandora.setListener(OnNewSongListener.class, new OnNewSongListener() {
+				public void onNewSong(Song song) {
+					updateForNewSong(song);
+				}
+			});
 			if (pandora.song_playback == null){
 				String lastStationId = "";
 				try {
@@ -110,6 +115,7 @@ public class PandoroidPlayer extends SherlockActivity {
 							               PandoroidStationSelect.class), 
 							               REQUIRE_SELECT_STATION);
 				} else {	
+
 					pandora.startPlayback();
 				}
 			}
@@ -138,6 +144,7 @@ public class PandoroidPlayer extends SherlockActivity {
 		//top.setText(String.format("%s by %s", song.getTitle(), song.getArtist()));
 		pandora.image_downloader.download(song.getAlbumCoverUrl(), image);
 		top.setText(String.format("%s\n%s", song.getArtist(), song.getAlbum()));
+
 	}
 
 	@Override
@@ -246,6 +253,7 @@ public class PandoroidPlayer extends SherlockActivity {
 				PandoroidPlayer.this.startActivity(new Intent(PandoroidPlayer.this, PandoroidLogin.class));
 			}
 			else{// (pandora != null && pandora.isAlive()){
+
 				pandora.setListener(OnNewSongListener.class, new OnNewSongListener() {
 					public void onNewSong(Song song) {
 						updateForNewSong(song);
@@ -266,6 +274,7 @@ public class PandoroidPlayer extends SherlockActivity {
 								               PandoroidStationSelect.class), 
 								               REQUIRE_SELECT_STATION);
 					} else {	
+
 						pandora.startPlayback();
 					}
 				}

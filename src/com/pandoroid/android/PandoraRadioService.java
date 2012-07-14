@@ -359,14 +359,16 @@ public class PandoraRadioService extends Service {
 							                                    audio_quality,
 							                                    pandora,
 							                                    connectivity_manager);
-					song_playback.setOnNewSongListener(
-							(OnNewSongListener) listeners.get(OnNewSongListener.class)
-							                          );
+
 					
 				}
 				else{
 					song_playback.reset(currentStation.getStationIdToken(), pandora);
+					
 				}
+				song_playback.setOnNewSongListener(
+						(OnNewSongListener) listeners.get(OnNewSongListener.class)
+						                          );
 			} 
 			catch (Exception e) {
 				Log.e("Pandoroid", e.getMessage(), e);

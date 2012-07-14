@@ -232,7 +232,12 @@ public class MediaPlaybackController implements Runnable{
 	 */
 	public void setOnNewSongListener(OnNewSongListener listener) throws Exception{
 		if (!isAlive()){
-			m_new_song_listener = listener;
+			if (listener != null){
+				m_new_song_listener = listener;
+			}
+			else{
+				throw new Exception("Given listener is null!");
+			}
 		}
 		else{
 			throw new Exception("Illegal call to set the new song listener.");
