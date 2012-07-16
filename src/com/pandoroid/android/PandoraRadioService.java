@@ -185,6 +185,13 @@ public class PandoraRadioService extends Service {
 	
 	public void setListener(Class<?> klass, Object listener) {
 		listeners.put(klass, listener);
+		if (song_playback != null){ //Oh hai mister nasty hack
+			if (klass == OnNewSongListener.class){
+				try {
+					song_playback.setOnNewSongListener((OnNewSongListener) listener);
+				} catch (Exception e) {}
+			}
+		}
 	}	
 	
 	public void setNotification() {
