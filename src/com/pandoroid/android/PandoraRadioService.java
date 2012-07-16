@@ -40,6 +40,7 @@ import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
 import android.net.ConnectivityManager;
 import android.os.AsyncTask;
+import android.os.Binder;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.telephony.PhoneStateListener;
@@ -54,9 +55,12 @@ public class PandoraRadioService extends Service {
 
 	private static final int NOTIFICATION_SONG_PLAYING = 1;
 	
+
+    
 	// tools this service uses
 	private PandoraRadio pandora;
 	public MediaPlaybackController song_playback;
+	public ImageDownloader image_downloader;
 	
 	private TelephonyManager telephonyManager;
 	private ConnectivityManager connectivity_manager;
@@ -72,48 +76,65 @@ public class PandoraRadioService extends Service {
 
 	
 	// static usefullness
-	private static PandoraRadioService instance;
 	private static Object lock = new Object();
 	private static Object pandora_lock = new Object();
 
-	public static void createPandoraRadioService(Context context) {
-		synchronized(lock) {
-			if(instance == null) {
-				context.startService(new Intent(context, PandoraRadioService.class));
-			}
-		}
-	}
-	public static PandoraRadioService getInstance(boolean wait) {
-		if(wait) {
-			long startedWaiting = System.currentTimeMillis();
-			while( instance == null && System.currentTimeMillis() - startedWaiting < 5000L ) {
-				try {
-					Thread.sleep(50);
-				} catch (InterruptedException e) {
-					Log.e("Pandoroid", "RadioService exception Sleeping", e);
-				}
-			}
-		}
-		
-		synchronized(lock) {
-			return instance;
-		}
-	}
+//	public static void createPandoraRadioService(Context context) {
+//		synchronized(lock) {
+//			if(instance == null) {
+//				context.startService(new Intent(context, PandoraRadioService.class));
+//			}
+//		}
+//	}
+	
+//	public static PandoraRadioService getInstance(boolean wait) {
+//		if(wait) {
+//			long startedWaiting = System.currentTimeMillis();
+//			while( instance == null && System.currentTimeMillis() - startedWaiting < 5000L ) {
+//				try {
+//					Thread.sleep(50);
+//				} catch (InterruptedException e) {
+//					Log.e("Pandoroid", "RadioService exception Sleeping", e);
+//				}
+//			}
+//		}
+//		
+//		synchronized(lock) {
+//			return instance;
+//		}
+//	}
 
+	//Taken straight from the Android service reference
+    /**
+     * Class for clients to access.  Because we know this service always
+     * runs in the same process as its clients, we don't need to deal with
+     * IPC.
+     */
+    public class PandoraRadioBinder extends Binder {
+		PandoraRadioService getService() {
+            return PandoraRadioService.this;
+        }
+    }
+    
 	@Override
 	public IBinder onBind(Intent intent) {
-		return null;
+		return mBinder;
 	}
 
+    // This is the object that receives interactions from clients. 
+    private final IBinder mBinder = new PandoraRadioBinder();
+    //End service reference
+    
+    
 	@Override
 	public void onCreate() {
-		synchronized(lock) {
-			super.onCreate();
-			instance = this;
+		//synchronized(lock) {
+			//super.onCreate();
 			
 			paused = false;
 			pandora = new PandoraRadio();
 			(new PandoraDeviceLoginTask()).execute(Boolean.valueOf(false));
+			image_downloader = new ImageDownloader();
 			
 			
 			connectivity_manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -130,8 +151,7 @@ public class PandoraRadioService extends Service {
 					case TelephonyManager.CALL_STATE_IDLE:
 						if(pausedForRing && song_playback != null) {
 							if(prefs.getBoolean("behave_resumeOnHangup", true)) {
-								song_playback.play();
-								setNotification();
+								play();
 							}
 						}
 						
@@ -149,7 +169,7 @@ public class PandoraRadioService extends Service {
 					}
 				}
 			}, PhoneStateListener.LISTEN_CALL_STATE);
-		}
+		//}
 	}
 
 	@Override
@@ -157,9 +177,17 @@ public class PandoraRadioService extends Service {
 		return START_STICKY;
 	}
 	
+	public void onDestroy() {
+		if (song_playback != null){
+			song_playback.stop();
+		}
+		stopForeground(true);
+		return;
+	}
+	
 	public void setListener(Class<?> klass, Object listener) {
 		listeners.put(klass, listener);
-	}
+	}	
 	
 	public void setNotification() {
 		Notification notification = new Notification(R.drawable.notification_icon, 
@@ -239,8 +267,7 @@ public class PandoraRadioService extends Service {
 			pandora.disconnect();
 			pandora = null;
 		}
-
-		instance = null;
+		
 		stopSelf();
 	}
 	
@@ -325,30 +352,7 @@ public class PandoraRadioService extends Service {
 	}
 	
 	
-	private void setPlaybackController(){
-		if (currentStation != null){
-			try{	
-				if (song_playback == null){		
-					song_playback = new MediaPlaybackController(currentStation.getStationIdToken(),
-							                                    audio_quality,
-							                                    audio_quality,
-							                                    pandora,
-							                                    connectivity_manager);
-					song_playback.setOnNewSongListener(
-							(OnNewSongListener) listeners.get(OnNewSongListener.class)
-							                          );
-					
-				}
-				else{
-					song_playback.reset(currentStation.getStationIdToken(), pandora);
-				}
-			} 
-			catch (Exception e) {
-				Log.e("Pandoroid", e.getMessage(), e);
-				song_playback = null;
-			}
-		}
-	}
+
 	
 	public void rate(String rating) {
 		if(rating == PandoroidPlayer.RATING_NONE) {
@@ -365,17 +369,57 @@ public class PandoraRadioService extends Service {
 		}
 	}
 	
+	public void resetPlaybackListeners(){
+		if (song_playback != null){
+			try {
+				song_playback.setOnNewSongListener(
+						(OnNewSongListener) listeners.get(OnNewSongListener.class)
+						                          );
+			} 
+			catch (Exception e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+			}
+		}
+	}
+	
+	private void setPlaybackController(){
+		if (currentStation != null){
+			try{	
+				if (song_playback == null){		
+					song_playback = new MediaPlaybackController(currentStation.getStationIdToken(),
+							                                    audio_quality,
+							                                    audio_quality,
+							                                    pandora,
+							                                    connectivity_manager);
+
+					
+				}
+				else{
+					song_playback.reset(currentStation.getStationIdToken(), pandora);
+					
+				}
+				resetPlaybackListeners();
+			} 
+			catch (Exception e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+				song_playback = null;
+			}
+		}
+	}
+	
 	public void startPlayback(){
 		if (song_playback == null){
 			setPlaybackController();
 		}
-		else {
-
+		
+		if (song_playback != null){
 			Thread t = new Thread(song_playback);
 			t.start();
 		}
 		
 	}
+	
+	
 	
 	private class PandoraDeviceLoginTask extends AsyncTask<Boolean, Void, Boolean>{
 		protected Boolean doInBackground(Boolean... subscriber_type){

@@ -266,11 +266,13 @@ public class MediaPlaybackController implements Runnable{
 	 * @throws Exception 
 	 */
 	public void setOnNewSongListener(OnNewSongListener listener) throws Exception{
-		if (!isAlive()){
-			m_new_song_listener = listener;
-		}
-		else{
-			throw new Exception("Illegal call to set the new song listener.");
+		synchronized(m_new_song_listener){
+			if (listener != null){
+				m_new_song_listener = listener;
+			}
+			else{
+				throw new Exception("Given listener is null!");
+			}
 		}
 	}
 	
@@ -384,6 +386,12 @@ public class MediaPlaybackController implements Runnable{
 	private Song getActiveSong(){
 		synchronized(m_active_song){
 			return m_active_song;
+		}
+	}
+	
+	private OnNewSongListener getNewSongListener(){
+		synchronized(m_new_song_listener){
+			return m_new_song_listener;
 		}
 	}
 	
@@ -557,7 +565,7 @@ public class MediaPlaybackController implements Runnable{
 			Handler handler = new Handler(Looper.getMainLooper());
 			handler.post(new Runnable(){
 				public void run(){		
-					m_new_song_listener.onNewSong(getActiveSong());
+					getNewSongListener().onNewSong(getActiveSong());
 				}
 			});
 			prepareSong();

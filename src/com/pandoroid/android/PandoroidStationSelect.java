@@ -25,11 +25,14 @@ import com.pandoroid.android.R;
 
 import android.app.ListActivity;
 import android.app.ProgressDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -45,6 +48,7 @@ public class PandoroidStationSelect extends ListActivity {
 	private PandoraRadioService pandora;
 	private static ProgressDialog waiting;
 	private SharedPreferences prefs;
+	private boolean m_is_bound;
 
 	/** Called when the activity is first created. */
 	@Override
@@ -52,8 +56,10 @@ public class PandoroidStationSelect extends ListActivity {
 		//Disable StrictMode for 3.0+
 		//StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitAll().build());
 		super.onCreate(savedInstanceState);
+		doBindService();
 		prefs = PreferenceManager.getDefaultSharedPreferences(PandoroidStationSelect.this);
-		new StationFetcher().execute();
+
+
 	}
 	
 	/**
@@ -68,7 +74,6 @@ public class PandoroidStationSelect extends ListActivity {
 		
 		@Override
 		protected ArrayList<Station> doInBackground(Void... params) {
-			pandora = PandoraRadioService.getInstance(true);
 			return pandora.getStations();
 		}
 		
@@ -105,6 +110,11 @@ public class PandoroidStationSelect extends ListActivity {
 		return true;
 	}
 
+	protected void onDestroy(){
+		super.onDestroy();
+		doUnbindService();
+	}
+	
 	private class StationListAdapter extends BaseAdapter {
 
 		private List<Station> stations;
@@ -141,6 +151,47 @@ public class PandoroidStationSelect extends ListActivity {
 			return itemLayout;
 		}
 
+	}
+	
+	//Necessary service stuff taken straight from the developer reference for Service
+	private ServiceConnection m_connection = new ServiceConnection() {
+	    public void onServiceConnected(ComponentName className, IBinder service) {
+	        // This is called when the connection with the service has been
+	        // established, giving us the service object we can use to
+	        // interact with the service.  Because we have bound to a explicit
+	        // service that we know is running in our own process, we can
+	        // cast its IBinder to a concrete class and directly access it.
+	        pandora = ((PandoraRadioService.PandoraRadioBinder)service).getService();
+		    m_is_bound = true;
+			new StationFetcher().execute();
+	    }
+
+	    public void onServiceDisconnected(ComponentName className) {
+	        // This is called when the connection with the service has been
+	        // unexpectedly disconnected -- that is, its process crashed.
+	        // Because it is running in our same process, we should never
+	        // see this happen.
+	        pandora = null;
+	        m_is_bound = false;
+	    }  
+	};
+
+	void doBindService() {
+	    // Establish a connection with the service.  We use an explicit
+	    // class name because we want a specific service implementation that
+	    // we know will be running in our own process (and thus won't be
+	    // supporting component replacement by other applications).
+	    bindService(new Intent(this, 
+	                PandoraRadioService.class), 
+	                m_connection, Context.BIND_AUTO_CREATE);
+	}
+
+	void doUnbindService() {
+	    if (m_is_bound) {
+	        // Detach our existing connection.
+	        unbindService(m_connection);
+	        m_is_bound = false;
+	    }
 	}
 
 }
