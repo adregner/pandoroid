@@ -279,6 +279,7 @@ public class PandoroidPlayer extends SherlockActivity {
 					}
 				}
 				else{
+					pandora.resetPlaybackListeners();
 					songRefresh(pandora.song_playback.getSong());
 				}
 			}

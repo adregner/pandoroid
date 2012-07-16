@@ -185,13 +185,6 @@ public class PandoraRadioService extends Service {
 	
 	public void setListener(Class<?> klass, Object listener) {
 		listeners.put(klass, listener);
-		if (song_playback != null){ //Oh hai mister nasty hack
-			if (klass == OnNewSongListener.class){
-				try {
-					song_playback.setOnNewSongListener((OnNewSongListener) listener);
-				} catch (Exception e) {}
-			}
-		}
 	}	
 	
 	public void setNotification() {
@@ -357,32 +350,7 @@ public class PandoraRadioService extends Service {
 	}
 	
 	
-	private void setPlaybackController(){
-		if (currentStation != null){
-			try{	
-				if (song_playback == null){		
-					song_playback = new MediaPlaybackController(currentStation.getStationIdToken(),
-							                                    audio_quality,
-							                                    audio_quality,
-							                                    pandora,
-							                                    connectivity_manager);
 
-					
-				}
-				else{
-					song_playback.reset(currentStation.getStationIdToken(), pandora);
-					
-				}
-				song_playback.setOnNewSongListener(
-						(OnNewSongListener) listeners.get(OnNewSongListener.class)
-						                          );
-			} 
-			catch (Exception e) {
-				Log.e("Pandoroid", e.getMessage(), e);
-				song_playback = null;
-			}
-		}
-	}
 	
 	public void rate(String rating) {
 		if(rating == PandoroidPlayer.RATING_NONE) {
@@ -399,12 +367,50 @@ public class PandoraRadioService extends Service {
 		}
 	}
 	
+	public void resetPlaybackListeners(){
+		if (song_playback != null){
+			try {
+				song_playback.setOnNewSongListener(
+						(OnNewSongListener) listeners.get(OnNewSongListener.class)
+						                          );
+			} 
+			catch (Exception e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+			}
+		}
+	}
+	
+	private void setPlaybackController(){
+		if (currentStation != null){
+			try{	
+				if (song_playback == null){		
+					song_playback = new MediaPlaybackController(currentStation.getStationIdToken(),
+							                                    audio_quality,
+							                                    audio_quality,
+							                                    pandora,
+							                                    connectivity_manager);
+
+					
+				}
+				else{
+					song_playback.reset(currentStation.getStationIdToken(), pandora);
+					
+				}
+				resetPlaybackListeners();
+			} 
+			catch (Exception e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+				song_playback = null;
+			}
+		}
+	}
+	
 	public void startPlayback(){
 		if (song_playback == null){
 			setPlaybackController();
 		}
-		else {
-
+		
+		if (song_playback != null){
 			Thread t = new Thread(song_playback);
 			t.start();
 		}
