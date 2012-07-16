@@ -17,6 +17,7 @@
 
 package com.pandoroid.pandora;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -60,11 +61,15 @@ public class RPC {
 	 * Description: This function contacts the remote server with a string
 	 * 	type data package (could be JSON), and returns the remote server's 
 	 * 	response in a string.
+	 * @throws Exception if url_params or entity_data is empty/null.
+	 * @throws HttpResponseException if response is not equal HttpStatus.SC_OK
+	 * @throws IOException if a connection to the remote server can't be made.
 	 */
 	public String call(Map<String, String> url_params, 
 			           String entity_data,
-			           boolean require_secure) 
-			                            throws Exception, HttpResponseException{
+			           boolean require_secure) throws Exception, 
+			                                   HttpResponseException,
+			                                   IOException{
 		
 		if (url_params == null || url_params.size() == 0){
 			throw new Exception("Missing URL paramaters");
@@ -106,7 +111,6 @@ public class RPC {
 		//Send to the server and get our response 
 		HttpResponse response = client.execute(request);
 		int status_code = response.getStatusLine().getStatusCode();
-		
 		if (status_code != HttpStatus.SC_OK){
 			throw new HttpResponseException(status_code, "HTTP status code: " 
 		                                     + status_code + " != " 

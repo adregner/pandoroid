@@ -230,7 +230,8 @@ public class PandoraRadioService extends Service {
 					audio_quality = PandoraRadio.MP3_128;
 				}
 				synchronized(pandora_lock){
-					toRet = pandora.connect(username, password);
+					pandora.connect(username, password);
+					toRet = true;
 				}
 				attempts = 0;
 			}

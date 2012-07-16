@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
+import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -34,6 +35,7 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
 
+import org.apache.http.client.HttpResponseException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -112,6 +114,17 @@ public class PandoraRadio {
 			
 	}
 	
+	/**
+	 * Description: Compares two constant audio quality strings as defined in 
+	 * 	PandoraRadio.
+	 * @param value -The value making the comparison.
+	 * @param relative_to -The value being compared to.
+	 * @return An integer that's positive when value is greater than relative_to,
+	 * 	negative when value is less than relative_to, and 0 when they're 
+	 * 	equivalent.
+	 * @throws Exception when the strings are invalid to be making comparisons
+	 * 	against (One or both is not one of the defined constants).
+	 */
 	public static int audioQualityCompare(String value, String relative_to) throws Exception{
 		int str1_magnitude = getRelativeAudioQualityMagnitude(value);
 		int str2_magnitude = getRelativeAudioQualityMagnitude(relative_to);
@@ -146,6 +159,7 @@ public class PandoraRadio {
 	
 	/**
 	 * Description: Keeps track of the remote server's sync time.
+	 * @return An integer for the current sync time.
 	 */
 	private int calcSync(){
 		return (int) (sync_time 
@@ -155,16 +169,20 @@ public class PandoraRadio {
 	
 	/**
 	 * Description: Logs a user in.
-	 * @param user
-	 * @param password
-	 * @return
-	 * @throws Exception
-	 * @throws RPCException
-	 * @throws SubscriberTypeException
+	 * @param user -The user's username.
+	 * @param password -The user's password.
+	 * @throws RPCException when a Pandora RPC error occurs.
+	 * @throws SubscriberTypeException when a Pandora user is identified as not
+	 * 	being the expected subscriber type.
+	 * @throws IOException when Pandora's servers can't be reached.
+	 * @throws HttpResponseException when an unexpected HTTP response occurs.
+	 * @throws Exception when an improper call to connect has been made.
 	 */
-	public boolean connect(String user, String password) throws Exception, 
-	                                                            RPCException, 
-	                                                            SubscriberTypeException {
+	public void connect(String user, String password) throws RPCException, 
+                                                             SubscriberTypeException,
+		                                                     IOException,
+		                                                     HttpResponseException,
+		                                                     Exception {
 		if (!this.isPartnerAuthorized()){
 			throw new Exception("Improper call to connect(), " +
 					                      "the application is not authorized.");
@@ -179,7 +197,8 @@ public class PandoraRadio {
 		JSONObject result = this.doCall("auth.userLogin", request_args, 
 				                        true, true, null);
 		
-		//I've contemplated multiple ways of handling these.
+		//There are a few ways of handling these, but this way seems most
+		//appropriate.
 		//If this is a PandoraOne subscriber and the credentials aren't correct
 		if (!result.getBoolean("hasAudioAds") && !isPandoraOneCredentials()){
 			throw new SubscriberTypeException(true, 
@@ -196,7 +215,7 @@ public class PandoraRadio {
 			this.user_auth_token = result.getString("userAuthToken");
 			this.standard_url_params.put("auth_token", user_auth_token);
 			this.standard_url_params.put("user_id", result.getString("userId"));
-			return user_auth_token != null;
+			//return user_auth_token != null;
 		}
 	}
 	
@@ -226,7 +245,9 @@ public class PandoraRadio {
 						      boolean http_secure_flag, 
 						      boolean encrypt,
 						      Map<String, String> opt_url_params) throws Exception, 
-						                                                 RPCException{
+						                                                 RPCException,
+						                                                 IOException,
+						                                                 HttpResponseException{
 		JSONObject response = null;
 		JSONObject request = null;
 		if (json_params != null){
@@ -279,9 +300,19 @@ public class PandoraRadio {
 	 * Description: Gets a list of songs to be played. This function should not
 	 * 	be called more frequently than MIN_TIME_BETWEEN_PLAYLIST_CALLS allows
 	 * 	or an error will result.
+	 * @param station_token -A string representing the station's unique 
+	 * 	identification token.
+	 * @throws RPCException when a Pandora RPC error has occurred.
+	 * @throws IOException when Pandora's remote servers could not be reached.
+	 * @throws HttpResponseException when an unexpected HTTP response occurs.
+	 * @throws Exception when an improper call has been made, or an unexpected 
+	 * 	error occurs.
 	 */
 	@SuppressWarnings("unchecked")
-	public Vector<Song> getPlaylist(String station_token) throws Exception{
+	public Vector<Song> getPlaylist(String station_token) throws RPCException,
+															     IOException,
+															     HttpResponseException,
+																 Exception{
 		
 		//This protects against a temporary account suspension from too many 
 		//playlist requests.
@@ -296,7 +327,7 @@ public class PandoraRadio {
 		
 		Vector<Song> songs = new Vector<Song>();
 		
-		try{
+		//try{
 			Map<String, Object> request_args = new HashMap<String, Object>();
 			request_args.put("stationToken", station_token);
 			
@@ -310,7 +341,7 @@ public class PandoraRadio {
 			
 			JSONArray songs_returned = response.getJSONArray("items");
 			for (int i = 0; i < songs_returned.length(); ++i){
-				Map<String, Object> song_data = JSONHelper.toMap(songs_returned.getJSONObject(i));				
+				Map<String, Object> song_data = JSONHelper.toMap(songs_returned.getJSONObject(i));
 				ArrayList<PandoraAudioUrl> audio_url_mappings = new ArrayList<PandoraAudioUrl>();
 				if (song_data.get("additionalAudioUrl") instanceof Vector<?>){
 					Vector<String> audio_urls = (Vector<String>) song_data.get("additionalAudioUrl");
@@ -337,18 +368,18 @@ public class PandoraRadio {
 						                                   ));			    
 			    songs.add(new Song(song_data, audio_url_mappings));
 			}
-		}
-		catch(RPCException e){
-			if (RPCException.URL_PARAM_MISSING_METHOD <= e.code 
-										&& 
-				e.code <= RPCException.API_VERSION_NOT_SUPPORTED) {
-				Log.e("Pandoroid","Exception getting playlist - throwing API change exception", e);
-				throw new Exception("API Change");
-			}
-			else{ //It's probably something else.
-				throw e;
-			}
-		}
+//		}
+//		catch(RPCException e){
+//			if (RPCException.URL_PARAM_MISSING_METHOD <= e.code 
+//										&& 
+//				e.code <= RPCException.API_VERSION_NOT_SUPPORTED) {
+//				Log.e("Pandoroid","Exception getting playlist - throwing API change exception", e);
+//				throw new Exception("API Change");
+//			}
+//			else{ //It's probably something else.
+//				throw e;
+//			}
+//		}
 		
 		
 		this.last_acquired_playlist_time = System.currentTimeMillis() / 1000L;
@@ -394,7 +425,10 @@ public class PandoraRadio {
 	 * Description: Retrieves the available stations, saves them to a 
 	 * 	PandoraRadio member variable, and returns them.
 	 */
-	public ArrayList<Station> getStations() throws Exception {
+	public ArrayList<Station> getStations() throws RPCException,
+											       IOException,
+											       HttpResponseException,
+												   Exception {
 		if (!this.isUserAuthorized()){
 			throw new Exception("Improper call to getStations(), " +
 					                    "the user has not been logged in yet.");
@@ -527,7 +561,10 @@ public class PandoraRadio {
 	/**
 	 * Description: This is the authorization for the app itself.
 	 */
-	private void partnerLogin() throws Exception, RPCException{
+	private void partnerLogin() throws RPCException,
+								       IOException,
+								       HttpResponseException,
+								       Exception{
 		Map<String, Object> partner_params = new HashMap<String, Object>(4);
 		partner_params.put("username", credentials.username);
 		partner_params.put("password", credentials.password);
@@ -549,7 +586,10 @@ public class PandoraRadio {
 	/**
 	 * Description: Sends a song rating to the remote server.
 	 */
-	public void rate(Song song, boolean rating) throws Exception, RPCException{
+	public void rate(Song song, boolean rating) throws RPCException,
+												       IOException,
+												       HttpResponseException,
+													   Exception{
 		Map<String, Object> feedback_params = new HashMap<String, Object>(2);
 		feedback_params.put("trackToken", song.getId());
 		feedback_params.put("isPositive", rating);
@@ -557,7 +597,7 @@ public class PandoraRadio {
 	}
 	
 	/**
-	 * Description: This will run a partner login with the proper user
+	 * Description: This will run a partner login with the proper partner
 	 * 	credentials as specified by the is_pandora_one variable.
 	 */
 	public void runPartnerLogin(boolean is_pandora_one) throws Exception, 
@@ -621,7 +661,7 @@ public class PandoraRadio {
 	}
 	
 	/**
-	 * Description: The sync time from the remote server is rather special.
+	 * Description: The sync time from the remote server is rather special (or maybe not).
 	 * 	It comes in hexadecimal form from which it must be dehexed to byte form,
 	 * 	then it must be decrypted with the Blowfish decryption. From there,
 	 *  it's hidden inside a string with 4 bytes of junk characters at the 
