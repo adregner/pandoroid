@@ -85,10 +85,20 @@ public class MediaPlaybackController implements Runnable{
         m_valid_play_command = Boolean.valueOf(false);	
 
         //Listener initialization
+        m_error_listener = new OnErrorListener(){
+        	public void onError(String error_message, 
+        			            Throwable e, 
+        			            boolean remote_error_flag){}
+		};
 		m_new_song_listener = new OnNewSongListener(){
-								  		public void onNewSong(Song song){}
-								                     };
-							                     
+	  		public void onNewSong(Song song){}
+		};
+		m_playback_continued_listener = new OnPlaybackContinuedListener(){
+			public void onPlaybackContinued(){}
+		};
+		m_playback_halted_listener = new OnPlaybackHaltedListener(){
+			public void onPlaybackHalted(int halt_code, int countdown_time){}
+		};
 
 	}
 	
@@ -258,12 +268,28 @@ public class MediaPlaybackController implements Runnable{
 	
 	/**
 	 * Description: This sets a listener for a method to occur on the main
+	 *  thread of execution when an error occurs.
+	 * @param listener -Implements OnErrorListener
+	 * @throws Exception -If the given listener is null, a generic exception 
+	 * 	will be	thrown.
+	 */
+	public void setOnErrorListener(OnErrorListener listener) throws Exception{
+		synchronized(m_error_listener){
+			if (listener != null){
+				m_error_listener = listener;
+			}
+			else{
+				throw new Exception("Given listener is null!");
+			}
+		}
+	}
+	
+	/**
+	 * Description: This sets a listener for a method to occur on the main
 	 *  thread of execution when a new song is played.
-	 *  It is an error to call this after the playback controller
-	 *  has been started (because we're too lazy to make this thread safe haha). 
-	 *  This function can only be called when isAlive() returns false.
-	 * @param listener
-	 * @throws Exception 
+	 * @param listener -Implements OnNewSongListener
+	 * @throws Exception -If the given listener is null, a generic exception 
+	 * 	will be	thrown.
 	 */
 	public void setOnNewSongListener(OnNewSongListener listener) throws Exception{
 		synchronized(m_new_song_listener){
@@ -279,18 +305,18 @@ public class MediaPlaybackController implements Runnable{
 	/**
 	 * Description: This sets a listener for a method to occur on the main
 	 *  thread of execution when playback continues after it has been halted.
-	 *  It is an error to call this after the playback controller
-	 *  has been started (because we're too lazy to make this thread safe haha). 
-	 *  This function can only be called when isAlive() returns false.
-	 * @param listener
-	 * @throws Exception
+	 * @param listener -Implements OnPlaybackContinued listener
+	 * @throws Exception -If the given listener is null, a generic exception 
+	 * 	will be	thrown.
 	 */
 	public void setOnPlaybackContinuedListener(OnPlaybackContinuedListener listener) throws Exception{
-		if (!isAlive()){
-			//listener goes here
-		}
-		else{
-			throw new Exception("Illegal call to set the playback continued listener.");
+		synchronized(m_playback_continued_listener){
+			if (listener != null){
+				m_playback_continued_listener = listener;
+			}
+			else{
+				throw new Exception("Given listener is null!");
+			}
 		}
 	}
 	
@@ -298,18 +324,18 @@ public class MediaPlaybackController implements Runnable{
 	 * Description: This sets a listener for a method to occur on the main
 	 *  thread of execution when playback has been halted due to network
 	 *  conditions.
-	 *  It is an error to call this after the playback controller
-	 *  has been started (because we're too lazy to make this thread safe haha). 
-	 *  This function can only be called when isAlive() returns false.
-	 * @param listener
-	 * @throws Exception
+	 * @param listener -Implements OnPlaybackHaltedListener
+	 * @throws Exception -If the given listener is null, a generic exception 
+	 * 	will be	thrown.
 	 */
 	public void setOnPlaybackHaltedListener(OnPlaybackHaltedListener listener) throws Exception{
-		if (!isAlive()){
-			//listener goes here
-		}
-		else{
-			throw new Exception("Illegal call to set the playback halted listener.");
+		synchronized(m_playback_halted_listener){
+			if (listener != null){
+				m_playback_halted_listener = listener;
+			}
+			else{
+				throw new Exception("Given listener is null!");
+			}
 		}
 	}
 	
@@ -358,16 +384,21 @@ public class MediaPlaybackController implements Runnable{
 	 * Private 
 	 */
 	
-	//Our locks for thread safety.
+	//A few locks for thread safety.
 	private Object player_lock;
 	private Object quality_lock;
+	
+	//Listeners
+	private OnErrorListener m_error_listener;
+	private OnNewSongListener m_new_song_listener;
+	private OnPlaybackContinuedListener m_playback_continued_listener;
+	private OnPlaybackHaltedListener m_playback_halted_listener;	
 	
 	//Other variables required for the controller to run.
 	private Song m_active_song;
 	private Boolean m_alive;
 	private String m_min_quality;
 	private String m_max_quality;
-	private OnNewSongListener m_new_song_listener;
 	private Boolean m_need_next_song;
 	private ConnectivityManager m_net_conn;
 	private PandoraRadio m_pandora_remote;
@@ -389,9 +420,13 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
-	private OnNewSongListener getNewSongListener(){
-		synchronized(m_new_song_listener){
-			return m_new_song_listener;
+	/**
+	 * Description: Thread safe accessor for m_error_listener.
+	 * @return The error listener.
+	 */
+	private OnErrorListener getErrorListener(){
+		synchronized(m_error_listener){
+			return m_error_listener;
 		}
 	}
 	
@@ -411,6 +446,36 @@ public class MediaPlaybackController implements Runnable{
 	private String getMinQuality(){
 		synchronized(quality_lock){
 			return m_min_quality;
+		}
+	}
+	
+	/**
+	 * Description: Thread safe accessor for m_new_song_listener.
+	 * @return The new song listener.
+	 */
+	private OnNewSongListener getNewSongListener(){
+		synchronized(m_new_song_listener){
+			return m_new_song_listener;
+		}
+	}
+	
+	/**
+	 * Description: Thread safe accessor for m_playback_continued_listener.
+	 * @return The playback continued listener.
+	 */
+	private OnPlaybackContinuedListener getPlaybackContinuedListener(){
+		synchronized(m_playback_continued_listener){
+			return m_playback_continued_listener;
+		}
+	}
+	
+	/**
+	 * Description: Thread safe accessor for m_playback_halted_listener.
+	 * @return The playback halted listener.
+	 */
+	private OnPlaybackHaltedListener getPlaybackHaltedListener(){
+		synchronized(m_playback_halted_listener){
+			return m_playback_halted_listener;
 		}
 	}
 	

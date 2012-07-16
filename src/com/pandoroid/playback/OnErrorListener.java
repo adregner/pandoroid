@@ -16,6 +16,8 @@
  */
 package com.pandoroid.playback;
 
-public abstract class OnPlaybackHaltedListener {
-	public abstract void onPlaybackHalted(int halt_code, int countdown_time); 
+public abstract class OnErrorListener {
+	public abstract void onError(String error_message, 
+			                     Throwable e, 
+			                     boolean remote_error_flag);
 }
