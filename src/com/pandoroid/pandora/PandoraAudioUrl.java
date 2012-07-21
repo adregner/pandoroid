@@ -12,13 +12,13 @@ public class PandoraAudioUrl implements Comparable<PandoraAudioUrl>{
 	public int m_bitrate;
 	public String m_url;
 	
-	PandoraAudioUrl(String type, int bitrate, String url){
+	public PandoraAudioUrl(String type, int bitrate, String url){
 		this.m_type = type;
 		this.m_bitrate = bitrate;
 		this.m_url = url;
 	}
 	
-	PandoraAudioUrl(Map<String, Object> extended_audio_url){
+	public PandoraAudioUrl(Map<String, Object> extended_audio_url){
 		if (is_AAC_64(extended_audio_url)){
 			this.m_type = PandoraRadio.AAC_64;					
 		}

@@ -388,7 +388,7 @@ public class PandoraRadioService extends Service {
 			try{	
 				if (song_playback == null){		
 					song_playback = new MediaPlaybackController(currentStation.getStationIdToken(),
-							                                    audio_quality,
+							                                    PandoraRadio.AAC_32,
 							                                    audio_quality,
 							                                    pandora,
 							                                    connectivity_manager);

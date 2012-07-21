@@ -1,9 +1,29 @@
+/* This file is part of Pandoroid
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package com.pandoroid.playback;
 
 import java.util.LinkedList;
 
 import android.util.Log;
 
+/**
+ * Description: A class to keep track of available bandwidth estimates.
+ * @author Dylan Powers <dylan.kyle.powers@gmail.com>
+ */
 public class MediaBandwidthEstimator {
 	
 	/*
@@ -12,6 +32,8 @@ public class MediaBandwidthEstimator {
 	
 	//This is the number of data points we're using to calculate the bitrate.
 	public static final int NUM_AVERAGED_DATA_POINTS = 30;
+	
+	public static final boolean DEBUG_INFO = true;
 	
 	/**
 	 * Description: Constructor
@@ -61,12 +83,13 @@ public class MediaBandwidthEstimator {
 				session.queued_flag = true;
 				m_sum += bandwidth;
 	
-				
-				Log.i("Pandoroid", 
-					  "Buffer: " + Integer.toString(buffer_position) + "%    " +
-				      "Bitrate: " + Float.toString(bandwidth) + "kpbs    " +
-					  "Avg: " + Integer.toString((int) m_sum/m_bitrate_queue.size()) + "kpbs"
-				);
+				if (DEBUG_INFO){
+					Log.d("Pandoroid", 
+						  "Buffer: " + Integer.toString(buffer_position) + "%    " +
+					      "Bitrate: " + Float.toString(bandwidth) + "kpbs    " +
+						  "Avg: " + Integer.toString((int) m_sum/m_bitrate_queue.size()) + "kpbs"
+					);
+				}
 			}
 		}
 		else{
@@ -79,7 +102,28 @@ public class MediaBandwidthEstimator {
 	 * @return The average bitrate.
 	 */
 	public int getBitrate(){
-		return ((int) m_sum / m_bitrate_queue.size());
+		if (m_bitrate_queue.size() != 0){
+			return ((int) m_sum / m_bitrate_queue.size());
+		}
+		else{
+			return 0;
+		}
+	}
+	
+	public boolean doesIdExist(int id){
+		for (int i = 0; i < m_active_audio_sessions.size(); ++i){
+			if (m_active_audio_sessions.get(i).getId() == id){
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	public void reset(){
+		m_active_audio_sessions.clear();
+		m_sum = 0;
+		m_bitrate_queue.clear();
 	}
 	
 	/**
@@ -103,7 +147,6 @@ public class MediaBandwidthEstimator {
 	 * Description: A class for handling information particular to a single
 	 * 	audio session.
 	 * @author Dylan Powers <dylan.kyle.powers@gmail.com>
-	 *
 	 */
 	public class AudioSession{
 		
@@ -119,6 +162,7 @@ public class MediaBandwidthEstimator {
 		public AudioSession(int audio_session_id){
 			m_id = audio_session_id;
 			m_prev_buffer_pos = 0;
+			queued_flag = true; //Things have better consistency if this is began as true;
 		}
 		
 		/**
