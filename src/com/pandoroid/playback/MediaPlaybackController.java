@@ -735,19 +735,20 @@ public class MediaPlaybackController implements Runnable{
 	 */
 	private void prepareSong(){
 		setBufferComplete(false);
-		if (m_cached_player_ready_flag){
-			m_player = m_cached_player;
-			setPlayCommandValid(true);
-			m_cached_player.release();
-			m_cached_player_ready_flag = false;
-		}
-		else{
+//		if (m_cached_player_ready_flag){
+//			m_player = m_cached_player;
+//			setPlayCommandValid(true);
+//			m_cached_player.release();
+//			m_cached_player_ready_flag = false;
+//		}
+//		else{
 			try {
 				setCurrentUrl(getOptimizedPandoraAudioUrl(getActiveSong()));
 				Log.i("Pandoroid", "Current Audio Quality: " + getCurrentQuality());
 				m_player.setDataSource(getCurrentUrl().m_url);
 				m_player.prepare();
 				setPlayCommandValid(true);
+				m_active_song_length = m_player.getDuration();
 			} 
 			catch (IllegalArgumentException e) {
 				Log.e("Pandoroid", e.getMessage(), e);
@@ -761,12 +762,12 @@ public class MediaPlaybackController implements Runnable{
 			catch (IOException e) {
 				Log.e("Pandoroid", e.getMessage(), e);
 			}
-		}
+//		}
 	}
 	
-	private void prepCachedPlayer(){
-		
-	}
+//	private void prepCachedPlayer(){
+//		
+//	}
 	
 	/**
 	 * Description: Pushes more songs to the play queue.
@@ -906,7 +907,7 @@ public class MediaPlaybackController implements Runnable{
 //				}
 //			});
 			prepareSong();
-			m_active_song_length = m_player.getDuration();
+
 		}
 	}
 	
@@ -983,7 +984,7 @@ public class MediaPlaybackController implements Runnable{
 					Log.d("Pandoroid", 
 							  "Buffer: " + Integer.toString(this.m_percent) + "%"
 						 );
-					setBufferComplete(true);
+					//setBufferComplete(true);
 				}
 				
 				m_bandwidth.update(this.m_mp.getAudioSessionId(), 
@@ -1040,13 +1041,15 @@ public class MediaPlaybackController implements Runnable{
 //
 //			}
 //			else {
-			Log.e("Pandoroid", "Unknown MediaPlayer error", new Exception());
+			Log.e("Pandoroid", 
+				  "Unknown MediaPlayer error (" + what + ", " + extra + ")", 
+				  new Exception());
 			m_error_listener.onError("An unknown MediaPlayer error occured",
 					                 new Exception(), false, -1);
 
 			//}
 			
-			return true;
+			return false;
 		}
 	}
 	
