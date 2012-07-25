@@ -57,12 +57,13 @@ public class MediaBandwidthEstimator {
 	public void update(int audio_session_id, 
 			           int buffer_position, 
 			           int media_length,
-			           int bitrate){
+			           int bitrate,
+			           long time_stamp){
 		
 		//Let's be as efficient as possible and skip everything for 100% completions.
 		if (buffer_position != 100){
 			AudioSession session = getAudioSession(audio_session_id);
-			float bandwidth = session.calcBitrate(buffer_position, media_length, bitrate);
+			float bandwidth = session.calcBitrate(buffer_position, media_length, bitrate, time_stamp);
 			
 			if (bandwidth >= 0){
 				if (session.queued_flag == true){
@@ -174,7 +175,10 @@ public class MediaBandwidthEstimator {
 		 * @return The calculated bitrate or a value less than 0 if the calculation
 		 * 	failed.
 		 */
-		public float calcBitrate(int buffer_position, int media_length, int bitrate){
+		public float calcBitrate(int buffer_position, 
+				                 int media_length, 
+				                 int bitrate,
+				                 long time_stamp){
 			float time_diff;
 			float kilos_trans;
 			float bandwidth = -1F;
@@ -192,11 +196,11 @@ public class MediaBandwidthEstimator {
 				//Find the transferred kbps by dividing by the amount of real
 				//time it took.
 				bandwidth = kilos_trans / (
-						(System.currentTimeMillis() - m_prev_time) / 1000F
+						(time_stamp - m_prev_time) / 1000F
 						                  );
 			}
 			m_prev_buffer_pos = buffer_position;
-			m_prev_time = System.currentTimeMillis();
+			m_prev_time = time_stamp;
 			
 			return bandwidth;
 		}

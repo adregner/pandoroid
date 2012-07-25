@@ -10,12 +10,12 @@ import java.util.Map;
 public class PandoraAudioUrl implements Comparable<PandoraAudioUrl>{
 	public String m_type;
 	public int m_bitrate;
-	public String m_url;
+	public String m_url_str;
 	
 	public PandoraAudioUrl(String type, int bitrate, String url){
 		this.m_type = type;
 		this.m_bitrate = bitrate;
-		this.m_url = url;
+		this.m_url_str = url;
 	}
 	
 	public PandoraAudioUrl(Map<String, Object> extended_audio_url){
@@ -30,7 +30,11 @@ public class PandoraAudioUrl implements Comparable<PandoraAudioUrl>{
 		}
 		
 		this.m_bitrate = Integer.parseInt((String) extended_audio_url.get("bitrate"));
-		this.m_url = (String) extended_audio_url.get("audioUrl");
+		this.m_url_str = (String) extended_audio_url.get("audioUrl");
+	}
+	
+	public String toString(){
+		return m_url_str;
 	}
 	
 	private boolean is_AAC_64(Map<String, Object> extended_audio_url){

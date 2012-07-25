@@ -200,9 +200,13 @@ public class PandoraRadioService extends Service {
 				                                                0);
 		
 		notification.flags |= Notification.FLAG_ONGOING_EVENT | Notification.FLAG_FOREGROUND_SERVICE;
-		Song tmp_song = song_playback.getSong();
-		notification.setLatestEventInfo(getApplicationContext(), tmp_song.getTitle(),
-				tmp_song.getArtist()+" on "+tmp_song.getAlbum(), contentIntent);
+		Song tmp_song;
+		try {
+			tmp_song = song_playback.getSong();
+			notification.setLatestEventInfo(getApplicationContext(), tmp_song.getTitle(),
+					tmp_song.getArtist()+" on "+tmp_song.getAlbum(), contentIntent);
+		} catch (Exception e) {}
+
 		startForeground(NOTIFICATION_SONG_PLAYING, notification);
 	}
 
@@ -326,24 +330,21 @@ public class PandoraRadioService extends Service {
 		return currentStation;
 	}
 	
-	public Song playPause(){
+	public void playPause(){
 		if (song_playback != null){
 			if (!paused){
 				pause();
-				return song_playback.getSong();
 			}
 			else{
-				return play();
+				play();
 			}
 		}
-		return null;
 	}
 
-	private Song play() {
+	private void play() {
 		song_playback.play();
 		setNotification();
 		paused = false;
-		return song_playback.getSong();
 	}
 	
 	private void pause() {

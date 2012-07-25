@@ -121,7 +121,10 @@ public class PandoroidPlayer extends SherlockActivity {
 				}
 			}
 			else{
-				songRefresh(pandora.song_playback.getSong());
+				try{
+					songRefresh(pandora.song_playback.getSong());
+				}
+				catch(Exception e){}
 			}
 		}
 	}
@@ -281,7 +284,10 @@ public class PandoroidPlayer extends SherlockActivity {
 				}
 				else{
 					pandora.resetPlaybackListeners();
-					songRefresh(pandora.song_playback.getSong());
+					try{
+						songRefresh(pandora.song_playback.getSong());
+					}
+					catch(Exception e){}
 				}
 			}
 	    }

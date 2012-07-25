@@ -122,7 +122,7 @@ public class Song {
 		while (iter.hasNext()){
 			PandoraAudioUrl next = iter.next();
 			if (audio_quality.compareTo(next.m_type) == 0){
-				return next.m_url;
+				return next.toString();
 			}
 		}
 		return null;
