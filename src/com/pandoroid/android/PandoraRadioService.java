@@ -151,7 +151,9 @@ public class PandoraRadioService extends Service {
 					case TelephonyManager.CALL_STATE_IDLE:
 						if(pausedForRing && song_playback != null) {
 							if(prefs.getBoolean("behave_resumeOnHangup", true)) {
-								play();
+								if(song_playback != null && !paused){
+									song_playback.play();
+								}
 							}
 						}
 						
