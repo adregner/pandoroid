@@ -15,6 +15,7 @@ public class ConcurrentSongMediaPlayer{
 	public ConcurrentSongMediaPlayer(){
 		m_player = new MediaPlayer();
 		m_alive = false;
+		m_buffering_counter = -1;
 	}
 	
 	public ConcurrentSongMediaPlayer(Song song){
@@ -73,6 +74,25 @@ public class ConcurrentSongMediaPlayer{
 		return m_url;
 	}
 	
+	/**
+	 * Description: If this player is in fact buffering, then for every 5 calls,
+	 * 	it will return true;
+	 * @return
+	 */
+	public boolean isBuffering(){
+		synchronized(buffer_lock){
+			if (m_buffering_counter > 0){
+				--m_buffering_counter;
+			}
+			else if(m_buffering_counter == 0){
+				m_buffering_counter = 4;
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	public boolean isPlaybackComplete(){
 		int song_length = getDuration();
 		int current_pos = getCurrentPosition();
@@ -128,8 +148,9 @@ public class ConcurrentSongMediaPlayer{
 			if (prev_playback_pos > 0){
 				m_player.seekTo(prev_playback_pos);
 			}
-			m_alive = true;
 		}
+		m_alive = true;
+		setBuffering(false);
 	}
 	
 	public void release(){
@@ -151,6 +172,17 @@ public class ConcurrentSongMediaPlayer{
 	public void seekTo(int msec){
 		synchronized(this){
 			m_player.seekTo(msec);
+		}
+	}
+	
+	public void setBuffering(boolean bool){
+		synchronized(buffer_lock){
+			if (bool){
+				m_buffering_counter = 0;
+			}
+			else{
+				m_buffering_counter = -1;
+			}
 		}
 	}
 	
@@ -181,6 +213,7 @@ public class ConcurrentSongMediaPlayer{
 	public void setSong(Song song){
 		m_song = song;
 		m_buffer_complete_flag = false;
+		m_buffering_counter = -1;
 		m_playback_complete_flag = false;
 		reset();
 	}
@@ -191,7 +224,10 @@ public class ConcurrentSongMediaPlayer{
 		}
 	}
 	
+	private final Object buffer_lock = new Object();
+	
 	private Boolean m_alive;	
+	private volatile int m_buffering_counter;
 	private volatile Song m_song;
 	private volatile PandoraAudioUrl m_url;
 	private volatile Boolean m_playback_complete_flag;

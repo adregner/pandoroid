@@ -82,7 +82,7 @@ public class MediaPlaybackController implements Runnable{
 //		m_active_song_rebuffer_flag = Boolean.valueOf(false);
 //		m_active_song_url = new PandoraAudioUrl(max_quality, 0, null);
 		m_alive = Boolean.valueOf(false);
-		m_buffering_flag = Boolean.valueOf(false);
+//		m_buffering_flag = Boolean.valueOf(false);
 		m_cached_player_ready_flag = false;
 		m_need_next_song = Boolean.valueOf(false);
 		m_pause = false;
@@ -191,9 +191,9 @@ public class MediaPlaybackController implements Runnable{
 					}
 				
 				}
-				else if (isBuffering()){
+				else if (m_active_player.isBuffering()){
 					
-					setBuffering(false);
+					//setBuffering(false);
 					adjustAudioQuality();
 					if (!m_pause && isPlayCommandValid()){
 						m_active_player.start();
@@ -477,7 +477,7 @@ public class MediaPlaybackController implements Runnable{
 	//Our thread safe queue for the buffer samples
 	private final ConcurrentLinkedQueue<BufferSample> 
 		m_buffer_sample_queue = new ConcurrentLinkedQueue<BufferSample>();
-	private volatile Boolean m_buffering_flag;
+	//private volatile Boolean m_buffering_flag;
 	private volatile Boolean m_reset_buffer_flag;
 	//private MediaPlayer m_cached_player;
 	private volatile Boolean m_cached_player_ready_flag;
@@ -504,8 +504,18 @@ public class MediaPlaybackController implements Runnable{
 	private void adjustAudioQuality(){
 		PandoraAudioUrl best_available_quality = getOptimizedPandoraAudioUrl(m_active_player.getSong());
 		try {
+			
+			//If the new quality is lower than the one we already have (there's no
+			//sense in reinitializing a player to the same audio quality that it
+			//already had, and we don't want to automatically lower the quality
+			//in unnecessary circumstances such as directly after a player has
+			//been prepared) or if the download has essentially stalled out 
+			//(the optimized url generator will default to the max quality in
+			//such instances when the bitrate is 0 or unknown).
 			if (PandoraRadio.audioQualityCompare(best_available_quality.m_type, 
-					                             m_active_player.getUrl().m_type) < 0){
+					                             m_active_player.getUrl().m_type) < 0
+		                             ||
+                m_bandwidth.getBitrate() == 0){
 				rebufferSong(best_available_quality);
 			}
 		} catch (Exception e) {
@@ -677,9 +687,9 @@ public class MediaPlaybackController implements Runnable{
 //		return m_active_song_buffer_complete_flag.booleanValue();
 //	}
 	
-	private boolean isBuffering(){
-		return m_buffering_flag.booleanValue();
-	}
+//	private boolean isBuffering(){
+//		return m_buffering_flag.booleanValue();
+//	}
 	
 	/**
 	 * Description: Thread safe method of inquiring if another song is needed.
@@ -765,6 +775,8 @@ public class MediaPlaybackController implements Runnable{
 				setPlayCommandValid(true);
 //				m_cached_player.release(); I swear Java suffers from an identity crisis.
 				m_cached_player_ready_flag = false;
+				Log.i("Pandoroid", 
+					  "Current Audio Quality: " + m_active_player.getUrl().m_bitrate);
 			}
 			else{
 				try {
@@ -804,18 +816,18 @@ public class MediaPlaybackController implements Runnable{
 			try {
 				m_cached_player.prepare(getOptimizedPandoraAudioUrl(m_cached_player.getSong()));
 				m_cached_player_ready_flag = true;
-			} catch (IllegalArgumentException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (SecurityException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IllegalStateException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} 
+			catch (IllegalArgumentException e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+			}
+			catch (SecurityException e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+			} 
+			catch (IllegalStateException e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+			}
+			catch (IOException e) {
+				Log.e("Pandoroid", e.getMessage(), e);
 			}
 		}
 	}	
@@ -928,11 +940,9 @@ public class MediaPlaybackController implements Runnable{
 //		m_active_song_buffer_complete_flag = Boolean.valueOf(bool);
 //	}
 	
-	private void setBuffering(boolean bool){
-		synchronized(m_buffering_flag){
-			m_buffering_flag = Boolean.valueOf(bool);
-		}
-	}
+//	private void setBuffering(boolean bool){
+//		m_buffering_flag = Boolean.valueOf(bool);
+//	}
 
 //	private void setCurrentUrl(PandoraAudioUrl url){
 //		synchronized(m_active_song_url){
@@ -1126,10 +1136,11 @@ public class MediaPlaybackController implements Runnable{
 			if (what == MediaPlayer.MEDIA_INFO_BUFFERING_START){
 				m_playback_halted_listener.onPlaybackHalted(HALT_STATE_BUFFERING, -1);
 				//setPlaybackPosition(mp.getCurrentPosition());
-				setBuffering(true);
+				m_active_player.setBuffering(true);
 			}
 			else if (what == MediaPlayer.MEDIA_INFO_BUFFERING_END){
 				m_playback_continued_listener.onPlaybackContinued();
+				m_active_player.setBuffering(false);
 			}
 			return true;
 		}
