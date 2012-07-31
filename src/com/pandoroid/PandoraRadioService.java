@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.pandoroid.android;
+package com.pandoroid;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,7 +27,7 @@ import com.pandoroid.pandora.Station;
 import com.pandoroid.pandora.SubscriberTypeException;
 import com.pandoroid.playback.MediaPlaybackController;
 import com.pandoroid.playback.OnNewSongListener;
-import com.pandoroid.android.R;
+import com.pandoroid.R;
 
 import android.app.Notification;
 import android.app.PendingIntent;

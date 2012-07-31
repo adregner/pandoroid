@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.pandoroid.android;
+package com.pandoroid;
 
 import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Menu;
@@ -23,7 +23,7 @@ import com.actionbarsherlock.view.MenuItem;
 import com.actionbarsherlock.view.SubMenu;
 import com.pandoroid.pandora.Song;
 import com.pandoroid.playback.OnNewSongListener;
-import com.pandoroid.android.R;
+import com.pandoroid.R;
 
 import android.app.ProgressDialog;
 import android.content.ComponentName;

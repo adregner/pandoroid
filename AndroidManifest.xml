@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.pandoroid.android"
+    package="com.pandoroid"
     android:versionCode="10"
     android:versionName="1.0.0-Pre-4" >
 
@@ -16,12 +16,12 @@
         android:icon="@drawable/icon"
         android:label="@string/app_name" >
         <activity
-            android:name="com.pandoroid.android.PandoroidLogin"
+            android:name="com.pandoroid.PandoroidLogin"
             android:label="@string/app_name"
             android:noHistory="true" >
         </activity>
         <activity
-            android:name="com.pandoroid.android.PandoroidPlayer"
+            android:name="com.pandoroid.PandoroidPlayer"
             android:clearTaskOnLaunch="true"
             android:label="@string/app_name"
             android:screenOrientation="fullSensor" >
@@ -33,20 +33,20 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.pandoroid.android.PandoroidStationSelect"
+            android:name="com.pandoroid.PandoroidStationSelect"
             android:noHistory="true" >
         </activity>
         <activity
-            android:name="com.pandoroid.android.PandoroidSettings"
+            android:name="com.pandoroid.PandoroidSettings"
             android:noHistory="true" >
         </activity>
         <service
-            android:name=".PandoraRadioService"
+            android:name="com.pandoroid.PandoraRadioService"
             android:enabled="true"
             android:exported="false" >
         </service>
         <activity
-            android:name=".AboutDialog"
+            android:name="com.pandoroid.AboutDialog"
             android:theme="@style/Theme.Sherlock.Dialog" >
         </activity>
     </application>

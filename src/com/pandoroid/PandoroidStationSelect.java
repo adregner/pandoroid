@@ -15,11 +15,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.pandoroid.android;
+package com.pandoroid;
 
-import com.actionbarsherlock.app.SherlockActivity;
-import com.pandoroid.android.R;
+import java.util.ArrayList;
+import java.util.List;
 
+import com.pandoroid.pandora.Station;
+import com.pandoroid.R;
+
+import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
@@ -30,90 +34,123 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.Toast;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.AdapterView.OnItemClickListener;
 
-public class PandoroidLogin extends SherlockActivity {
-	private SharedPreferences prefs;
+public class PandoroidStationSelect extends ListActivity {
 	private PandoraRadioService pandora;
-	private boolean m_is_bound;
 	private static ProgressDialog waiting;
+	private SharedPreferences prefs;
+	private boolean m_is_bound;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		setTheme(R.style.Theme_Sherlock);
+		//Disable StrictMode for 3.0+
+		//StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitAll().build());
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.login);
-		
-		prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-		//PandoraRadioService.createPandoraRadioService(getBaseContext());
-		doBindService();		
+		doBindService();
+		prefs = PreferenceManager.getDefaultSharedPreferences(PandoroidStationSelect.this);
 
 
-		this.getSupportActionBar().setTitle(R.string.signin_welcome);
-		((Button)findViewById(R.id.login_button)).setOnClickListener(new OnClickListener() {
-			public void onClick(View viewParam) {
-				String sUserName = ((EditText)findViewById(R.id.login_username)).getText().toString();
-				String sPassword = ((EditText)findViewById(R.id.login_password)).getText().toString();
-
-				// this just catches the error if the program can't locate the GUI stuff
-				if(sUserName != null && sPassword != null && sUserName.length() > 1 && sPassword.length() > 1) {
-					boolean success = prefs.edit()
-						.putString("pandora_username", sUserName)
-						.putString("pandora_password", sPassword)
-						.commit();
-
-					if(success) {
-						new LoginTask().execute();
-					}
-				}
-			}
-		});
 	}
-
+	
+	/**
+	 * Task to get and fill the list
+	 */
+	private class StationFetcher extends AsyncTask<Void, Void, ArrayList<Station>>{
+		@Override
+		protected void onPreExecute(){
+			waiting = ProgressDialog.show(PandoroidStationSelect.this, "",  getString(R.string.loading));
+		}
+		
+		
+		@Override
+		protected ArrayList<Station> doInBackground(Void... params) {
+			return pandora.getStations();
+		}
+		
+		@Override
+		protected void onPostExecute(ArrayList<Station> stations){
+			ListView lv = getListView();
+			setListAdapter(new StationListAdapter(stations, PandoroidStationSelect.this));
+			lv.setTextFilterEnabled(true);
+			lv.setOnItemClickListener(new OnItemClickListener() {
+				public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+					//Store it in the prefs
+					String str_id = Long.toString(id);
+					prefs.edit().putString("lastStationId", str_id).apply();
+					setResult(RESULT_OK, (new Intent()).putExtra("stationId", str_id));
+					finish();
+					finishActivity(PandoroidPlayer.REQUIRE_SELECT_STATION);
+				}
+			});
+			waiting.dismiss();
+		}
+		
+	}
+	
+	
 	@Override
 	protected void onResume() {
 		super.onResume();
 	}
-	
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		//MenuInflater inflater = getMenuInflater();
+		//inflater.inflate(R.menu.player_menu, menu);
+		return true;
+	}
+
 	protected void onDestroy(){
 		super.onDestroy();
 		doUnbindService();
 	}
 	
-	private class LoginTask extends AsyncTask<String, Void, Boolean>{
+	private class StationListAdapter extends BaseAdapter {
 
-		protected void onPreExecute(){
-			waiting = ProgressDialog.show(PandoroidLogin.this, "",  getString(R.string.signing_in));
+		private List<Station> stations;
+		private Context context;
+
+		public StationListAdapter(List<Station> StationList, Context context) {
+			this.stations = StationList;
+			this.context = context;
 		}
-		
-		@Override
-		protected Boolean doInBackground(String... params) {
-			String username = prefs.getString("pandora_username", null);
-			String password = prefs.getString("pandora_password", null);
-			if(username == null || password == null){
-				return false;
-			}
-			return pandora != null && pandora.signIn(username, password);
+
+		public int getCount() {
+			return stations.size();
 		}
-		
-		@Override
-		protected void onPostExecute(Boolean result){
-			waiting.dismiss();
-			if(result.booleanValue()){
-				//Start the PandoroidPlayer activity
-				//startActivity(new Intent(PandoroidLogin.this, PandoroidPlayer.class));
-				finish();
-				
-			} else {
-				Toast.makeText(PandoroidLogin.this, R.string.signin_failed, 2000).show();
-			}
+
+		public Station getItem(int position) {
+			return stations.get(position);
 		}
-		
+ 
+		public long getItemId(int position) {
+			return Long.parseLong(stations.get(position).getStationId());
+		}
+
+		public View getView(int position, View convertView, ViewGroup parent) {
+			Station station = stations.get(position);
+			View itemLayout = LayoutInflater.from(context).inflate(R.layout.stations_item, parent, false);
+			
+			TextView tvName = (TextView) itemLayout.findViewById(R.id.stations_name);
+			tvName.setText(station.getName());
+			
+			//ImageView ivImage = (ImageView) itemLayout.findViewById(R.id.stations_icon);
+			//ImageDownloader imageDownloader = new ImageDownloader();
+			//imageDownloader.download(station.getAlbumCoverUrl(), ivImage);
+			
+			return itemLayout;
+		}
+
 	}
 	
 	//Necessary service stuff taken straight from the developer reference for Service
@@ -126,18 +163,7 @@ public class PandoroidLogin extends SherlockActivity {
 	        // cast its IBinder to a concrete class and directly access it.
 	        pandora = ((PandoraRadioService.PandoraRadioBinder)service).getService();
 		    m_is_bound = true;
-		    
-			String username = prefs.getString("pandora_username", null);
-			String password = prefs.getString("pandora_password", null);
-			
-			//Set the username and/or login
-			EditText user = (EditText)findViewById(R.id.login_username);
-			if(username != null){
-				user.setText(username);
-				if(password != null){
-					new LoginTask().execute();
-				}
-			}
+			new StationFetcher().execute();
 	    }
 
 	    public void onServiceDisconnected(ComponentName className) {
@@ -167,4 +193,5 @@ public class PandoroidLogin extends SherlockActivity {
 	        m_is_bound = false;
 	    }
 	}
+
 }
