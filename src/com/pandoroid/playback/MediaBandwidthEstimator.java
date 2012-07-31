@@ -111,6 +111,12 @@ public class MediaBandwidthEstimator {
 		}
 	}
 	
+	/**
+	 * Description: Checks to see if a media player exists in the current and
+	 * 	for future bandwidth calculations.
+	 * @param id
+	 * @return A boolean if the specified id does exist.
+	 */
 	public boolean doesIdExist(int id){
 		for (int i = 0; i < m_active_audio_sessions.size(); ++i){
 			if (m_active_audio_sessions.get(i).getId() == id){
@@ -121,6 +127,9 @@ public class MediaBandwidthEstimator {
 		return false;
 	}
 	
+	/**
+	 * Description: Resets the bandwidth estimator to 0.
+	 */
 	public void reset(){
 		m_active_audio_sessions.clear();
 		m_sum = 0;

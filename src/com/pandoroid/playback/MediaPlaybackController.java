@@ -29,6 +29,7 @@ import android.util.Log;
 
 import com.pandoroid.pandora.PandoraAudioUrl;
 import com.pandoroid.pandora.PandoraRadio;
+import com.pandoroid.pandora.RPCException;
 import com.pandoroid.pandora.Song;
 
 import java.io.IOException;
@@ -53,18 +54,28 @@ public class MediaPlaybackController implements Runnable{
 	 */
 	
 	public static final int HALT_STATE_NO_NETWORK = 0;
+	
+	//For when Pandora's servers can't be contacted (usually the result of 
+	//having no WAN connectivity)
 	public static final int HALT_STATE_NO_INTERNET = 1;
-	public static final int HALT_STATE_BUFFERING = 2;
 	
-	//This is for when a switch of networks occurs and the whole song has to
-	//be buffered over again.
-	public static final int HALT_STATE_REBUFFERING = 3; 
+	//A song is in the process of being prepared.
+	public static final int HALT_STATE_PREPARING = 2; 	
+	public static final int HALT_STATE_BUFFERING = 3;
 	
-	//For when available bandwidth is too low for the lowest quality.
-	public static final int HALT_INSUFFICIENT_CONNECTIVITY = 4;
+	//There are no songs available in the queue to play. There are multitudes
+	//of reasons this could happen, but the point is that it's causing a halt.
+	public static final int HALT_STATE_NO_SONGS = 4;
 	
-//	public static final int MINIMUM_SONG_COMPLETENESS = 95;
-	
+	/**
+	 * @param station_token -The token to the station to play from.
+	 * @param min_quality -The minimum quality to play.
+	 * @param max_quality -The maximum quality to play.
+	 * @param pandora_remote -The authorized PandoraRadio RPC instance to use.
+	 * @param net_connectivity -The connectivity manager so the network state 
+	 * 	can be acquired.
+	 * @throws Exception when an invalid audio quality range is given.
+	 */
 	public MediaPlaybackController(String station_token, 
 			                       String min_quality,
 			                       String max_quality,
@@ -75,40 +86,6 @@ public class MediaPlaybackController implements Runnable{
 		m_net_conn = net_connectivity;
 		m_station_token = station_token;
  		setAudioQuality(min_quality, max_quality);
-		
-		//Other generic initialization
-//		m_active_song = new Song();
-//		m_active_song_buffer_complete_flag = Boolean.valueOf(false);
-//		m_active_song_rebuffer_flag = Boolean.valueOf(false);
-//		m_active_song_url = new PandoraAudioUrl(max_quality, 0, null);
-		m_alive = Boolean.valueOf(false);
-//		m_buffering_flag = Boolean.valueOf(false);
-		m_cached_player_ready_flag = false;
-		m_need_next_song = Boolean.valueOf(false);
-		m_pause = false;
-		m_play_queue = new LinkedList<Song>();		
-//		m_playback_position = Integer.valueOf(0);
-		m_reset_buffer_flag = false;
-		m_stop_exchanger = new Exchanger<Boolean>();
-        m_valid_play_command = Boolean.valueOf(false);	
-
-        //Listener initialization
-        m_error_listener = new OnErrorListener(){
-        	public void onError(String error_message, 
-        			            Throwable e, 
-        			            boolean remote_error_flag,
-        			            int rpc_error_code){}
-		};
-		m_new_song_listener = new OnNewSongListener(){
-	  		public void onNewSong(Song song){}
-		};
-		m_playback_continued_listener = new OnPlaybackContinuedListener(){
-			public void onPlaybackContinued(){}
-		};
-		m_playback_halted_listener = new OnPlaybackHaltedListener(){
-			public void onPlaybackHalted(int halt_code, int countdown_time){}
-		};
-
 	}
 	
 	/**
@@ -116,6 +93,9 @@ public class MediaPlaybackController implements Runnable{
 	 * 	behind the media playback controller.
 	 */
 	public void run(){
+		
+		sendPlaybackHaltedNotification(HALT_STATE_PREPARING);
+		
 		NetworkInfo active_network_info;
 		
 		instantiateInstance();
@@ -123,107 +103,89 @@ public class MediaPlaybackController implements Runnable{
 		
 		m_active_player = instantiateMediaPlayer();
 		
-		//synchronized(bandwidth_lock){
 		m_bandwidth = new MediaBandwidthEstimator();
-		//}
 		
-		setAlive(true);
+		m_alive = true;
+		m_cached_player_ready_flag = false;		
+		m_need_next_song = true;
+		m_play_queue = new LinkedList<Song>();
+		m_reset_player_flag = false;
 		
-		setNeedNextSong(true);
-		Boolean alive = Boolean.valueOf(true);
+		Boolean alive = true;
 		while(alive.booleanValue()){
+			
+			int active_song_id = m_active_player.getAudioSessionId();
+			
+			while (m_buffer_sample_queue.peek() != null){
+				BufferSample buffer_tmp = m_buffer_sample_queue.poll();
+				int bitrate = 0;
+				int length = 0;
+				if (buffer_tmp.m_session_id == active_song_id){
+					bitrate = m_active_player.getUrl().m_bitrate;
+					length = m_active_player.getDuration();
+				}
+				else{
+					bitrate = m_cached_player.getUrl().m_bitrate;
+					length = m_cached_player.getDuration();
+				}
+				
+				if (buffer_tmp.m_percent == 100){
+					if (m_bandwidth.doesIdExist(buffer_tmp.m_session_id)){
+						if (buffer_tmp.m_session_id == active_song_id){	
+							m_active_player.m_buffer_complete_flag = true;
+						}
+						else if (buffer_tmp.m_session_id == m_cached_player.getAudioSessionId()){
+							m_cached_player.m_buffer_complete_flag = true;
+						}
+					}
+				}
+				
+				m_bandwidth.update(buffer_tmp.m_session_id, 
+						           buffer_tmp.m_percent,
+						           length, 
+						           bitrate, 
+						           buffer_tmp.m_time_stamp);
+			}
 			
 			//Prevent a null pointer exception in case an active network is not
 			//available.
 			active_network_info = m_net_conn.getActiveNetworkInfo();
 			if (active_network_info != null && active_network_info.isConnected()){
+				if (m_playback_halted_reason == HALT_STATE_NO_NETWORK){
+					m_playback_halted_reason = -1;
+					sendPlaybackHaltedNotification(HALT_STATE_BUFFERING);
+				}
+				
 				if (isPlayQueueLow()){
 					pushMoreSongs();
 				}
 				
-				int active_song_id = m_active_player.getAudioSessionId();
-				
-				while (m_buffer_sample_queue.peek() != null){
-					BufferSample buffer_tmp = m_buffer_sample_queue.poll();
-					int bitrate = 0;
-					int length = 0;
-					if (buffer_tmp.m_session_id == active_song_id){
-						bitrate = m_active_player.getUrl().m_bitrate;
-						length = m_active_player.getDuration();
-					}
-					else{
-						bitrate = m_cached_player.getUrl().m_bitrate;
-						length = m_cached_player.getDuration();
-					}
-					
-					if (buffer_tmp.m_percent == 100){
-						if (m_bandwidth.doesIdExist(buffer_tmp.m_session_id)){
-							if (buffer_tmp.m_session_id == active_song_id){	
-								m_active_player.m_buffer_complete_flag = true;
-							}
-							else if (buffer_tmp.m_session_id == m_cached_player.getAudioSessionId()){
-								m_cached_player.m_buffer_complete_flag = true;
-							}
-						}
-					}
-					
-					m_bandwidth.update(buffer_tmp.m_session_id, 
-							           buffer_tmp.m_percent,
-							           length, 
-							           bitrate, 
-							           buffer_tmp.m_time_stamp);
-				}
-				
-				if (isNewSongNeeded()){
+				if (m_need_next_song){
 					prepareNextSong();
-					if (!m_pause && isPlayCommandValid()){
-						m_active_player.start();
-					}
 				}
-				else if (m_reset_buffer_flag){
-					
-//					synchronized(bandwidth_lock){
+				else if (m_reset_player_flag){					
 					m_bandwidth.reset();
-//					}
-					rebufferSong(getOptimizedPandoraAudioUrl(m_active_player.getSong()));
-					if (!m_pause && isPlayCommandValid()){
-						m_active_player.start();
-					}
-				
+					rebufferSong(getOptimizedPandoraAudioUrl(m_active_player.getSong()));				
 				}
 				else if (m_active_player.isBuffering()){
-					
-					//setBuffering(false);
 					adjustAudioQuality();
-					if (!m_pause && isPlayCommandValid()){
-						m_active_player.start();
-					}
 				}
 				else if (m_active_player.m_buffer_complete_flag 
 							&& !m_cached_player_ready_flag
 							&& !m_pause){
 					prepCachedPlayer();
-				}
-				
-
-				
+				}				
 			}
 			else {
-				//synchronized(bandwidth_lock){
 				m_bandwidth.reset();
-				//}
-				//no_network_flag = true;
+				if (m_playback_halted_reason > HALT_STATE_NO_NETWORK){
+					sendPlaybackHaltedNotification(HALT_STATE_NO_NETWORK);
+				}
 			}
 			
-//			if (!m_active_player.isPlaying() && !m_pause && isPlayCommandValid()){
-//				m_active_player.start();
-//			}
-			
-			if (!m_active_player.isPlaying() && !m_pause){
-				m_playback_halted_flag = true;
+			if (!m_active_player.isPlaying() && !m_pause && m_valid_play_command_flag){
+				m_active_player.start();
 			}
-			
-
 			
 			try {	
 				//Sleep for 1 second
@@ -234,7 +196,7 @@ public class MediaPlaybackController implements Runnable{
 		}
 		
 		//Cleanup!
-		setPlayCommandValid(false);
+		m_valid_play_command_flag = false;
 		m_active_player.release();
 		m_play_queue.clear();
 		if (m_cached_player_ready_flag){
@@ -244,8 +206,9 @@ public class MediaPlaybackController implements Runnable{
 	
 	/**
 	 * Description: Gets the quality string of the audio currently playing.
-	 * @return
-	 * @throws Exception 
+	 * @return A string relating to the constant that specifies the audio
+	 * 	quality.
+	 * @throws Exception when the playback engine is not alive.
 	 */
 	public String getCurrentQuality() throws Exception{
 		if (isAlive()){
@@ -256,8 +219,8 @@ public class MediaPlaybackController implements Runnable{
 	
 	/**
 	 * Description: Does what it says and gets the song that's currently playing.
-	 * @return
-	 * @throws Exception 
+	 * @return The currently playing song.
+	 * @throws Exception when the playback engine is not alive.
 	 */
 	public Song getSong() throws Exception{
 		if (isAlive()){
@@ -283,7 +246,7 @@ public class MediaPlaybackController implements Runnable{
 	public void play(){
 		Thread t = new Thread(new Runnable(){
 			public void run(){
-				if (isPlayCommandValid()){
+				if (m_valid_play_command_flag){
 					m_active_player.start();
 				}
 				m_pause = false;
@@ -347,48 +310,27 @@ public class MediaPlaybackController implements Runnable{
 	 * Description: This sets a listener for a method to occur on the main
 	 *  thread of execution when an error occurs.
 	 * @param listener -Implements OnErrorListener
-	 * @throws Exception -If the given listener is null, a generic exception 
-	 * 	will be	thrown.
 	 */
-	public void setOnErrorListener(OnErrorListener listener) throws Exception{
-		if (listener != null){
-			m_error_listener = listener;
-		}
-		else{
-			throw new Exception("Given listener is null!");
-		}
+	public void setOnErrorListener(OnErrorListener listener){
+		m_error_listener = listener;
 	}
 	
 	/**
 	 * Description: This sets a listener for a method to occur on the main
 	 *  thread of execution when a new song is played.
 	 * @param listener -Implements OnNewSongListener
-	 * @throws Exception -If the given listener is null, a generic exception 
-	 * 	will be	thrown.
 	 */
-	public void setOnNewSongListener(OnNewSongListener listener) throws Exception{
-		if (listener != null){
-			m_new_song_listener = listener;
-		}
-		else{
-			throw new Exception("Given listener is null!");
-		}	
+	public void setOnNewSongListener(OnNewSongListener listener){
+		m_new_song_listener = listener;
 	}
 	
 	/**
 	 * Description: This sets a listener for a method to occur on the main
 	 *  thread of execution when playback continues after it has been halted.
 	 * @param listener -Implements OnPlaybackContinued listener
-	 * @throws Exception -If the given listener is null, a generic exception 
-	 * 	will be	thrown.
 	 */
-	public void setOnPlaybackContinuedListener(OnPlaybackContinuedListener listener) throws Exception{
-		if (listener != null){
-			m_playback_continued_listener = listener;
-		}
-		else{
-			throw new Exception("Given listener is null!");
-		}
+	public void setOnPlaybackContinuedListener(OnPlaybackContinuedListener listener){
+		m_playback_continued_listener = listener;
 	}
 	
 	/**
@@ -396,16 +338,9 @@ public class MediaPlaybackController implements Runnable{
 	 *  thread of execution when playback has been halted due to network
 	 *  conditions.
 	 * @param listener -Implements OnPlaybackHaltedListener
-	 * @throws Exception -If the given listener is null, a generic exception 
-	 * 	will be	thrown.
 	 */
-	public void setOnPlaybackHaltedListener(OnPlaybackHaltedListener listener) throws Exception{
-		if (listener != null){
-			m_playback_halted_listener = listener;
-		}
-		else{
-			throw new Exception("Given listener is null!");
-		}
+	public void setOnPlaybackHaltedListener(OnPlaybackHaltedListener listener){
+		m_playback_halted_listener = listener;
 	}
 	
 	/**
@@ -415,7 +350,7 @@ public class MediaPlaybackController implements Runnable{
 		Thread t = new Thread(new Runnable(){
 			public void run(){
 				if (isAlive()){			
-					setNeedNextSong(true);
+					m_need_next_song = true;
 					m_playback_engine_thread.interrupt();
 				}
 			}
@@ -448,61 +383,49 @@ public class MediaPlaybackController implements Runnable{
 	 */
 	
 	//A few locks for thread safety.
-	//private final Object player_lock = new Object();
 	private final Object quality_lock = new Object();
-	//private final Object bandwidth_lock = new Object();
+	private final Object send_playback_notification_lock = new Object();
 	
 	//Listeners
 	private volatile OnErrorListener m_error_listener;
 	private volatile OnNewSongListener m_new_song_listener;
 	private volatile OnPlaybackContinuedListener m_playback_continued_listener;
 	private volatile OnPlaybackHaltedListener m_playback_halted_listener;	
-	
-	//Other variables required for the controller to run.
-	//private Song m_active_song;
-	//private volatile Boolean m_active_song_buffer_complete_flag;
-	//private volatile Boolean m_active_song_rebuffer_flag;
-	//private int m_active_song_length;
-	//private int m_active_song_playback_pos;
-	//private PandoraAudioUrl m_active_song_url;
-	//private LinkedList<Song> m_active_song_urls;
-	
+
 	//Players
 	private ConcurrentSongMediaPlayer m_active_player;
 	private ConcurrentSongMediaPlayer m_cached_player;
 	
-	private volatile Boolean m_alive;
-	private MediaBandwidthEstimator m_bandwidth;
-	
 	//Our thread safe queue for the buffer samples
 	private final ConcurrentLinkedQueue<BufferSample> 
 		m_buffer_sample_queue = new ConcurrentLinkedQueue<BufferSample>();
-	//private volatile Boolean m_buffering_flag;
-	private volatile Boolean m_reset_buffer_flag;
-	//private MediaPlayer m_cached_player;
+	
+	//Other variables required for the controller to run.
+	private volatile Boolean m_alive = false;
+	private MediaBandwidthEstimator m_bandwidth;
 	private volatile Boolean m_cached_player_ready_flag;
-	//private PandoraAudioUrl m_cached_url;
 	private String m_min_quality;
 	private String m_max_quality;
 	private volatile Boolean m_need_next_song;
 	private ConnectivityManager m_net_conn;
 	private PandoraRadio m_pandora_remote;
-	private volatile Boolean m_pause;
+	private volatile Boolean m_pause = false;
 	private LinkedList<Song> m_play_queue;
-	private Boolean m_playback_halted_flag;
-	private int m_playback_halted_reason;
-	//private volatile int m_playback_position;
-	//private MediaPlayer m_player;
-
 	private volatile Thread m_playback_engine_thread;
+	private int m_playback_halted_reason = -1;
+	private volatile Boolean m_reset_player_flag;
 	private volatile Boolean m_restart_song_flag;
 	private String m_station_token;
-	private Exchanger<Boolean> m_stop_exchanger;
-	private volatile Boolean m_valid_play_command;
+	private Exchanger<Boolean> m_stop_exchanger = new Exchanger<Boolean>();
+	private volatile Boolean m_valid_play_command_flag = false;
 	
-	
+	/**
+	 * Description: Adjusts the audio quality of a playing song. It will only 
+	 * 	move the quality down. This is for when buffering occurs.
+	 */
 	private void adjustAudioQuality(){
-		PandoraAudioUrl best_available_quality = getOptimizedPandoraAudioUrl(m_active_player.getSong());
+		PandoraAudioUrl 
+			best_available_quality = getOptimizedPandoraAudioUrl(m_active_player.getSong());
 		try {
 			
 			//If the new quality is lower than the one we already have (there's no
@@ -525,28 +448,19 @@ public class MediaPlaybackController implements Runnable{
 	}
 	
 	/**
-	 * Description: Thread safe accessor for m_active_song.
-	 * @return
+	 * Description: Gets the url to the highest bitrate of audio available 
+	 * 	dependent on current network conditions. If network conditions cannot 
+	 * 	be properly evaluated, it will default to the max available audio 
+	 *  quality.
+	 * @param song -The song to get the url for.
+	 * @return A PandoraAudioUrl that holds the url.
 	 */
-//	private Song getActiveSong(){
-//		synchronized(m_active_song){
-//			return m_active_song;
-//		}
-//	}
-	
-//	private PandoraAudioUrl getCurrentUrl(){
-//		synchronized(m_active_song_url){
-//			return m_active_song_url;
-//		}
-//	}
-	
 	private PandoraAudioUrl getOptimizedPandoraAudioUrl(Song song){
 		int bitrate = 0;
 		PandoraAudioUrl url = null;
 		
-		//synchronized(bandwidth_lock){
+
 		bitrate = m_bandwidth.getBitrate();
-		//}
 			
 		LinkedList<PandoraAudioUrl> urls = song.getSortedAudioUrls();
 		for (int i = 0; i < urls.size(); ++i){
@@ -633,9 +547,6 @@ public class MediaPlaybackController implements Runnable{
 		return m_playback_halted_listener;
 	}
 	
-//	private int getPlaybackPosition(){
-//		return m_playback_position;
-//	}
 	
 	/**
 	 * Description: Upon start of the controller, some threading prep work needs
@@ -662,7 +573,7 @@ public class MediaPlaybackController implements Runnable{
 		ConcurrentSongMediaPlayer media_player = new ConcurrentSongMediaPlayer();
 		media_player.setOnCompletionListener(new MediaCompletionListener());
 		media_player.setOnBufferingUpdateListener(new MediaBufferingUpdateListener());
-		media_player.setOnErrorListener(new MediaErrorListener());
+		//media_player.setOnErrorListener(new MediaErrorListener());
 		media_player.setOnInfoListener(new MediaInfoListener());
 
 		return media_player;
@@ -683,45 +594,6 @@ public class MediaPlaybackController implements Runnable{
 		return false;
 	}
 	
-//	private boolean isBufferComplete(){
-//		return m_active_song_buffer_complete_flag.booleanValue();
-//	}
-	
-//	private boolean isBuffering(){
-//		return m_buffering_flag.booleanValue();
-//	}
-	
-	/**
-	 * Description: Thread safe method of inquiring if another song is needed.
-	 * @return
-	 */
-	private boolean isNewSongNeeded(){		
-		return m_need_next_song.booleanValue();
-	}
-	
-//	private boolean isPlaybackComplete(){
-//		
-//		//Some would say that being within 5 seconds of the end is good enough
-//		int end_song_position = (int) ((m_active_song_length - 
-//											(
-//												m_active_song_length * 
-//												((float) 1F/MINIMUM_SONG_COMPLETENESS)
-//											)
-//									   )/1000F);
-//		if (getPlaybackPosition()/1000 < end_song_position){
-//			return false;
-//		}
-//		return true;
-//	}
-	
-	/**
-	 * Description: Thread safe method of inquiring if a play command to the 
-	 * 	media player is valid.
-	 * @return
-	 */
-	private boolean isPlayCommandValid(){
-		return m_valid_play_command.booleanValue();
-	}
 	
 	/**
 	 * Description: Checks to see if the play queue is low and should be 
@@ -731,10 +603,6 @@ public class MediaPlaybackController implements Runnable{
 	private boolean isPlayQueueLow(){
 		return (m_play_queue.size() <= 1);
 	}
-	
-//	private boolean isRebufferNeeded(){
-//		return m_active_song_rebuffer_flag.booleanValue();
-//	}
 	
 	/**
 	 * Description: Checks to see if two given audio format strings are of a 
@@ -755,39 +623,27 @@ public class MediaPlaybackController implements Runnable{
 	 * Description: Prepares a song so it can be played by the media player.
 	 */
 	private void prepareNextSong(){
-//		setBufferComplete(false);
-		setPlayCommandValid(false);
-		//m_player.reset();
+		m_valid_play_command_flag = false;
 		if (m_play_queue.peek() != null){
-			setNeedNextSong(false);
-			m_active_player.setSong(m_play_queue.pollFirst());
 
+			m_active_player.setSong(m_play_queue.pollFirst());
 			sendNewSongNotification(m_active_player.getSong());
-//			Handler handler = new Handler(Looper.getMainLooper());
-//			handler.post(new Runnable(){
-//				public void run(){		
-//					getNewSongListener().onNewSong(getActiveSong());
-//				}
-//			});
-	
 			if (m_cached_player_ready_flag){
 				m_active_player.copy(m_cached_player);
-				setPlayCommandValid(true);
-//				m_cached_player.release(); I swear Java suffers from an identity crisis.
+				m_valid_play_command_flag = true;
 				m_cached_player_ready_flag = false;
 				Log.i("Pandoroid", 
 					  "Current Audio Quality: " + m_active_player.getUrl().m_bitrate);
 			}
 			else{
 				try {
+					sendPlaybackHaltedNotification(HALT_STATE_PREPARING);
 					PandoraAudioUrl new_url = getOptimizedPandoraAudioUrl(m_active_player.getSong());
-					//setCurrentUrl(getOptimizedPandoraAudioUrl(getActiveSong()));
 					Log.i("Pandoroid", "Current Audio Quality: " + new_url.m_bitrate);
 					m_active_player.prepare(new_url);
-	//				m_player.setDataSource(getCurrentUrl().m_url);
-	//				m_player.prepare();
-					setPlayCommandValid(true);
-	//				m_active_song_length = m_player.getDuration();
+					m_valid_play_command_flag = true;
+					m_need_next_song = false;
+					sendPlaybackContinuedNotification();
 				} 
 				catch (IllegalArgumentException e) {
 					Log.e("Pandoroid", e.getMessage(), e);
@@ -799,17 +655,22 @@ public class MediaPlaybackController implements Runnable{
 					Log.e("Pandoroid", e.getMessage(), e);
 				}
 				catch (IOException e) {
+					sendPlaybackHaltedNotification(HALT_STATE_NO_INTERNET);
+					m_reset_player_flag = true;
+					m_need_next_song = false;
 					Log.e("Pandoroid", e.getMessage(), e);
 				}
 			}
 		}
+		else{
+			sendPlaybackHaltedNotification(HALT_STATE_NO_SONGS);
+		}
 	}
 	
-	private void prepCachedPlayer(){
-//		if (m_cached_player != null){
-//			m_cached_player.release();
-//		}
-		
+	/**
+	 * Description: Preps the cached player so it will be ready later. 
+	 */
+	private void prepCachedPlayer(){		
 		if (m_play_queue.peek() != null){
 			m_cached_player = instantiateMediaPlayer();
 			m_cached_player.setSong(m_play_queue.peek());
@@ -843,164 +704,123 @@ public class MediaPlaybackController implements Runnable{
 				m_play_queue.add(new_songs.get(i));
 			}
 		}
+		catch (RPCException e){
+			sendErrorNotification(e.getMessage(), e, true, e.code);
+		}
 		catch (Exception e){
 			Log.e("Pandoroid", e.getMessage(), e);
 		}
 	}
 	
+	/**
+	 * Description: Takes the current playing song and prepares it for a new
+	 * 	url.
+	 * @param url -A PandoraAudioUrl for the audio url that needs to be played.
+	 */
 	private void rebufferSong(PandoraAudioUrl url){
-		setPlayCommandValid(false);
+		m_valid_play_command_flag = false;
 		
-		//Java seems to not be totally true to its pass-by-value mentality. 
-		//A release on the cached player can in fact inappropriately affect the 
+		//A release on the cached player can in fact affect the 
 		//active player.
 		if (m_cached_player != null && (m_cached_player.getPlayer() != m_active_player.getPlayer())){
 			m_cached_player_ready_flag = false;
 			m_cached_player.release();
 		}
-//		m_player.reset();
-//		setBufferComplete(false);
-//		setNeedRebuffer(false);
 		
 		try {
-			//m_player.setDataSource(getActiveSong().getAudioUrl(getMinQuality()));
-			//m_player.setDataSource(url.m_url);
 			m_active_player.prepare(url);
 			Log.i("Pandoroid", "Current Audio Quality: " + url.m_bitrate);
-//			m_player.prepare();
-//			m_player.seekTo(getPlaybackPosition());
-			setPlayCommandValid(true);
-			m_reset_buffer_flag = false;
+			m_valid_play_command_flag = true;
+			m_reset_player_flag = false;
+			sendPlaybackContinuedNotification();
 		} 
 		catch (IllegalArgumentException e) {
 			Log.e("Pandoroid", e.getMessage(), e);
-			setNeedNextSong(true);
+			m_need_next_song = true;
 		}
 		catch (SecurityException e) {
 			Log.e("Pandoroid", e.getMessage(), e);
-			setNeedNextSong(true);
+			m_need_next_song = true;
 		} 
 		catch (IllegalStateException e) {
 			Log.e("Pandoroid", e.getMessage(), e);
-			setNeedNextSong(true);
+			m_need_next_song = true;
 		}
 		catch (IOException e) {
+			sendPlaybackHaltedNotification(HALT_STATE_NO_INTERNET);
+			m_reset_player_flag = true;
 			Log.e("Pandoroid", e.getMessage(), e);
-			setNeedNextSong(true);
 		}
 	}
 	
-	
+	/**
+	 * Description: Sends an error notification to the main thread.
+	 * @param error_message -A string with the error message.
+	 * @param e -The error.
+	 * @param remote_error_flag -Whether or not this is an error from the 
+	 * 	remote server.
+	 * @param rpc_error_code -If this is a remote server error, then this is
+	 * 	the Pandora RPC error affiliated with it. 
+	 */
 	private void sendErrorNotification(String error_message,
 									   Throwable e,
 									   boolean remote_error_flag,
 									   int rpc_error_code){
-		
+		Log.e("Pandoroid", error_message, e);
+		Handler handler = new Handler(Looper.getMainLooper());
+		SendErrorNotificationTask 
+			task = new SendErrorNotificationTask(error_message, e,
+											     remote_error_flag,
+											     rpc_error_code);
+		handler.post(task);
 	}
 	
+	/**
+	 * Description: Notifies the main thread about a new song.
+	 * @param song -The new song being played.
+	 */
 	private void sendNewSongNotification(Song song){
+		Log.i("Pandoroid", "New song: " + song.getTitle());
 		Handler handler = new Handler(Looper.getMainLooper());
 		SendNewSongNotificationTask task = new SendNewSongNotificationTask(song);
 		handler.post(task);
 	}
 	
-	
-	private void sendPlaybackHaltedNotification(int halt_code, int countdown_time){
-		
+	/**
+	 * Description: Notifies the main thread that playback has stopped, and why
+	 * 	that is so.
+	 * @param halt_code -The halt code describing why playback has stopped.
+	 */
+	private void sendPlaybackHaltedNotification(int halt_code){
+		synchronized(send_playback_notification_lock){
+			if (m_playback_halted_reason == -1 || m_playback_halted_reason > halt_code){
+				m_playback_halted_reason = halt_code;
+				Log.i("Pandoroid", "Playback halted: " + halt_code);
+				Handler handler = new Handler(Looper.getMainLooper());
+				SendPlaybackHaltedNotificationTask 
+					task = new SendPlaybackHaltedNotificationTask(halt_code);
+				handler.post(task);
+			}	
+		}
 	}
 	
+	/**
+	 * Description: Notifies the main thread that playback has now continued
+	 * 	from the previous halt state. As a side effect, it resets the playback 
+	 *  halted reason to -1.
+	 */
 	private void sendPlaybackContinuedNotification(){
-		
+		synchronized(send_playback_notification_lock){
+			Log.i("Pandoroid", "Playback continued");
+			Handler handler = new Handler(Looper.getMainLooper());
+			SendPlaybackContinuedNotificationTask
+				task = new SendPlaybackContinuedNotificationTask();
+			handler.post(task);
+			m_playback_halted_reason = -1;
+		}
 	}
 	
-	/**
-	 * Description: Thread safe method of setting the active song. If new song
-	 * 	is null, then an empty song will be added to keep m_active_song from
-	 * 	being null.
-	 * @param new_song
-	 */
-//	private void setActiveSong(Song new_song){
-//		if (new_song == null){
-//			new_song = new Song();
-//		}
-//		synchronized(m_active_song){
-//			m_active_song = new_song;
-//		}
-//	}	
-	
-	/**
-	 * Description: Thread safe method for setting m_alive.
-	 * @param new_liveness
-	 */
-	private void setAlive(boolean new_liveness){
-		m_alive = Boolean.valueOf(new_liveness);
-	}
-	
-//	private void setBufferComplete(boolean bool){
-//		m_active_song_buffer_complete_flag = Boolean.valueOf(bool);
-//	}
-	
-//	private void setBuffering(boolean bool){
-//		m_buffering_flag = Boolean.valueOf(bool);
-//	}
 
-//	private void setCurrentUrl(PandoraAudioUrl url){
-//		synchronized(m_active_song_url){
-//			m_active_song_url = url;
-//		}		
-//	}
-	
-	private void setHaltCode(int new_code){
-		
-	}
-	
-	/**
-	 * Description: Sets a new song ready for playback.
-	 * Precondition: m_play_queue is not null
-	 */
-//	private void setNewSong(){
-//		setPlayCommandValid(false);
-//		//m_player.reset();
-//		if (m_play_queue.peek() != null){
-//			setNeedNextSong(false);
-//			setActiveSong(m_play_queue.pollFirst());
-//
-//			sendNewSongNotification(getActiveSong());
-////			Handler handler = new Handler(Looper.getMainLooper());
-////			handler.post(new Runnable(){
-////				public void run(){		
-////					getNewSongListener().onNewSong(getActiveSong());
-////				}
-////			});
-//			prepareSong();
-//
-//		}
-//	}
-	
-	/**
-	 * Description: Thread safe method of setting m_need_next_song.
-	 * @param new_val
-	 */
-	private void setNeedNextSong(boolean new_val){
-		m_need_next_song = Boolean.valueOf(new_val);
-	}
-	
-//	private void setPlaybackPosition(int pos){
-//		m_playback_position = pos;
-//	}
-//	
-//	private void setNeedRebuffer(boolean bool){
-//		m_active_song_rebuffer_flag = Boolean.valueOf(bool);
-//	}
-	
-	/**
-	 * Description: Thread safe method of setting m_valid_play_command.
-	 * @param new_value
-	 */
-	private void setPlayCommandValid(boolean new_value){
-		m_valid_play_command = Boolean.valueOf(new_value);
-	}
-	
 	/**
 	 * Description: Does the job of stopping the playback controller. It will
 	 *  not return until the playback is stopped, but that doesn't necessarily
@@ -1008,13 +828,17 @@ public class MediaPlaybackController implements Runnable{
 	 */
 	private void stopTask(){
 		if (isAlive()){
-			setAlive(false);
+			m_alive = false;
 			try {					
 				m_stop_exchanger.exchange(false);
 			} catch (InterruptedException e) {}
 		}
 	}
 	
+	/**
+	 * Description: Stores a buffer position with the time it was created, and
+	 * 	a MediaPlayer session id it's affiliated with.
+	 */
 	private class BufferSample{
 		public int m_percent;
 		public int m_session_id;
@@ -1027,61 +851,13 @@ public class MediaPlaybackController implements Runnable{
 		}		
 	}
 	
-//	private class BandwidthUpdaterThread extends Thread{
-//		
-//		public BandwidthUpdaterThread(MediaPlayer mp, 
-//									  int percent, 
-//									  int media_length, 
-//									  int bitrate){
-//			this.m_mp = mp;
-//			this.m_percent = percent;
-//			this.m_length = media_length;
-//			this.m_bitrate = bitrate;
-//		}
-//		
-//		public void run(){			
-//			synchronized(bandwidth_lock){
-//				
-//				//The OnBufferingUpdateListener has a tendency to spout out 100% at 
-//				//impossible situations such as before a song has even started
-//				//rather than a 0%. Seems like a bug.
-//				if (this.m_mp == m_player 
-//							&&
-//					this.m_percent == 100 
-//							&& 
-//					m_bandwidth.doesIdExist(this.m_mp.getAudioSessionId())
-//					){		
-//					Log.d("Pandoroid", 
-//							  "Buffer: " + Integer.toString(this.m_percent) + "%"
-//						 );
-//					//setBufferComplete(true);
-//				}
-//				
-//				m_bandwidth.update(this.m_mp.getAudioSessionId(), 
-//						           this.m_percent, 
-//						           this.m_length, 
-//						           this.m_bitrate);
-//			}
-//		}
-//		
-//		private MediaPlayer m_mp;
-//		private int m_percent;
-//		private int m_length;
-//		private int m_bitrate;		
-//	}
-	
-	private class MediaBufferingUpdateListener implements MediaPlayer.OnBufferingUpdateListener{
-		
+	/**
+	 * Description: A buffering update listener for the media players.
+	 */
+	private class MediaBufferingUpdateListener implements MediaPlayer.OnBufferingUpdateListener{		
 		public void onBufferingUpdate(MediaPlayer mp, int percent){
 			BufferSample sample = new BufferSample(mp.getAudioSessionId(), percent);
 			m_buffer_sample_queue.add(sample);
-			
-			//Let's be sure to keep our UI snappy!
-//			BandwidthUpdaterThread t = new BandwidthUpdaterThread(mp, 
-//			                                                      percent, 
-//			                                                      m_active_song_length, 
-//			                                                      getCurrentUrl().m_bitrate);
-//			t.start();
 		}
 	}
 	
@@ -1090,56 +866,35 @@ public class MediaPlaybackController implements Runnable{
 	 */
 	private class MediaCompletionListener implements MediaPlayer.OnCompletionListener{
 		public void onCompletion(MediaPlayer mp){
-//			if (mp == m_player){
-//				setPlaybackPosition(mp.getCurrentPosition());
-			if (m_active_player.isPlaybackComplete()){
-				setNeedNextSong(true);
-			}
-			else{
-				m_reset_buffer_flag = true;
-				//setPlaybackPosition(mp.getCurrentPosition());
-			}
-			m_playback_engine_thread.interrupt();
-//			}
+			Thread t = new Thread(new Runnable(){
+				public void run(){
+					if (m_active_player.isPlaybackComplete()){
+						m_need_next_song = true;
+					}
+					else{
+						sendPlaybackHaltedNotification(HALT_STATE_BUFFERING);
+						m_reset_player_flag = true;
+					}
+					m_playback_engine_thread.interrupt();
+				}
+			});
+			t.start();
 		}
 	}
 	
-	//Epicly useless!!!
-	private class MediaErrorListener implements MediaPlayer.OnErrorListener{
-		public boolean onError(MediaPlayer mp, int what, int extra){
-//			if (what == MediaPlayer.MEDIA_ERROR_SERVER_DIED){
-//				Log.e("Pandoroid", "No internets!", new Exception());
-//				m_playback_halted_listener.onPlaybackHalted(HALT_STATE_NO_INTERNET, -1);
-//
-//			}
-//			else {
-//			Log.e("Pandoroid", 
-//				  "Unknown MediaPlayer error (" + what + ", " + extra + ")", 
-//				  new Exception());
-//			m_error_listener.onError("An unknown MediaPlayer error occured",
-//					                 new Exception(), false, -1);
-
-			//}
-			
-			Log.e("Pandoroid", "MediaPlayer error (" + what + ", " + extra + ")", 
-					  new Exception());
-			
-			return false;
-		}
-	}
-	
+	/**
+	 * Description: An info listener for the media players. It primarily looks
+	 * 	for when buffering has started, and ended.
+	 */
 	private class MediaInfoListener implements MediaPlayer.OnInfoListener{
 		public boolean onInfo(MediaPlayer mp, int what, int extra){
 			
-			//No fancy main thread stuff is needed here because we're already
-			//in the main thread haha.
 			if (what == MediaPlayer.MEDIA_INFO_BUFFERING_START){
-				m_playback_halted_listener.onPlaybackHalted(HALT_STATE_BUFFERING, -1);
-				//setPlaybackPosition(mp.getCurrentPosition());
+				sendPlaybackHaltedNotification(HALT_STATE_BUFFERING);
 				m_active_player.setBuffering(true);
 			}
 			else if (what == MediaPlayer.MEDIA_INFO_BUFFERING_END){
-				m_playback_continued_listener.onPlaybackContinued();
+				sendPlaybackContinuedNotification();
 				m_active_player.setBuffering(false);
 			}
 			return true;
@@ -1166,16 +921,84 @@ public class MediaPlaybackController implements Runnable{
 		}
 	}
 	
+	/**
+	 * Description: The task to be run when an error notification needs to be
+	 * 	sent.
+	 */
+	private class SendErrorNotificationTask implements Runnable{
+		public SendErrorNotificationTask(String message, Throwable e,
+										 boolean remote_error_flag,
+										 int rpc_error_code){
+			this.m_message = message;
+			this.m_e = e;
+			this.m_remote_error_flag = remote_error_flag;
+			this.m_rpc_error_code = rpc_error_code;
+		}
+		
+		public void run(){
+			OnErrorListener listener = getErrorListener();
+			if (listener != null){
+				listener.onError(this.m_message, this.m_e, 
+						         this.m_remote_error_flag, 
+						         this.m_rpc_error_code);
+			}
+		}
+		
+		private String m_message;
+		private Throwable m_e;
+		private Boolean m_remote_error_flag;
+		private int m_rpc_error_code;
+	}
+	
+	/**
+	 * Description: The task to be run when a new song notification needs to be
+	 * 	sent.
+	 */
 	private class SendNewSongNotificationTask implements Runnable{
 		public SendNewSongNotificationTask(Song song){
 			this.m_song = song;
 		}
 		
 		public void run(){
-			getNewSongListener().onNewSong(this.m_song);
+			OnNewSongListener listener = getNewSongListener();
+			if (listener != null){
+				listener.onNewSong(this.m_song);
+			}
 		}
 		
 		private Song m_song;
+	}
+	
+	/**
+	 * Description: The task to be run when a notification alerting to the
+	 * 	playback being halted needs to be sent.
+	 */
+	private class SendPlaybackHaltedNotificationTask implements Runnable{
+		public SendPlaybackHaltedNotificationTask(int halt_code){
+			this.m_code = halt_code;
+		}
+		
+		public void run(){
+			OnPlaybackHaltedListener listener = getPlaybackHaltedListener();
+			if (listener != null){
+				listener.onPlaybackHalted(this.m_code);
+			}
+		}
+		
+		private int m_code;
+	}
+	
+	/**
+	 * Description: The task to be run when a notification alerting to the
+	 * 	playback being continued from a halt state needs to be sent.
+	 */
+	private class SendPlaybackContinuedNotificationTask implements Runnable{
+		public void run(){
+			OnPlaybackContinuedListener listener = getPlaybackContinuedListener();
+			if (listener != null){
+				listener.onPlaybackContinued();
+			}
+		}
 	}
 	
 	/**
