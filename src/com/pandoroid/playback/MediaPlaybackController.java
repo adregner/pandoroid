@@ -632,6 +632,7 @@ public class MediaPlaybackController implements Runnable{
 				m_active_player.copy(m_cached_player);
 				m_valid_play_command_flag = true;
 				m_cached_player_ready_flag = false;
+				m_need_next_song = false;
 				Log.i("Pandoroid", 
 					  "Current Audio Quality: " + m_active_player.getUrl().m_bitrate);
 			}
