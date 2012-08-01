@@ -3,3 +3,6 @@ bin/*
 hs_err_pid*.log
 R.java
 consoleTesting
+
+# The gen/ directory should be ignored as everything there is automatically generated.
+gen/
