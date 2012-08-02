@@ -86,8 +86,13 @@ public class ConcurrentSongMediaPlayer{
 	 * @return
 	 */
 	public int getDuration(){
-		synchronized(this){
-			return m_player.getDuration();
+		if (m_alive){
+			synchronized(this){
+				return m_player.getDuration();
+			}
+		}
+		else{
+			return -1; //Signifying an error.
 		}
 	}
 	

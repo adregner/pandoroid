@@ -102,6 +102,7 @@ public class MediaPlaybackController implements Runnable{
 	
 		
 		m_active_player = instantiateMediaPlayer();
+		m_cached_player = instantiateMediaPlayer();
 		
 		m_bandwidth = new MediaBandwidthEstimator();
 		
@@ -124,7 +125,7 @@ public class MediaPlaybackController implements Runnable{
 					bitrate = m_active_player.getUrl().m_bitrate;
 					length = m_active_player.getDuration();
 				}
-				else{
+				else if (buffer_tmp.m_session_id == m_cached_player.getAudioSessionId()){
 					bitrate = m_cached_player.getUrl().m_bitrate;
 					length = m_cached_player.getDuration();
 				}
@@ -140,11 +141,14 @@ public class MediaPlaybackController implements Runnable{
 					}
 				}
 				
-				m_bandwidth.update(buffer_tmp.m_session_id, 
-						           buffer_tmp.m_percent,
-						           length, 
-						           bitrate, 
-						           buffer_tmp.m_time_stamp);
+				//Test for length errors.
+				if (length > 0){
+					m_bandwidth.update(buffer_tmp.m_session_id, 
+							           buffer_tmp.m_percent,
+							           length, 
+							           bitrate, 
+							           buffer_tmp.m_time_stamp);
+				}
 			}
 			
 			//Prevent a null pointer exception in case an active network is not
@@ -196,9 +200,19 @@ public class MediaPlaybackController implements Runnable{
 		}
 		
 		//Cleanup!
-		m_valid_play_command_flag = false;
 		m_active_player.release();
+		
+		//This will clear our buffer sample queue. Although a race condition
+		//can occur where buffer samples are added from the 
+		//OnBufferingUpdateListener after this clear is called, it really is
+		//of little importance. The point is to keep the number of samples in 
+		//the queue to a minimum so that when this is started up again, it
+		//can do so as quickly as possible.
+		m_buffer_sample_queue.clear();
+		
 		m_play_queue.clear();
+		m_valid_play_command_flag = false;
+		
 		if (m_cached_player_ready_flag){
 			m_cached_player.release();
 		}
@@ -723,9 +737,14 @@ public class MediaPlaybackController implements Runnable{
 		
 		//A release on the cached player can in fact affect the 
 		//active player.
-		if (m_cached_player != null && (m_cached_player.getPlayer() != m_active_player.getPlayer())){
-			m_cached_player_ready_flag = false;
-			m_cached_player.release();
+		if (m_cached_player.getPlayer() != m_active_player.getPlayer()){
+			
+			//Let's be even more specific to only reset those cached players
+			//that aren't finished buffering.
+			if (!m_cached_player.m_buffer_complete_flag){
+				m_cached_player_ready_flag = false;			
+				m_cached_player.release();
+			}
 		}
 		
 		try {
