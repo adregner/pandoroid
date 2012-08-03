@@ -13,7 +13,7 @@ public class ConcurrentSongMediaPlayer{
 	//to be played before it is determined as being effectively finished.
 	public static final int MINIMUM_SONG_COMPLETENESS = 95;
 	
-	public volatile Boolean m_buffer_complete_flag;
+	public volatile Boolean m_buffer_complete_flag = false;
 	
 	public ConcurrentSongMediaPlayer(){
 		m_player = new MediaPlayer();
