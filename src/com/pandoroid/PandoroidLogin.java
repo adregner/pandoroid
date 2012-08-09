@@ -20,9 +20,11 @@ package com.pandoroid;
 import com.actionbarsherlock.app.SherlockActivity;
 import com.pandoroid.R;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -32,139 +34,107 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
 public class PandoroidLogin extends SherlockActivity {
-	private SharedPreferences prefs;
-	private PandoraRadioService pandora;
-	private boolean m_is_bound;
-	private static ProgressDialog waiting;
+	private SharedPreferences m_prefs;
 
-	/** Called when the activity is first created. */
-	@Override
+	/*
+	 * Activity start and end stuff
+	 */
 	public void onCreate(Bundle savedInstanceState) {
-		setTheme(R.style.Theme_Sherlock);
 		super.onCreate(savedInstanceState);
+		
+		setTheme(R.style.Theme_Sherlock);
 		setContentView(R.layout.login);
 		
-		prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-		//PandoraRadioService.createPandoraRadioService(getBaseContext());
-		doBindService();		
+		m_prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());	
 
-
-		this.getSupportActionBar().setTitle(R.string.signin_welcome);
-		((Button)findViewById(R.id.login_button)).setOnClickListener(new OnClickListener() {
-			public void onClick(View viewParam) {
-				String sUserName = ((EditText)findViewById(R.id.login_username)).getText().toString();
-				String sPassword = ((EditText)findViewById(R.id.login_password)).getText().toString();
-
-				// this just catches the error if the program can't locate the GUI stuff
-				if(sUserName != null && sPassword != null && sUserName.length() > 1 && sPassword.length() > 1) {
-					boolean success = prefs.edit()
-						.putString("pandora_username", sUserName)
-						.putString("pandora_password", sPassword)
-						.commit();
-
-					if(success) {
-						new LoginTask().execute();
-					}
-				}
-			}
-		});
+		getSupportActionBar().setTitle(R.string.signin_welcome);
+		Button login_button = (Button) findViewById(R.id.login_button);		
+		login_button.setOnClickListener(new SignInButtonClickListener());
+		
+		//Set the displayed username if there is one
+		String username = m_prefs.getString("pandora_username", null);
+		EditText user = (EditText) findViewById(R.id.login_username);
+		if(username != null){
+			user.setText(username);
+		}
 	}
 
-	@Override
 	protected void onResume() {
 		super.onResume();
 	}
 	
 	protected void onDestroy(){
 		super.onDestroy();
-		doUnbindService();
 	}
+	/* End Activity stuff */
 	
-	private class LoginTask extends AsyncTask<String, Void, Boolean>{
+	/**
+	 * Description: Commits the credentials into the preference manager and
+	 * 	handles the errors associated with them.
+	 */
+	private void commitCredentials(){
+		EditText text_view = (EditText) findViewById(R.id.login_username);
+		String user_name = text_view.getText().toString();
+		text_view = (EditText) findViewById(R.id.login_password);
+		String password = text_view.getText().toString();
 
-		protected void onPreExecute(){
-			waiting = ProgressDialog.show(PandoroidLogin.this, "",  getString(R.string.signing_in));
-		}
+		//Remove the stupid keyboard from view. It's in the way!
+		InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+		imm.hideSoftInputFromWindow(text_view.getWindowToken(), 0);
 		
-		@Override
-		protected Boolean doInBackground(String... params) {
-			String username = prefs.getString("pandora_username", null);
-			String password = prefs.getString("pandora_password", null);
-			if(username == null || password == null){
-				return false;
-			}
-			return pandora != null && pandora.signIn(username, password);
-		}
-		
-		@Override
-		protected void onPostExecute(Boolean result){
-			waiting.dismiss();
-			if(result.booleanValue()){
-				//Start the PandoroidPlayer activity
-				//startActivity(new Intent(PandoroidLogin.this, PandoroidPlayer.class));
-				finish();
-				
-			} else {
-				Toast.makeText(PandoroidLogin.this, R.string.signin_failed, 2000).show();
-			}
-		}
-		
-	}
-	
-	//Necessary service stuff taken straight from the developer reference for Service
-	private ServiceConnection m_connection = new ServiceConnection() {
-	    public void onServiceConnected(ComponentName className, IBinder service) {
-	        // This is called when the connection with the service has been
-	        // established, giving us the service object we can use to
-	        // interact with the service.  Because we have bound to a explicit
-	        // service that we know is running in our own process, we can
-	        // cast its IBinder to a concrete class and directly access it.
-	        pandora = ((PandoraRadioService.PandoraRadioBinder)service).getService();
-		    m_is_bound = true;
-		    
-			String username = prefs.getString("pandora_username", null);
-			String password = prefs.getString("pandora_password", null);
+		if(user_name != null && 
+				password != null && 
+				user_name.length() > 0 && 
+				password.length() > 0) {
 			
-			//Set the username and/or login
-			EditText user = (EditText)findViewById(R.id.login_username);
-			if(username != null){
-				user.setText(username);
-				if(password != null){
-					new LoginTask().execute();
-				}
+			boolean success = m_prefs.edit()
+									 .putString("pandora_username", user_name)
+									 .putString("pandora_password", password)
+									 .commit();
+			m_prefs.edit().putBoolean("pandora_one_flag", true).apply();
+			if(success) {
+				finish();
 			}
-	    }
-
-	    public void onServiceDisconnected(ComponentName className) {
-	        // This is called when the connection with the service has been
-	        // unexpectedly disconnected -- that is, its process crashed.
-	        // Because it is running in our same process, we should never
-	        // see this happen.
-	        pandora = null;
-	        m_is_bound = false;
-	    }  
-	};
-
-	void doBindService() {
-	    // Establish a connection with the service.  We use an explicit
-	    // class name because we want a specific service implementation that
-	    // we know will be running in our own process (and thus won't be
-	    // supporting component replacement by other applications).
-	    bindService(new Intent(this, 
-	                PandoraRadioService.class), 
-	                m_connection, Context.BIND_AUTO_CREATE);
+			else{
+				AlertDialog.Builder 
+					alert_builder = new AlertDialog.Builder(PandoroidLogin.this);
+				alert_builder.setMessage("Internal Error. Please Try Again");
+				alert_builder.setPositiveButton("Retry", 
+						new DialogInterface.OnClickListener() {						
+					public void onClick(DialogInterface dialog, int which) {
+						commitCredentials();
+					}
+				});
+			}
+		}
+		else{
+			CharSequence toasty_text = "I believe you're missing something.";
+			int dur = Toast.LENGTH_LONG;
+			Toast i_like_toast = Toast.makeText(PandoroidLogin.this, toasty_text, dur);
+			i_like_toast.show(); //OMG it's shaped like a box with letters!
+		}
+	}	
+	
+	/**
+	 * Description: Necessary to modify the behavior of the back button when 
+	 * 	this activity is started.
+	 */
+	public void onBackPressed(){
+		moveTaskToBack(true);
 	}
-
-	void doUnbindService() {
-	    if (m_is_bound) {
-	        // Detach our existing connection.
-	        unbindService(m_connection);
-	        m_is_bound = false;
-	    }
+	
+	/**
+	 * Description: An OnClickListener for the sign in button.
+	 */
+	private class SignInButtonClickListener implements OnClickListener{
+		public void onClick(View viewParam) {
+			commitCredentials();
+		}
 	}
 }

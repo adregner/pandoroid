@@ -44,12 +44,13 @@ import android.util.Log;
 /**
  * Description: Uses Pandora's JSON v5 API. Documentation of the JSON API
  * 	can be found here: http://pan-do-ra-api.wikia.com/wiki/Json/5 
- *  A network connection is required before any operation can take place.
+ *  A network connection is required before any operation can/should take place.
  *  If a person is bored, and wants to work on something, they could split
  *  off the authentication component from this class while making both this
  *  and the authentication component inherit from the RPC class 
  *  (and also beef up the RPC class a bit). It would also be helpful
- *  to give this class a more meaningful name.
+ *  to give this class a more meaningful name like PandoraAuthenticationRPC/
+ *  PandoraPlaylistRPC/PandoraRPC....
  */
 public class PandoraRadio {
 	private static final String USER_AGENT = "com.pandoroid.pandora/0.4";
@@ -99,7 +100,6 @@ public class PandoraRadio {
 	private long sync_obtained_time;
 	private long last_acquired_playlist_time;
 	private String last_acquired_playlist_station;
-	private ArrayList<Station> stations;
 	private Map<String, String> standard_url_params;
 
 	/**
@@ -107,7 +107,6 @@ public class PandoraRadio {
 	 */
 	public PandoraRadio(){
 		standard_url_params = new HashMap<String, String>();
-		stations = new ArrayList<Station>();
 		credentials = new PartnerCredentials();
 		last_acquired_playlist_time = 0;
 		last_acquired_playlist_station = new String();
@@ -225,10 +224,9 @@ public class PandoraRadio {
 	public void disconnect() {
 		this.standard_url_params.remove("user_id");
 		this.standard_url_params.put("auth_token", this.partner_auth_token);
-		if(stations != null) {
-			stations.clear();
-			stations = null;
-		}
+		user_auth_token = null;
+		last_acquired_playlist_station = "";
+		last_acquired_playlist_time = 0;
 	}
 	
 	/**
@@ -327,60 +325,45 @@ public class PandoraRadio {
 		
 		Vector<Song> songs = new Vector<Song>();
 		
-		//try{
-			Map<String, Object> request_args = new HashMap<String, Object>();
-			request_args.put("stationToken", station_token);
-			
-			//Order matters in this URL request. The same order given here is 
-			//the order received.
-			request_args.put("additionalAudioUrl", 
-					         MP3_128 + "," + AAC_32);
-			
-			JSONObject response = this.doCall("station.getPlaylist", request_args, 
-					                          true, true, null);
-			
-			JSONArray songs_returned = response.getJSONArray("items");
-			for (int i = 0; i < songs_returned.length(); ++i){
-				Map<String, Object> song_data = JSONHelper.toMap(songs_returned.getJSONObject(i));
-				ArrayList<PandoraAudioUrl> audio_url_mappings = new ArrayList<PandoraAudioUrl>();
-				if (song_data.get("additionalAudioUrl") instanceof Vector<?>){
-					Vector<String> audio_urls = (Vector<String>) song_data.get("additionalAudioUrl");
-//					for(String cur: audio_urls){
-//						Log.v("Pandoroid","audio_urls: "+cur);
-//					}
-					//This has to be in the same order as the request.
-					audio_url_mappings.add(new PandoraAudioUrl(MP3_128, 128, audio_urls.get(0)));
-					audio_url_mappings.add(new PandoraAudioUrl(AAC_32, 32, audio_urls.get(1)));
-				}
-				//MP3_192 data
-				if (isPandoraOneCredentials()){
-					audio_url_mappings.add(new PandoraAudioUrl(
-						(Map<String,Object>) (
-							(Map<String,Object>) song_data.get("audioUrlMap")
-							                 ).get("highQuality")
-							                                  ));
-				}
-				//AAC_64 data
+
+		Map<String, Object> request_args = new HashMap<String, Object>();
+		request_args.put("stationToken", station_token);
+		
+		//Order matters in this URL request. The same order given here is 
+		//the order received.
+		request_args.put("additionalAudioUrl", 
+				         MP3_128 + "," + AAC_32);
+		
+		JSONObject response = this.doCall("station.getPlaylist", request_args, 
+				                          true, true, null);
+		
+		JSONArray songs_returned = response.getJSONArray("items");
+		for (int i = 0; i < songs_returned.length(); ++i){
+			Map<String, Object> song_data = JSONHelper.toMap(songs_returned.getJSONObject(i));
+			ArrayList<PandoraAudioUrl> audio_url_mappings = new ArrayList<PandoraAudioUrl>();
+			if (song_data.get("additionalAudioUrl") instanceof Vector<?>){
+				Vector<String> audio_urls = (Vector<String>) song_data.get("additionalAudioUrl");
+
+				//This has to be in the same order as the request.
+				audio_url_mappings.add(new PandoraAudioUrl(MP3_128, 128, audio_urls.get(0)));
+				audio_url_mappings.add(new PandoraAudioUrl(AAC_32, 32, audio_urls.get(1)));
+			}
+			//MP3_192 data
+			if (isPandoraOneCredentials()){
 				audio_url_mappings.add(new PandoraAudioUrl(
 					(Map<String,Object>) (
 						(Map<String,Object>) song_data.get("audioUrlMap")
-						                 ).get("mediumQuality")
-						                                   ));			    
-			    songs.add(new Song(song_data, audio_url_mappings));
+						                 ).get("highQuality")
+						                                  ));
 			}
-//		}
-//		catch(RPCException e){
-//			if (RPCException.URL_PARAM_MISSING_METHOD <= e.code 
-//										&& 
-//				e.code <= RPCException.API_VERSION_NOT_SUPPORTED) {
-//				Log.e("Pandoroid","Exception getting playlist - throwing API change exception", e);
-//				throw new Exception("API Change");
-//			}
-//			else{ //It's probably something else.
-//				throw e;
-//			}
-//		}
-		
+			//AAC_64 data
+			audio_url_mappings.add(new PandoraAudioUrl(
+				(Map<String,Object>) (
+					(Map<String,Object>) song_data.get("audioUrlMap")
+					                 ).get("mediumQuality")
+					                                   ));			    
+		    songs.add(new Song(song_data, audio_url_mappings));
+		}
 		
 		this.last_acquired_playlist_time = System.currentTimeMillis() / 1000L;
 		this.last_acquired_playlist_station = station_token;
@@ -405,21 +388,6 @@ public class PandoraRadio {
 		return -1;
 	}
 	
-	/**
-	 * Description: <to be filled>
-	 */
-	public Station getStationById(String sid) {
-		Iterator<Station> stationIter = stations.iterator();
-		Station station = null;
-		while(stationIter.hasNext()) {
-			station = stationIter.next();
-			if(station.getStationId().compareTo(sid) == 0) {
-				return station;
-			}
-		}
-		return null;
-	}
-	
 	
 	/**
 	 * Description: Retrieves the available stations, saves them to a 
@@ -439,6 +407,7 @@ public class PandoraRadio {
 		
 		//Our stations come in a JSONArray within the JSONObject
 		JSONArray result_stations = result.getJSONArray("stations");
+		ArrayList<Station> stations = new ArrayList<Station>();
 
 		//Run through the stations within the array, and pick out some of the
 		//properties we want.
@@ -513,11 +482,11 @@ public class PandoraRadio {
 		return (credentials.device_model == ONE_DEVICE_ID);
 	}
 	
-	private boolean isPartnerAuthorized(){
+	public boolean isPartnerAuthorized(){
 		return (this.partner_auth_token != null);
 	}
 	
-	private boolean isUserAuthorized(){
+	public boolean isUserAuthorized(){
 		return (this.user_auth_token != null);
 	}
 	
@@ -600,8 +569,10 @@ public class PandoraRadio {
 	 * Description: This will run a partner login with the proper partner
 	 * 	credentials as specified by the is_pandora_one variable.
 	 */
-	public void runPartnerLogin(boolean is_pandora_one) throws Exception, 
-	                                                           RPCException{
+	public void runPartnerLogin(boolean is_pandora_one) throws RPCException,
+															   IOException,
+															   HttpResponseException,
+															   Exception{
 		setCredentials(is_pandora_one);
 		this.partnerLogin();
 	}

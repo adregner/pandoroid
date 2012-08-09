@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Pandoroid Radio</string>
+    <string name="app_name">Pandoroid</string>
     <string name="signing_in">Signing in. Please wait&#8230;</string>
     <string name="signin_failed">Sign-in failed</string>
     <string name="loading">Loading&#8230;</string>

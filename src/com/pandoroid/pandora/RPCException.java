@@ -30,7 +30,8 @@ public class RPCException extends Exception {
 	//Method specific...Hence some are duplicated
 	public final static int READ_ONLY_MODE = 1000;
 	public final static int INVALID_AUTH_TOKEN = 1001;
-	public final static int INVALID_PARTNER_LOGIN = 1002;
+	public final static int INVALID_PARTNER_CREDENTIALS = 1002;
+	public final static int INVALID_USER_CREDENTIALS = 1002;
 	public final static int LISTENER_NOT_AUTHORIZED = 1003;
 	public final static int USER_NOT_AUTHORIZED = 1004;
 	public final static int MAX_STATIONS_REACHED = 1005;
@@ -60,8 +61,12 @@ public class RPCException extends Exception {
 	
 	
 	public int code;
-	RPCException(int error_code, String message) {
+	public RPCException(int error_code, String message) {
 		super(message);
 		this.code = error_code;
+	}
+	
+	public String getMessage(){
+		return (super.getMessage() + " (Code: " + Integer.toString(code) + ")");
 	}
 }

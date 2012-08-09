@@ -53,8 +53,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ImageDownloader {
     private static final String LOG_TAG = "ImageDownloader";
 
-    private static final int HARD_CACHE_CAPACITY = 40;
-    private static final int DELAY_BEFORE_PURGE = 30 * 1000; // in milliseconds
+    private static final int HARD_CACHE_CAPACITY = 5;
+    private static final int DELAY_BEFORE_PURGE = 300 * 1000; // in milliseconds
 
     // Hard cache, with a fixed maximum capacity and a life duration
     @SuppressWarnings("serial")

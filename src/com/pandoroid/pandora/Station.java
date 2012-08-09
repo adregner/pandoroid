@@ -89,6 +89,10 @@ public class Station implements Comparable<Station>, Serializable {
 		return getName().compareTo(another.getName());
 	}
 	
+	public int compareTo(String id){
+		return getStationId().compareTo(id);
+	}
+	
 	public boolean equals(Station another) {
 		return getName().equals(another.getName());
 	}

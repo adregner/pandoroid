@@ -71,14 +71,24 @@ public class PandoraDB extends SQLiteOpenHelper {
 			values.put("isQuickMix", station.isQuickMix());
 			values.put("stationName", station.getName());
 			
-			write.insertWithOnConflict(PandoraDB.STATION_TABLE_NAME, null, values , SQLiteDatabase.CONFLICT_IGNORE);
+			write.insertWithOnConflict(PandoraDB.STATION_TABLE_NAME, 
+					                   null, 
+					                   values, 
+					                   SQLiteDatabase.CONFLICT_IGNORE);
 		}
 	}
 	
 	@SuppressWarnings("unchecked")
 	public HashMap<String,Object>[] getStations() {
-		Cursor records = getReadableDatabase().query(STATION_TABLE_NAME, null, null, null, null, null, null);
-		HashMap<String, Object>[] stations = (HashMap<String, Object>[]) new HashMap<?,?>[records.getCount()];
+		Cursor records = getReadableDatabase().query(STATION_TABLE_NAME, 
+													 null, 
+													 null, 
+													 null, 
+													 null, 
+													 null, 
+													 null);
+		HashMap<String, Object>[] 
+				stations = (HashMap<String, Object>[]) new HashMap<?,?>[records.getCount()];
 		
 		for(int s=0; s<stations.length; s++) {
 			records.moveToPosition(s);

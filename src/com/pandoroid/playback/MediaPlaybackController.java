@@ -213,9 +213,7 @@ public class MediaPlaybackController implements Runnable{
 		m_play_queue.clear();
 		m_valid_play_command_flag = false;
 		
-		if (m_cached_player_ready_flag){
-			m_cached_player.release();
-		}
+		m_cached_player.release();
 	}
 	
 	/**
@@ -234,11 +232,16 @@ public class MediaPlaybackController implements Runnable{
 	/**
 	 * Description: Does what it says and gets the song that's currently playing.
 	 * @return The currently playing song.
-	 * @throws Exception when the playback engine is not alive.
+	 * @throws Exception when the playback engine is not alive or the song is
+	 * 	null and playback hasn't had a chance to start yet.
 	 */
 	public Song getSong() throws Exception{
 		if (isAlive()){
-			return m_active_player.getSong(); 
+			Song song = m_active_player.getSong();
+			if (song != null){
+				return song;
+			}
+			throw new Exception("No song available. Playback has not been started.");
 		}
 		throw new Exception("No song available. The playback engine is not alive.");
 	}

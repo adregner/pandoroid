@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/PandoroidBlackBgTheme"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="horizontal" >
@@ -95,5 +96,34 @@
             android:width="75dip" >
         </ImageView>
     </RelativeLayout>
+    
+    <LinearLayout
+        android:id="@+id/progressUpdate"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="50dp"
+        android:layout_marginRight="50dp"
+        android:layout_marginTop="200dp"
+        android:background="#A0000000"
+        android:paddingBottom="10dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="10dp"
+        android:visibility="invisible" >
+
+        <ProgressBar
+            android:id="@+id/progressSpinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/ProgressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="15dp"
+            android:text="@string/loading"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+    </LinearLayout>
 
 </RelativeLayout>
