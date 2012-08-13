@@ -18,6 +18,8 @@ package com.pandoroid.playback;
 
 import java.util.LinkedList;
 
+import com.pandoroid.Debug;
+
 import android.util.Log;
 
 /**
@@ -31,9 +33,13 @@ public class MediaBandwidthEstimator {
 	 */
 	
 	//This is the number of data points we're using to calculate the bitrate.
-	public static final int NUM_AVERAGED_DATA_POINTS = 30;
+	public static final int NUM_AVERAGED_DATA_POINTS = 20;
 	
-	public static final boolean DEBUG_INFO = true;
+	//This is crucial for really super fast downloads that happen so fast
+	//they can't make a meaningful impact on the average.
+	public static final int MIN_SESSION_CALCS = 2;
+	
+	public static final int DEBUG_INFO = Debug.DEBUG_LEVEL_FLAG;
 	
 	/**
 	 * Description: Constructor
@@ -84,11 +90,12 @@ public class MediaBandwidthEstimator {
 				session.queued_flag = true;
 				m_sum += bandwidth;
 	
-				if (DEBUG_INFO){
+				if (DEBUG_INFO == Debug.LEVEL_HIGH){
 					Log.d("Pandoroid", 
-						  "Buffer: " + Integer.toString(buffer_position) + "%    " +
+						  "Media Id: " + audio_session_id + "    " +
+						  "Buffer: " + buffer_position + "%    " +
 					      "Bitrate: " + Float.toString(bandwidth) + "kpbs    " +
-						  "Avg: " + Integer.toString((int) m_sum/m_bitrate_queue.size()) + "kpbs"
+						  "\nBandwidth Avg: " + getBitrate() + "kpbs"
 					);
 				}
 			}
@@ -146,7 +153,16 @@ public class MediaBandwidthEstimator {
 		//Realistically, there should never be more than a couple of ids running
 		//at the same time so this loop should end lightening quick.
 		for (int i = 0; i < m_active_audio_sessions.size(); ++i){
-			if (m_active_audio_sessions.get(i).getId() == audio_session_id){
+			AudioSession tmp_session = m_active_audio_sessions.get(i);
+			if (tmp_session.getId() == audio_session_id){
+				if (tmp_session.getNumBitrateCalcs() <= MIN_SESSION_CALCS){
+					
+					//Let's clear the average to 0 because something is a little
+					//wrong with how fast this session completed.
+					m_sum = 0;
+					m_bitrate_queue.clear();
+					resetQueueFlags();
+				}
 				m_active_audio_sessions.remove(i);
 				return;
 			}
@@ -172,6 +188,7 @@ public class MediaBandwidthEstimator {
 		public AudioSession(int audio_session_id){
 			m_id = audio_session_id;
 			m_prev_buffer_pos = 0;
+			m_num_bitrate_calcs = 0;
 			queued_flag = true; //Things have better consistency if this is began as true;
 		}
 		
@@ -210,6 +227,7 @@ public class MediaBandwidthEstimator {
 			}
 			m_prev_buffer_pos = buffer_position;
 			m_prev_time = time_stamp;
+			++m_num_bitrate_calcs;
 			
 			return bandwidth;
 		}
@@ -222,10 +240,14 @@ public class MediaBandwidthEstimator {
 			return m_id;
 		}
 		
+		public int getNumBitrateCalcs(){
+			return m_num_bitrate_calcs;
+		}
 
 		private int m_id;
 		private long m_prev_time;
 		private int m_prev_buffer_pos;
+		private int m_num_bitrate_calcs;
 	}
 	
 	/* End Public */
