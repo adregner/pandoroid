@@ -27,6 +27,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import com.pandoroid.Debug;
 import com.pandoroid.pandora.PandoraAudioUrl;
 import com.pandoroid.pandora.PandoraRadio;
 import com.pandoroid.pandora.RPCException;
@@ -134,9 +135,15 @@ public class MediaPlaybackController implements Runnable{
 					if (m_bandwidth.doesIdExist(buffer_tmp.m_session_id)){
 						if (buffer_tmp.m_session_id == active_song_id){	
 							m_active_player.m_buffer_complete_flag = true;
+
 						}
 						else if (buffer_tmp.m_session_id == m_cached_player.getAudioSessionId()){
 							m_cached_player.m_buffer_complete_flag = true;
+						}
+						if (Debug.DEBUG_LEVEL_FLAG >= Debug.LEVEL_LOW){
+							Log.d("Pandoroid", "Media Id " + 
+											   buffer_tmp.m_session_id +
+											   " has finished downloading.");
 						}
 					}
 				}
