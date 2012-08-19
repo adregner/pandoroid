@@ -28,7 +28,10 @@ import com.actionbarsherlock.view.MenuItem;
 import com.actionbarsherlock.view.SubMenu;
 import com.pandoroid.pandora.RPCException;
 import com.pandoroid.pandora.Song;
+import com.pandoroid.playback.MediaPlaybackController;
 import com.pandoroid.playback.OnNewSongListener;
+import com.pandoroid.playback.OnPlaybackContinuedListener;
+import com.pandoroid.playback.OnPlaybackHaltedListener;
 import com.pandoroid.PandoraRadioService.ServerAsyncTask;
 import com.pandoroid.R;
 
@@ -56,8 +59,8 @@ import android.widget.Toast;
 
 public class PandoroidPlayer extends SherlockActivity {
 
-	public static final int REQUIRE_SELECT_STATION = 0x10;
-	public static final int REQUIRE_LOGIN_CREDS = 0x20;
+//	public static final int REQUIRE_SELECT_STATION = 0x10;
+//	public static final int REQUIRE_LOGIN_CREDS = 0x20;
 	public static final String RATING_BAN = "ban";
 	public static final String RATING_LOVE = "love";
 	public static final String RATING_NONE = null;
@@ -67,12 +70,16 @@ public class PandoroidPlayer extends SherlockActivity {
 
 	private static AlertDialog m_alert;
 	private static boolean m_alert_active_flag = false;
+	private static int m_song_halted_reason = MediaPlaybackController.HALT_STATE_CLEAR;
 	private boolean m_is_bound;
 	private SharedPreferences m_prefs;
-	private static PartnerLoginTask m_partner_login_task;
+	private PartnerLoginTask m_partner_login_task;
+	private static boolean m_partner_login_finished_flag = true;
 	private PandoraRadioService m_service;
-	private static RetrieveStationsTask m_retrieve_stations_task;
-	private static UserLoginTask m_user_login_task;
+	private RetrieveStationsTask m_retrieve_stations_task;
+	private static boolean m_retrieve_stations_finished_flag = true;
+	private UserLoginTask m_user_login_task;
+	private static boolean m_user_login_finished_flag = true;
 	private static ProgressDialog m_waiting;
 
 	/*
@@ -102,8 +109,6 @@ public class PandoroidPlayer extends SherlockActivity {
 			m_waiting = ProgressDialog.show(PandoroidPlayer.this, "",
 										  getString(R.string.loading));
 		}
-		// View m_progress = findViewById(R.id.progressUpdate);
-		// m_progress.setVisibility(View.VISIBLE);
 	}
 
 	protected void onPause() {
@@ -143,6 +148,18 @@ public class PandoroidPlayer extends SherlockActivity {
 			m_service.setListener(OnNewSongListener.class, new OnNewSongListener() {
 				public void onNewSong(Song song) {
 					updateForNewSong(song);
+				}
+			});
+			m_service.setListener(OnPlaybackContinuedListener.class, 
+								  new OnPlaybackContinuedListener(){
+				public void onPlaybackContinued(){
+					dismissSongHaltedProgress();
+				}
+			});
+			m_service.setListener(OnPlaybackHaltedListener.class,
+								  new OnPlaybackHaltedListener(){
+				public void onPlaybackHalted(int reason){
+					showSongHaltedProgress(reason);
 				}
 			});
 			m_service.resetPlaybackListeners();
@@ -216,15 +233,23 @@ public class PandoroidPlayer extends SherlockActivity {
 		if (m_alert_active_flag) {
 			m_alert.dismiss();
 			m_alert_active_flag = false;
+			m_alert = null;
 		}
 	}
 
+	private void dismissSongHaltedProgress(){
+		m_song_halted_reason = MediaPlaybackController.HALT_STATE_CLEAR;
+		View progress = findViewById(R.id.progressUpdate);
+		progress.setVisibility(View.INVISIBLE);
+	}
+	
 	/**
 	 * Description: Removes waiting prompts.
 	 */
 	private static void dismissWaiting() {
 		if (m_waiting != null && m_waiting.isShowing()) {
 			m_waiting.dismiss();
+			m_waiting = null;
 		}
 	}
 
@@ -277,8 +302,8 @@ public class PandoroidPlayer extends SherlockActivity {
 	 * Description: Executes a PartnerLoginTask.
 	 */
 	private void partnerLogin() {
-		if (m_partner_login_task == null
-				|| m_partner_login_task.getStatus() == AsyncTask.Status.FINISHED) {
+		if (m_partner_login_finished_flag == true) {
+			m_partner_login_finished_flag = false;
 			m_partner_login_task = new PartnerLoginTask();
 			boolean pandora_one_flag = m_prefs.getBoolean("pandora_one_flag", true);
 			m_partner_login_task.execute(pandora_one_flag);
@@ -302,8 +327,8 @@ public class PandoroidPlayer extends SherlockActivity {
 	 * Description: Executes the RetrieveStationsTask.
 	 */
 	private void setStation(){
-		if (m_retrieve_stations_task == null
-				|| m_retrieve_stations_task.getStatus() == AsyncTask.Status.FINISHED) {
+		if (m_retrieve_stations_finished_flag == true) {
+			m_retrieve_stations_finished_flag = false;
 			m_retrieve_stations_task = new RetrieveStationsTask();
 			m_retrieve_stations_task.execute();
 		}
@@ -321,6 +346,37 @@ public class PandoroidPlayer extends SherlockActivity {
 		m_alert = new_alert;
 		m_alert.show();
 		m_alert_active_flag = true;
+	}
+	
+	private void showSongHaltedProgress(int reason){
+		m_song_halted_reason = reason;
+		View progress = findViewById(R.id.progressUpdate);
+		TextView view_text = (TextView) findViewById(R.id.progressText);
+		
+		int reason_str;
+		switch(reason){
+			case MediaPlaybackController.HALT_STATE_NO_NETWORK:
+				reason_str = R.string.no_network; 
+				break;
+			case MediaPlaybackController.HALT_STATE_NO_INTERNET:
+				reason_str = R.string.no_internet;
+				break;
+			case MediaPlaybackController.HALT_STATE_BUFFERING:
+				reason_str = R.string.buffering;
+				break;
+			case MediaPlaybackController.HALT_STATE_PREPARING:
+				reason_str = R.string.preparing;
+				break;
+			case MediaPlaybackController.HALT_STATE_NO_SONGS:
+				reason_str = R.string.no_songs;
+				break;
+			default:
+				reason_str = R.string.buffering;
+		}
+	 
+		view_text.setText(reason_str);
+		progress.setVisibility(View.VISIBLE);	
+		
 	}
 
 	/**
@@ -385,7 +441,10 @@ public class PandoroidPlayer extends SherlockActivity {
 		else if (m_service.getCurrentStation() == null){
 			setStation();
 		}
-		else {	
+		else {
+			if (m_song_halted_reason != MediaPlaybackController.HALT_STATE_CLEAR){
+				showSongHaltedProgress(m_song_halted_reason);
+			}
 			try{
 				songRefresh(m_service.getCurrentSong());
 			}
@@ -410,14 +469,14 @@ public class PandoroidPlayer extends SherlockActivity {
 	 * Description: Executes the UserLoginTask.
 	 */
 	private void userLogin() {
-		if (m_user_login_task == null
-				|| m_user_login_task.getStatus() == AsyncTask.Status.FINISHED) {
+		if (m_user_login_finished_flag == true) {
 			String username = m_prefs.getString("pandora_username", null);
 			String password = m_prefs.getString("pandora_password", null);
 
 			if (username == null || password == null) {
 				spawnLoginActivity();
 			} else {
+				m_user_login_finished_flag = false;
 				m_user_login_task = new UserLoginTask();
 				m_user_login_task.execute(username, password);
 			}
@@ -496,6 +555,8 @@ public class PandoroidPlayer extends SherlockActivity {
 			} else {
 				userLogin();
 			}
+			
+			m_partner_login_finished_flag = true;
 		}
 		
 		protected void retryAction() {
@@ -552,6 +613,8 @@ public class PandoroidPlayer extends SherlockActivity {
 				AlertDialog.Builder alert_builder = buildErrorDialog(success_int);
 				showAlert(alert_builder.create());
 			}
+			
+			m_retrieve_stations_finished_flag = true;
 		}
 		
 		protected void retryAction(){
@@ -576,7 +639,7 @@ public class PandoroidPlayer extends SherlockActivity {
 				m_service.runUserLogin(strings[0], strings[1]);
 				// exceptionTest();
 			} catch (RPCException e) {
-				Log.e("Pandoroid", "Error running user login.", e);
+				Log.e("Pandoroid", "RPC error running user login. " + e.getMessage());
 				if (e.code == RPCException.INVALID_USER_CREDENTIALS) {
 					success_flag = ERROR_BAD_CREDENTIALS;
 				} else {
@@ -610,6 +673,8 @@ public class PandoroidPlayer extends SherlockActivity {
 			} else {
 				setStation();
 			}
+			
+			m_user_login_finished_flag = true;
 		}
 
 		protected void retryAction() {

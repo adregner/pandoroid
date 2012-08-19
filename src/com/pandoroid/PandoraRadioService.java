@@ -31,6 +31,8 @@ import com.pandoroid.pandora.Station;
 import com.pandoroid.pandora.SubscriberTypeException;
 import com.pandoroid.playback.MediaPlaybackController;
 import com.pandoroid.playback.OnNewSongListener;
+import com.pandoroid.playback.OnPlaybackContinuedListener;
+import com.pandoroid.playback.OnPlaybackHaltedListener;
 import com.pandoroid.R;
 
 import android.app.AlertDialog;
@@ -247,7 +249,7 @@ public class PandoraRadioService extends Service {
 				}
 				Log.i("Pandoroid", "Running a user login.");
 				m_pandora_remote.connect(user, password);
-				failure_but_not_epic_failure = false;
+				failure_but_not_epic_failure = false; //Or any type of fail for that matter.
 			}
 			catch (SubscriberTypeException e){
 				needs_partner_login = true;
@@ -256,6 +258,15 @@ public class PandoraRadioService extends Service {
 					  "Wrong subscriber type. User is a " +
 					  (is_pandora_one_user? "Pandora One": "standard Pandora") +
 			          " subscriber.");
+			}
+			catch (RPCException e){
+				if (e.code == RPCException.INVALID_AUTH_TOKEN){
+					needs_partner_login = true;
+					Log.e("Pandoroid", e.getMessage());
+				}
+				else{
+					throw e;
+				}
 			}
 		}
 	}
@@ -434,6 +445,13 @@ public class PandoraRadioService extends Service {
 				m_song_playback.setOnNewSongListener(
 						(OnNewSongListener) listeners.get(OnNewSongListener.class)
 						                          );
+				m_song_playback.setOnPlaybackContinuedListener(
+						(OnPlaybackContinuedListener) listeners.get(OnPlaybackContinuedListener.class)
+															   );
+				m_song_playback.setOnPlaybackHaltedListener(
+						(OnPlaybackHaltedListener) listeners.get(OnPlaybackHaltedListener.class)
+														   );
+
 			} 
 			catch (Exception e) {
 				Log.e("Pandoroid", e.getMessage(), e);

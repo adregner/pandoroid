@@ -4,7 +4,7 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="horizontal" >
-
+
     <TextView
         android:id="@+id/player_topText"
         android:layout_width="fill_parent"
@@ -13,6 +13,7 @@
         android:gravity="center"
         android:paddingTop="20dip"
         android:text="@string/loading" >
+
     </TextView>
 
     <ImageView
@@ -38,11 +39,11 @@
         android:visibility="gone"
         android:text="" >
     </TextView>
-
+
     <RelativeLayout
         android:id="@+id/player_buttons"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="fill_parent"
         android:layout_alignParentBottom="true"
         android:gravity="center|bottom" >
 
@@ -96,15 +97,15 @@
             android:width="75dip" >
         </ImageView>
     </RelativeLayout>
-    
+    
     <LinearLayout
         android:id="@+id/progressUpdate"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="50dp"
-        android:layout_marginRight="50dp"
-        android:layout_marginTop="200dp"
-        android:background="#A0000000"
+        android:layout_marginLeft="48dp"
+        android:layout_marginRight="48dp"
+        android:layout_marginTop="175dp"
+        android:background="#C0000000"
         android:paddingBottom="10dp"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
@@ -115,15 +116,17 @@
             android:id="@+id/progressSpinner"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
-
+
         <TextView
-            android:id="@+id/ProgressText"
+            android:id="@+id/progressText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:layout_marginLeft="15dp"
             android:text="@string/loading"
-            android:textAppearance="?android:attr/textAppearanceMedium" />
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textSize="16dp" />
+
     </LinearLayout>
 
 </RelativeLayout>

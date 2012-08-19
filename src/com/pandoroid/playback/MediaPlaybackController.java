@@ -53,7 +53,7 @@ public class MediaPlaybackController implements Runnable{
 	/* 
 	 * Public 
 	 */
-	
+	public static final int HALT_STATE_CLEAR = -1;
 	public static final int HALT_STATE_NO_NETWORK = 0;
 	
 	//For when Pandora's servers can't be contacted (usually the result of 
@@ -176,7 +176,7 @@ public class MediaPlaybackController implements Runnable{
 				}
 				else if (m_reset_player_flag){					
 					m_bandwidth.reset();
-					rebufferSong(getOptimizedPandoraAudioUrl(m_active_player.getSong()));				
+					rebufferSong(getOptimizedPandoraAudioUrl(m_active_player.getSong()));
 				}
 				else if (m_active_player.isBuffering()){
 					adjustAudioQuality();
@@ -683,7 +683,7 @@ public class MediaPlaybackController implements Runnable{
 					sendPlaybackHaltedNotification(HALT_STATE_NO_INTERNET);
 					m_reset_player_flag = true;
 					m_need_next_song = false;
-					Log.e("Pandoroid", e.getMessage(), e);
+					Log.e("Pandoroid", e.getMessage());
 				}
 			}
 		}
@@ -713,7 +713,7 @@ public class MediaPlaybackController implements Runnable{
 				Log.e("Pandoroid", e.getMessage(), e);
 			}
 			catch (IOException e) {
-				Log.e("Pandoroid", e.getMessage(), e);
+				Log.e("Pandoroid", e.getMessage());
 			}
 		}
 	}	
@@ -725,6 +725,7 @@ public class MediaPlaybackController implements Runnable{
 		Vector<Song> new_songs = null;
 		try{
 			new_songs = m_pandora_remote.getPlaylist(m_station_token);
+			Log.i("Pandoroid", "Playlist successfully acquired.");
 			for (int i = 0; i < new_songs.size(); ++i){
 				m_play_queue.add(new_songs.get(i));
 			}
@@ -779,7 +780,7 @@ public class MediaPlaybackController implements Runnable{
 		catch (IOException e) {
 			sendPlaybackHaltedNotification(HALT_STATE_NO_INTERNET);
 			m_reset_player_flag = true;
-			Log.e("Pandoroid", e.getMessage(), e);
+			Log.e("Pandoroid", e.getMessage());
 		}
 	}
 	
@@ -884,7 +885,7 @@ public class MediaPlaybackController implements Runnable{
 	/**
 	 * Description: A buffering update listener for the media players.
 	 */
-	private class MediaBufferingUpdateListener implements MediaPlayer.OnBufferingUpdateListener{		
+	private class MediaBufferingUpdateListener implements MediaPlayer.OnBufferingUpdateListener{
 		public void onBufferingUpdate(MediaPlayer mp, int percent){
 			BufferSample sample = new BufferSample(mp.getAudioSessionId(), percent);
 			m_buffer_sample_queue.add(sample);

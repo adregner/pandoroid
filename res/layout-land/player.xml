@@ -4,10 +4,11 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="horizontal" >
-
+
     <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="fill_parent"
+        android:layout_alignParentTop="false"
         android:orientation="vertical" >
 
         <TextView
@@ -45,6 +46,37 @@
         </TextView>
 
     </RelativeLayout>
+
+    <LinearLayout
+        android:id="@+id/progressUpdate"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="158dp"
+        android:layout_marginRight="158dp"
+        android:layout_marginTop="100dp"
+        android:background="#C0000000"
+        android:paddingBottom="10dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="10dp"
+        android:visibility="invisible" >
+
+        <ProgressBar
+            android:id="@+id/progressSpinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/progressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="15dp"
+            android:text="@string/loading"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textSize="16dp" />
+
+    </LinearLayout>
 
     <RelativeLayout
         android:id="@+id/player_buttons"

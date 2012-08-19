@@ -35,8 +35,10 @@ public class MediaBandwidthEstimator {
 	//This is the number of data points we're using to calculate the bitrate.
 	public static final int NUM_AVERAGED_DATA_POINTS = 20;
 	
-	//This is crucial for really super fast downloads that happen so fast
-	//they can't make a meaningful impact on the average.
+	//This is the minimum number of calculations a session can have before it 
+	//has completed or else a reset of the average to 0 will occur. It's crucial
+	//for really super fast downloads that happen so fast they can't make a 
+	//meaningful impact on the average.
 	public static final int MIN_SESSION_CALCS = 2;
 	
 	public static final int DEBUG_INFO = Debug.DEBUG_LEVEL_FLAG;
