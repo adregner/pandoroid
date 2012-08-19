@@ -298,62 +298,6 @@ public class PandoraRadioService extends Service {
 			} catch (Exception e) {}
 		}
 	}
-
-
-//	/** methods for clients */
-//	public boolean signIn(String username, String password) {
-//		boolean toRet = false;
-//		boolean needs_partner_login = false;
-//		boolean is_pandora_one_user = false;
-//		int attempts = 3;
-//		
-//		//Low connectivity could cause reattempts to be need to be made
-//		while (attempts > 0){
-//			try{
-//				if (needs_partner_login){
-//					synchronized(pandora_lock){
-//						pandora.runPartnerLogin(is_pandora_one_user);
-//					}
-//					needs_partner_login = false;
-//				}
-//				if (is_pandora_one_user){
-//					audio_quality = PandoraRadio.MP3_192;
-//				}
-//				else {
-//					audio_quality = PandoraRadio.MP3_128;
-//				}
-//				synchronized(pandora_lock){
-//					pandora.connect(username, password);
-//					toRet = true;
-//				}
-//				attempts = 0;
-//			}
-//			catch (SubscriberTypeException e){
-//				needs_partner_login = true;
-//				is_pandora_one_user = e.is_pandora_one;
-//				Log.i("Pandoroid", 
-//						  "Wrong subscriber type. User is " +
-//						  (is_pandora_one_user? "a Pandora One": "a standard Pandora") +
-//				          " subscriber.");
-//			}
-//			catch (RPCException e){
-//				if (e.code == 13){
-//					--attempts;
-//				}
-//				else {
-//					Log.e("Pandroroid","Exception logging in", e);
-//					toRet = false;
-//					attempts = 0;
-//				}
-//			}
-//			catch (Exception e){
-//				Log.e("Pandroroid","Exception logging in", e);
-//				toRet = false;
-//				attempts = 0;
-//			}
-//		}		
-//		return toRet;
-//	}
 	
 	public void signOut() {
 		if(m_song_playback != null) {
@@ -430,13 +374,7 @@ public class PandoraRadioService extends Service {
 			return;
 		}
 		
-		boolean ratingBool = rating.equals(PandoroidPlayer.RATING_LOVE) ? true : false;
-		try{
-			m_pandora_remote.rate(m_song_playback.getSong(), ratingBool);
-		}
-		catch(Exception e){
-			Log.e("Pandoroid", "Exception sending a song rating", e);
-		}
+		(new RateTask()).execute(rating);
 	}
 	
 	public void resetPlaybackListeners(){
@@ -500,11 +438,47 @@ public class PandoraRadioService extends Service {
 		stopForeground(true);
 	}
 	
+	public class RateTask extends AsyncTask<String, Void, Void>{
+		public void onPreExecute(){
+			try {
+				this.m_song = m_song_playback.getSong();
+			} catch (Exception e) {
+				Log.e("Pandoroid", "No song to rate.");
+			}
+		}
+		public Void doInBackground(String... ratings){
+			if (m_song != null){
+				String rating = ratings[0];				
+				boolean rating_bool = rating.equals(PandoroidPlayer.RATING_LOVE) ? true : false;
+				try {
+					m_pandora_remote.rate(this.m_song, rating_bool);
+					Log.i("Pandoroid", "A " + 
+									   (rating_bool ? "thumbs up" : "thumbs down") +
+									   " rating for the song " +
+									   this.m_song.getTitle() +
+									   " was successfully sent.");
+				//We'll have to do more later, but this works for now.
+//				} catch (HttpResponseException e) {
+//				} catch (RPCException e) {
+//				} catch (IOException e) {
+				} 
+				catch (Exception e) {
+					Log.e("Pandoroid", "Exception while sending a song rating.", e);
+				}
+			}
+			return null;
+		}
+		
+		private Song m_song;
+	}
+	
 	/**
 	 * Description: An abstract asynchronous task for doing a generic login. 
 	 * @param <Params> -Parameters specific for the doInBackground() execution.
 	 */
-	public abstract static class ServerAsyncTask<Params> extends AsyncTask<Params, Void, Integer> {
+	public abstract static class ServerAsyncTask<Params> extends AsyncTask<Params, 
+																		   Void, 
+																		   Integer> {
 		protected static final int ERROR_UNSUPPORTED_API = 0;
 		protected static final int ERROR_NETWORK = 1;
 		protected static final int ERROR_UNKNOWN = 2;
@@ -668,30 +642,4 @@ public class PandoraRadioService extends Service {
 			return ERROR_UNKNOWN;
 		}
 	}
-	
-	
-	
-//	private class PandoraDeviceLoginTask extends AsyncTask<Boolean, Void, Boolean>{
-//		protected Boolean doInBackground(Boolean... subscriber_type){
-//			Boolean success_flag = false;
-//			try {
-//				synchronized(pandora_lock){
-//					m_pandora_remote.runPartnerLogin(subscriber_type[0].booleanValue());
-//				}
-//				success_flag = true;
-//			}
-//			catch (RPCException e){
-//				Log.e("Pandoroid", "RPC error", e);
-//			}
-//			catch (Exception e){
-//				Log.e("Pandoroid", "Fatal error initializing PandoraRadio", e);
-//			}
-//			
-//			return success_flag;
-//		}
-//		
-//		protected void onPostExecute(Boolean... success){
-//			//Maybe we could do something with this information eventually....
-//		}
-//	}
 }
