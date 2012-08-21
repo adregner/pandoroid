@@ -163,13 +163,15 @@ public class MediaPlaybackController implements Runnable{
 			active_network_info = m_net_conn.getActiveNetworkInfo();
 			if (active_network_info != null && active_network_info.isConnected()){
 				if (m_playback_halted_reason == HALT_STATE_NO_NETWORK){
-					m_playback_halted_reason = -1;
+					m_bandwidth.reset();
+					m_playback_halted_reason = HALT_STATE_CLEAR;
 					sendPlaybackHaltedNotification(HALT_STATE_BUFFERING);
 				}
 				
 				if (isPlayQueueLow()){
 					pushMoreSongs();
-				}
+				}	
+
 				
 				if (m_need_next_song){
 					prepareNextSong();
@@ -185,18 +187,19 @@ public class MediaPlaybackController implements Runnable{
 							&& !m_cached_player_ready_flag
 							&& !m_pause){
 					prepCachedPlayer();
-				}				
+				}		
+				
+				if (!m_active_player.isPlaying() && !m_pause && m_valid_play_command_flag){
+					m_active_player.start();
+				}
 			}
 			else {
-				m_bandwidth.reset();
-				if (m_playback_halted_reason > HALT_STATE_NO_NETWORK){
+				if (m_playback_halted_reason > HALT_STATE_NO_NETWORK){			
 					sendPlaybackHaltedNotification(HALT_STATE_NO_NETWORK);
 				}
 			}
 			
-			if (!m_active_player.isPlaying() && !m_pause && m_valid_play_command_flag){
-				m_active_player.start();
-			}
+		
 			
 			try {	
 				//Sleep for 1 second
@@ -659,6 +662,7 @@ public class MediaPlaybackController implements Runnable{
 				m_need_next_song = false;
 				Log.i("Pandoroid", 
 					  "Current Audio Quality: " + m_active_player.getUrl().m_bitrate);
+				Log.i("Pandoroid", "Current Audio ID: " + m_active_player.getAudioSessionId());
 			}
 			else{
 				try {
@@ -666,6 +670,7 @@ public class MediaPlaybackController implements Runnable{
 					PandoraAudioUrl new_url = getOptimizedPandoraAudioUrl(m_active_player.getSong());
 					Log.i("Pandoroid", "Current Audio Quality: " + new_url.m_bitrate);
 					m_active_player.prepare(new_url);
+					Log.i("Pandoroid", "Current Audio ID: " + m_active_player.getAudioSessionId());
 					m_valid_play_command_flag = true;
 					m_need_next_song = false;
 					sendPlaybackContinuedNotification();
@@ -760,6 +765,8 @@ public class MediaPlaybackController implements Runnable{
 		
 		try {
 			m_active_player.prepare(url);
+			m_bandwidth.setAudioSessionFinished(m_active_player.getAudioSessionId());
+			m_buffer_sample_queue.clear(); //This is a little bit of a hack. Be watchful!
 			Log.i("Pandoroid", "Current Audio Quality: " + url.m_bitrate);
 			m_valid_play_command_flag = true;
 			m_reset_player_flag = false;

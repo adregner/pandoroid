@@ -55,6 +55,7 @@ public class ConcurrentSongMediaPlayer{
 			m_song = other_player.getSong();
 			m_buffer_complete_flag = other_player.m_buffer_complete_flag;
 			m_alive = other_player.m_alive;
+			m_url = other_player.getUrl();
 		}
 	}
 	

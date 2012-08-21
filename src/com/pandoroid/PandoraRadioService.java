@@ -42,7 +42,9 @@ import android.app.Service;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
@@ -73,6 +75,7 @@ public class PandoraRadioService extends Service {
 	
 	private TelephonyManager telephonyManager;
 	private ConnectivityManager connectivity_manager;
+	private MusicIntentReceiver m_music_intent_receiver;
 	private SharedPreferences m_prefs;
 	
 	// tracking/organizing what we are doing
@@ -180,6 +183,10 @@ public class PandoraRadioService extends Service {
 				}
 			}
 		}, PhoneStateListener.LISTEN_CALL_STATE);
+		
+		m_music_intent_receiver = new MusicIntentReceiver();
+		this.registerReceiver(m_music_intent_receiver, 
+							  new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
 	}
 
 	@Override
@@ -191,6 +198,7 @@ public class PandoraRadioService extends Service {
 		if (m_song_playback != null){
 			m_song_playback.stop();
 		}
+		this.unregisterReceiver(m_music_intent_receiver);
 		stopForeground(true);
 		return;
 	}
@@ -436,6 +444,17 @@ public class PandoraRadioService extends Service {
 			m_song_playback.stop();
 		}
 		stopForeground(true);
+	}
+	
+	public class MusicIntentReceiver extends android.content.BroadcastReceiver {
+		public void onReceive(Context ctx, Intent intent){
+			if (intent.getAction().equals(
+					android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY)){
+				if (m_song_playback != null){
+					pause();
+				}
+			}
+		}
 	}
 	
 	public class RateTask extends AsyncTask<String, Void, Void>{
