@@ -227,6 +227,14 @@ public class MediaPlaybackController implements Runnable{
 	}
 	
 	/**
+	 * Description: Clears the playlist queue. It will only clear the queue
+	 * 	if it's not "full."
+	 */
+	public void clearPlayQueue(){
+		
+	}
+	
+	/**
 	 * Description: Gets the quality string of the audio currently playing.
 	 * @return A string relating to the constant that specifies the audio
 	 * 	quality.
@@ -894,8 +902,20 @@ public class MediaPlaybackController implements Runnable{
 	 */
 	private class MediaBufferingUpdateListener implements MediaPlayer.OnBufferingUpdateListener{
 		public void onBufferingUpdate(MediaPlayer mp, int percent){
-			BufferSample sample = new BufferSample(mp.getAudioSessionId(), percent);
-			m_buffer_sample_queue.add(sample);
+			this.mp = mp;
+			this.percent = percent;
+			Thread t = new BufferThread();
+			t.start();
+		}
+		
+		private MediaPlayer mp;
+		private int percent;
+		
+		private class BufferThread extends Thread{
+			public void run(){
+				BufferSample sample = new BufferSample(mp.getAudioSessionId(), percent);
+				m_buffer_sample_queue.add(sample);
+			}
 		}
 	}
 	
