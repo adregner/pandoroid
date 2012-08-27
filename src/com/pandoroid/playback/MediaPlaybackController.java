@@ -191,6 +191,7 @@ public class MediaPlaybackController implements Runnable{
 				
 				if (!m_active_player.isPlaying() && !m_pause && m_valid_play_command_flag){
 					m_active_player.start();
+					sendPlaybackContinuedNotification();
 				}
 			}
 			else {
@@ -469,7 +470,11 @@ public class MediaPlaybackController implements Runnable{
 			//in unnecessary circumstances such as directly after a player has
 			//been prepared) or if the download has essentially stalled out 
 			//(the optimized url generator will default to the max quality in
-			//such instances when the bitrate is 0 or unknown).
+			//such instances when the bitrate is 0 or unknown). Detecting 0 for
+			//a stall out is valid most of the time, but it can create unnecessary
+			//rebuffering at times when a buffer update has not had time to be
+			//sent after a previous prepare immediately followed by a buffering 
+			//situation.
 			if (PandoraRadio.audioQualityCompare(best_available_quality.m_type, 
 					                             m_active_player.getUrl().m_type) < 0
 		                             ||
@@ -681,7 +686,6 @@ public class MediaPlaybackController implements Runnable{
 					Log.i("Pandoroid", "Current Audio ID: " + m_active_player.getAudioSessionId());
 					m_valid_play_command_flag = true;
 					m_need_next_song = false;
-					sendPlaybackContinuedNotification();
 				} 
 				catch (IllegalArgumentException e) {
 					Log.e("Pandoroid", e.getMessage(), e);
@@ -778,7 +782,6 @@ public class MediaPlaybackController implements Runnable{
 			Log.i("Pandoroid", "Current Audio Quality: " + url.m_bitrate);
 			m_valid_play_command_flag = true;
 			m_reset_player_flag = false;
-			sendPlaybackContinuedNotification();
 		} 
 		catch (IllegalArgumentException e) {
 			Log.e("Pandoroid", e.getMessage(), e);
@@ -913,8 +916,20 @@ public class MediaPlaybackController implements Runnable{
 		
 		private class BufferThread extends Thread{
 			public void run(){
-				BufferSample sample = new BufferSample(mp.getAudioSessionId(), percent);
-				m_buffer_sample_queue.add(sample);
+				
+				//This is a hack for detecting when a stall out occurs that's
+				//usually connected to a prepare() immediately followed by a seekTo()
+				//on the affiliated MediaPlayer. When this occurs, the MediaPlayer
+				//overzealously issues a few incorrect buffer updates that must 
+				//be ignored. This is one of the few predictable ways of detecting
+				//this.
+				long time_before = System.currentTimeMillis();
+				int id = mp.getAudioSessionId();
+				long time_after = System.currentTimeMillis();
+				if (time_after - time_before < 1000){
+					BufferSample sample = new BufferSample(id, percent);				
+					m_buffer_sample_queue.add(sample);
+				}
 			}
 		}
 	}
