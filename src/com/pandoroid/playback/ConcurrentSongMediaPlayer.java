@@ -6,6 +6,7 @@ import com.pandoroid.pandora.PandoraAudioUrl;
 import com.pandoroid.pandora.Song;
 
 import android.media.MediaPlayer;
+import android.media.MediaPlayer.OnSeekCompleteListener;
 
 public class ConcurrentSongMediaPlayer{
 	
@@ -66,7 +67,12 @@ public class ConcurrentSongMediaPlayer{
 	 */
 	public int getAudioSessionId(){
 		synchronized(this){
-			return m_player.getAudioSessionId();
+			try{
+				return m_player.getAudioSessionId();
+			}
+			catch(IllegalStateException e){
+				return 0;
+			}
 		}
 	}
 	
@@ -173,6 +179,10 @@ public class ConcurrentSongMediaPlayer{
 		}
 	}
 	
+	public boolean isSeeking(){
+		return m_seeking_flag;
+	}
+	
 	/**
 	 * Description: Synchronized method that pauses the underlying MediaPlayer.
 	 */
@@ -207,6 +217,8 @@ public class ConcurrentSongMediaPlayer{
 			m_player.setDataSource(url.toString());
 			m_player.prepare();
 			if (prev_playback_pos > 0){
+				m_seeking_flag = true;
+				setOnSeekCompleteListener();
 				m_player.seekTo(prev_playback_pos);
 			}
 		}
@@ -308,7 +320,18 @@ public class ConcurrentSongMediaPlayer{
 	
 	private Boolean m_alive;	
 	private volatile int m_buffering_counter;
+	private volatile boolean m_seeking_flag;
 	private volatile Song m_song;
 	private volatile PandoraAudioUrl m_url;
-	private MediaPlayer m_player;	
+	private MediaPlayer m_player;
+	
+	private void setOnSeekCompleteListener(){
+		m_player.setOnSeekCompleteListener(new OnSeekCompleteListener(){
+
+			public void onSeekComplete(MediaPlayer mp) {
+				m_seeking_flag = false;
+			}
+			
+		});
+	}
 }

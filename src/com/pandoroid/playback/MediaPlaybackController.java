@@ -137,9 +137,11 @@ public class MediaPlaybackController implements Runnable{
 				}
 				else if (m_reset_player_flag){					
 					m_bandwidth.reset();
+					m_turbo_mode.updateForBuffer();
 					rebufferSong(getOptimizedPandoraAudioUrl(m_active_player.getSong()));
 				}
 				else if (m_active_player.isBuffering()){
+					m_turbo_mode.updateForBuffer();
 					adjustAudioQuality();
 				}
 				else if (m_active_player.m_buffer_complete_flag 
@@ -412,6 +414,7 @@ public class MediaPlaybackController implements Runnable{
 	private volatile Boolean m_restart_song_flag;
 	private String m_station_token;
 	private Exchanger<Boolean> m_stop_exchanger = new Exchanger<Boolean>();
+	private TurboTimer m_turbo_mode = new TurboTimer();
 	private volatile Boolean m_valid_play_command_flag = false;
 	
 	/**
@@ -419,6 +422,7 @@ public class MediaPlaybackController implements Runnable{
 	 * 	move the quality down. This is for when buffering occurs.
 	 */
 	private void adjustAudioQuality(){
+
 		PandoraAudioUrl 
 			best_available_quality = getOptimizedPandoraAudioUrl(m_active_player.getSong());
 		try {
@@ -506,15 +510,26 @@ public class MediaPlaybackController implements Runnable{
 		int bitrate = 0;
 		PandoraAudioUrl url = null;
 		
-
 		bitrate = m_bandwidth.getBitrate();
+		boolean turbo_flag = m_turbo_mode.isTurbo();
+		if (turbo_flag){
+			if (Debug.DEBUG_LEVEL_FLAG == Debug.LEVEL_HIGH){
+				Log.d("Pandoroid", "Turbo download mode enabled!");
+			}
+		}
 			
 		LinkedList<PandoraAudioUrl> urls = song.getSortedAudioUrls();
 		for (int i = 0; i < urls.size(); ++i){
 			PandoraAudioUrl tmp = urls.get(i);
 
 			try {
-				if ((tmp.m_bitrate < bitrate 
+				if (turbo_flag){
+					if (PandoraRadio.audioQualityCompare(tmp.m_type, getMinQuality()) == 0){
+						url = tmp;
+						break;
+					}
+				}
+				else if ((tmp.m_bitrate < bitrate 
 							&& 
 					     PandoraRadio.audioQualityCompare(tmp.m_type, getMaxQuality()) <= 0)
 				     	||
@@ -674,7 +689,7 @@ public class MediaPlaybackController implements Runnable{
 		Song next_song = m_play_queue.poll();
 		
 		//Hack to get rid of old invalid songs.
-		while ((next_song != null && !next_song.isStillValid()) || 
+		while ((next_song != null && !next_song.isStillValid()) && 
 				!m_cached_player_ready_flag){
 			next_song = m_play_queue.poll();
 		}
@@ -940,13 +955,15 @@ public class MediaPlaybackController implements Runnable{
 				//This is a hack for detecting when a stall out occurs that's
 				//usually connected to a prepare() immediately followed by a seekTo()
 				//on the affiliated MediaPlayer. When this occurs, the MediaPlayer
-				//overzealously issues a few incorrect buffer updates that must 
-				//be ignored. This is one of the few predictable ways of detecting
-				//this.
+				//overzealously issues a few buffer updates while it's seeking 
+				//that must be ignored. This is one of the few predictable ways 
+				//of detecting this.
 				long time_before = System.currentTimeMillis();
 				int id = mp.getAudioSessionId();
 				long time_after = System.currentTimeMillis();
 				if (time_after - time_before < 1000){
+//				if (mp != m_active_player.getPlayer() || !m_active_player.isSeeking()){
+//					int id = mp.getAudioSessionId();
 					BufferSample sample = new BufferSample(id, percent);				
 					m_buffer_sample_queue.add(sample);
 				}
