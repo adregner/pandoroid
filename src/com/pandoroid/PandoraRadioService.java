@@ -94,30 +94,6 @@ public class PandoraRadioService extends Service {
 	private static Object lock = new Object();
 	private static Object pandora_lock = new Object();
 
-//	public static void createPandoraRadioService(Context context) {
-//		synchronized(lock) {
-//			if(instance == null) {
-//				context.startService(new Intent(context, PandoraRadioService.class));
-//			}
-//		}
-//	}
-	
-//	public static PandoraRadioService getInstance(boolean wait) {
-//		if(wait) {
-//			long startedWaiting = System.currentTimeMillis();
-//			while( instance == null && System.currentTimeMillis() - startedWaiting < 5000L ) {
-//				try {
-//					Thread.sleep(50);
-//				} catch (InterruptedException e) {
-//					Log.e("Pandoroid", "RadioService exception Sleeping", e);
-//				}
-//			}
-//		}
-//		
-//		synchronized(lock) {
-//			return instance;
-//		}
-//	}
 
 	//Taken straight from the Android service reference
     /**
@@ -444,6 +420,28 @@ public class PandoraRadioService extends Service {
 			m_song_playback.stop();
 		}
 		stopForeground(true);
+	}
+	
+	public abstract static class OnInvalidAuthListener{
+		public abstract void onInvalidAuth();
+	}
+	
+	public class PlaybackOnErrorListener extends com.pandoroid.playback.OnErrorListener{
+		public void onError(String error_message, 
+                			Throwable e, 
+            				boolean remote_error_flag,
+            				int rpc_error_code){
+			if (remote_error_flag){
+				if (rpc_error_code == RPCException.INVALID_AUTH_TOKEN){
+					m_pandora_remote.disconnect();
+					OnInvalidAuthListener 
+						listener = (OnInvalidAuthListener) listeners.get(OnInvalidAuthListener.class);
+					if (listener != null){
+						listener.onInvalidAuth();
+					}
+				}
+			}			
+		}
 	}
 	
 	public class MusicIntentReceiver extends android.content.BroadcastReceiver {

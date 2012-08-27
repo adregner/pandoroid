@@ -114,49 +114,8 @@ public class MediaPlaybackController implements Runnable{
 		m_reset_player_flag = false;
 		
 		Boolean alive = true;
-		while(alive.booleanValue()){
-			
-			int active_song_id = m_active_player.getAudioSessionId();
-			
-			while (m_buffer_sample_queue.peek() != null){
-				BufferSample buffer_tmp = m_buffer_sample_queue.poll();
-				int bitrate = 0;
-				int length = 0;
-				if (buffer_tmp.m_session_id == active_song_id){
-					bitrate = m_active_player.getUrl().m_bitrate;
-					length = m_active_player.getDuration();
-				}
-				else if (buffer_tmp.m_session_id == m_cached_player.getAudioSessionId()){
-					bitrate = m_cached_player.getUrl().m_bitrate;
-					length = m_cached_player.getDuration();
-				}
-				
-				if (buffer_tmp.m_percent == 100){
-					if (m_bandwidth.doesIdExist(buffer_tmp.m_session_id)){
-						if (buffer_tmp.m_session_id == active_song_id){	
-							m_active_player.m_buffer_complete_flag = true;
-
-						}
-						else if (buffer_tmp.m_session_id == m_cached_player.getAudioSessionId()){
-							m_cached_player.m_buffer_complete_flag = true;
-						}
-						if (Debug.DEBUG_LEVEL_FLAG >= Debug.LEVEL_LOW){
-							Log.d("Pandoroid", "Media Id " + 
-											   buffer_tmp.m_session_id +
-											   " has finished downloading.");
-						}
-					}
-				}
-				
-				//Test for length errors.
-				if (length > 0){
-					m_bandwidth.update(buffer_tmp.m_session_id, 
-							           buffer_tmp.m_percent,
-							           length, 
-							           bitrate, 
-							           buffer_tmp.m_time_stamp);
-				}
-			}
+		while(alive.booleanValue()){			
+			bufferUpdateLoop();
 			
 			//Prevent a null pointer exception in case an active network is not
 			//available.
@@ -488,6 +447,54 @@ public class MediaPlaybackController implements Runnable{
 	}
 	
 	/**
+	 * Description: Loops through the buffer update queue, and processes it.
+	 */
+	private void bufferUpdateLoop(){
+		int active_song_id = m_active_player.getAudioSessionId();
+		int cached_song_id = m_cached_player.getAudioSessionId();
+		
+		while (m_buffer_sample_queue.peek() != null){
+			BufferSample buffer_tmp = m_buffer_sample_queue.poll();
+			int bitrate = 0;
+			int length = 0;
+			if (buffer_tmp.m_session_id == active_song_id){
+				bitrate = m_active_player.getUrl().m_bitrate;
+				length = m_active_player.getDuration();
+			}
+			else if (buffer_tmp.m_session_id == cached_song_id){
+				bitrate = m_cached_player.getUrl().m_bitrate;
+				length = m_cached_player.getDuration();
+			}
+			
+			if (buffer_tmp.m_percent == 100){
+				if (m_bandwidth.doesIdExist(buffer_tmp.m_session_id)){
+					if (buffer_tmp.m_session_id == active_song_id){	
+						m_active_player.m_buffer_complete_flag = true;
+
+					}
+					else if (buffer_tmp.m_session_id == cached_song_id){
+						m_cached_player.m_buffer_complete_flag = true;
+					}
+					if (Debug.DEBUG_LEVEL_FLAG >= Debug.LEVEL_LOW){
+						Log.d("Pandoroid", "Media Id " + 
+										   buffer_tmp.m_session_id +
+										   " has finished downloading.");
+					}
+				}
+			}
+			
+			//Test for length errors.
+			if (length > 0){
+				m_bandwidth.update(buffer_tmp.m_session_id, 
+						           buffer_tmp.m_percent,
+						           length, 
+						           bitrate, 
+						           buffer_tmp.m_time_stamp);
+			}
+		}
+	}
+	
+	/**
 	 * Description: Gets the url to the highest bitrate of audio available 
 	 * 	dependent on current network conditions. If network conditions cannot 
 	 * 	be properly evaluated, it will default to the max available audio 
@@ -664,10 +671,18 @@ public class MediaPlaybackController implements Runnable{
 	 */
 	private void prepareNextSong(){
 		m_valid_play_command_flag = false;
-		if (m_play_queue.peek() != null){
-
-			m_active_player.setSong(m_play_queue.pollFirst());
+		Song next_song = m_play_queue.poll();
+		
+		//Hack to get rid of old invalid songs.
+		while ((next_song != null && !next_song.isStillValid()) || 
+				!m_cached_player_ready_flag){
+			next_song = m_play_queue.poll();
+		}
+		
+		if (next_song != null){
+			m_active_player.setSong(next_song);
 			sendNewSongNotification(m_active_player.getSong());
+			
 			if (m_cached_player_ready_flag){
 				m_active_player.copy(m_cached_player);
 				m_valid_play_command_flag = true;
@@ -762,43 +777,48 @@ public class MediaPlaybackController implements Runnable{
 	 */
 	private void rebufferSong(PandoraAudioUrl url){
 		m_valid_play_command_flag = false;
-		
-		//A release on the cached player can in fact affect the 
-		//active player.
-		if (m_cached_player.getPlayer() != m_active_player.getPlayer()){
+		if (m_active_player.getSong().isStillValid()){
 			
-			//Let's be even more specific to only reset those cached players
-			//that aren't finished buffering.
-			if (!m_cached_player.m_buffer_complete_flag){
-				m_cached_player_ready_flag = false;			
-				m_cached_player.release();
+			//A release on the cached player can in fact affect the 
+			//active player.
+			if (m_cached_player.getPlayer() != m_active_player.getPlayer()){
+				
+				//Let's be even more specific to only reset those cached players
+				//that aren't finished buffering.
+				if (!m_cached_player.m_buffer_complete_flag){
+					m_cached_player_ready_flag = false;			
+					m_cached_player.release();
+				}
+			}
+			
+			try {
+				m_active_player.prepare(url);
+				m_bandwidth.setAudioSessionFinished(m_active_player.getAudioSessionId());
+				m_buffer_sample_queue.clear(); //This is a little bit of a hack. Be watchful!
+				Log.i("Pandoroid", "Current Audio Quality: " + url.m_bitrate);
+				m_valid_play_command_flag = true;
+				m_reset_player_flag = false;
+			} 
+			catch (IllegalArgumentException e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+				m_need_next_song = true;
+			}
+			catch (SecurityException e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+				m_need_next_song = true;
+			} 
+			catch (IllegalStateException e) {
+				Log.e("Pandoroid", e.getMessage(), e);
+				m_need_next_song = true;
+			}
+			catch (IOException e) {
+				sendPlaybackHaltedNotification(HALT_STATE_NO_INTERNET);
+				m_reset_player_flag = true;
+				Log.e("Pandoroid", e.getMessage());
 			}
 		}
-		
-		try {
-			m_active_player.prepare(url);
-			m_bandwidth.setAudioSessionFinished(m_active_player.getAudioSessionId());
-			m_buffer_sample_queue.clear(); //This is a little bit of a hack. Be watchful!
-			Log.i("Pandoroid", "Current Audio Quality: " + url.m_bitrate);
-			m_valid_play_command_flag = true;
-			m_reset_player_flag = false;
-		} 
-		catch (IllegalArgumentException e) {
-			Log.e("Pandoroid", e.getMessage(), e);
+		else{
 			m_need_next_song = true;
-		}
-		catch (SecurityException e) {
-			Log.e("Pandoroid", e.getMessage(), e);
-			m_need_next_song = true;
-		} 
-		catch (IllegalStateException e) {
-			Log.e("Pandoroid", e.getMessage(), e);
-			m_need_next_song = true;
-		}
-		catch (IOException e) {
-			sendPlaybackHaltedNotification(HALT_STATE_NO_INTERNET);
-			m_reset_player_flag = true;
-			Log.e("Pandoroid", e.getMessage());
 		}
 	}
 	

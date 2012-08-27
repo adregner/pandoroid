@@ -162,6 +162,15 @@ public class PandoroidPlayer extends SherlockActivity {
 					showSongHaltedProgress(reason);
 				}
 			});
+			m_service.setListener(PandoraRadioService.OnInvalidAuthListener.class,
+								  new PandoraRadioService.OnInvalidAuthListener() {
+									
+									@Override
+									public void onInvalidAuth() {
+										partnerLogin();
+									}
+								}
+			);
 			m_service.resetPlaybackListeners();
 		}
 
@@ -281,6 +290,7 @@ public class PandoroidPlayer extends SherlockActivity {
 			prefs_edit.remove("pandora_password");
 			prefs_edit.remove("lastStationId");
 			prefs_edit.apply();
+			dismissSongHaltedProgress(); 
 			userLogin();
 			return true;
 

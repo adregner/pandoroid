@@ -40,9 +40,11 @@ public class Song {
 	private String message;
 	private Object startTime;
 	private boolean finished;
-	private long playlistTime;
+	private long time_acquired;
 
 	private LinkedList<PandoraAudioUrl> audio_urls;
+	
+	private static final int MAX_TIME_ALIVE = 60 * 60 * 1000; //60 minutes
 
 	public Song(){
 		album = "";
@@ -61,7 +63,7 @@ public class Song {
 		message = "";
 		startTime = null;
 		finished = false;
-		playlistTime = System.currentTimeMillis() / 1000L;
+		time_acquired = System.currentTimeMillis();
 	}
 
 	public Song(Map<String,Object> d, List<PandoraAudioUrl> audio_urls_in) {		
@@ -90,7 +92,7 @@ public class Song {
 		message = "";
 		startTime = null;
 		finished = false;
-		playlistTime = System.currentTimeMillis() / 1000L;
+		time_acquired = System.currentTimeMillis();
 	}
 
 	public String getId() {
@@ -98,8 +100,7 @@ public class Song {
 	}
 
 	public boolean isStillValid() {
-		return ((System.currentTimeMillis() / 1000L) - playlistTime) < 
-					PandoraRadio.PLAYLIST_VALIDITY_TIME;
+		return (System.currentTimeMillis() - time_acquired) < MAX_TIME_ALIVE;
 	}
 
 
