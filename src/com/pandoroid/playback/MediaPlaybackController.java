@@ -752,15 +752,19 @@ public class MediaPlaybackController implements Runnable{
 			} 
 			catch (IllegalArgumentException e) {
 				Log.e("Pandoroid", e.getMessage(), e);
+				m_cached_player.release();
 			}
 			catch (SecurityException e) {
 				Log.e("Pandoroid", e.getMessage(), e);
+				m_cached_player.release();
 			} 
 			catch (IllegalStateException e) {
 				Log.e("Pandoroid", e.getMessage(), e);
+				m_cached_player.release();
 			}
 			catch (IOException e) {
 				Log.e("Pandoroid", e.getMessage());
+				m_cached_player.release();
 			}
 		}
 	}	
@@ -1042,7 +1046,7 @@ public class MediaPlaybackController implements Runnable{
 			this.m_message = message;
 			this.m_e = e;
 			this.m_remote_error_flag = remote_error_flag;
-			this.m_rpc_error_code = rpc_error_code;
+			this.m_rpc_error_code = rpc_error_code; 
 		}
 		
 		public void run(){

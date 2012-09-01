@@ -373,6 +373,7 @@ public class PandoraRadioService extends Service {
 				m_song_playback.setOnPlaybackHaltedListener(
 						(OnPlaybackHaltedListener) listeners.get(OnPlaybackHaltedListener.class)
 														   );
+				m_song_playback.setOnErrorListener(new PlaybackOnErrorListener());
 
 			} 
 			catch (Exception e) {
