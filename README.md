@@ -1,6 +1,6 @@
 Pandoroid 
 ===============
-Homepage: https://github.com/dylanPowers/pandoroid/wiki
+Project Page: https://github.com/dylanPowers/pandoroid/wiki
 
 Pandoroid is an open-sourced Pandora client for Android started by 
 [Andrew Regner](https://github.com/adregner). It is licensed under the GPLv2+, and code contributions are highly appreciated!
