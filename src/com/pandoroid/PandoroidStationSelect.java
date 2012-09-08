@@ -164,10 +164,12 @@ public class PandoroidStationSelect extends ListActivity {
 	}
 
 	private void showAlert(AlertDialog new_alert) {
-		dismissAlert();
-		m_alert = new_alert;
-		m_alert.show();
-		m_alert_active_flag = true;
+		if (hasWindowFocus()){
+			dismissAlert();
+			m_alert = new_alert;
+			m_alert.show();
+			m_alert_active_flag = true;
+		}
 	}
 	
 	/**
