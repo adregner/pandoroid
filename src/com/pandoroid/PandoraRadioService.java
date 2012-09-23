@@ -229,7 +229,7 @@ public class PandoraRadioService extends Service {
 					m_audio_quality = PandoraRadio.MP3_192;
 				}
 				else {
-					 m_audio_quality = PandoraRadio.MP3_128;
+					m_audio_quality = PandoraRadio.MP3_128;
 				}
 				Log.i("Pandoroid", "Running a user login.");
 				m_pandora_remote.connect(user, password);

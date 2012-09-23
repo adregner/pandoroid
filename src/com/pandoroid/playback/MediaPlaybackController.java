@@ -474,15 +474,29 @@ public class MediaPlaybackController implements Runnable{
 				if (m_bandwidth.doesIdExist(buffer_tmp.m_session_id)){
 					if (buffer_tmp.m_session_id == active_song_id){	
 						m_active_player.m_buffer_complete_flag = true;
+						m_active_player.noBufferUpdatesHack(true);
 
 					}
 					else if (buffer_tmp.m_session_id == cached_song_id){
 						m_cached_player.m_buffer_complete_flag = true;
+						m_cached_player.noBufferUpdatesHack(true);
 					}
 					if (Debug.DEBUG_LEVEL_FLAG >= Debug.LEVEL_LOW){
 						Log.d("Pandoroid", "Media Id " + 
 										   buffer_tmp.m_session_id +
 										   " has finished downloading.");
+					}
+				}
+				else{
+					if (buffer_tmp.m_session_id == active_song_id){
+						if (m_active_player.noBufferUpdatesHack(false) == 30){
+							m_active_player.m_buffer_complete_flag = true;
+						}
+					}
+					else if (buffer_tmp.m_session_id == cached_song_id){
+						if (m_cached_player.noBufferUpdatesHack(false) == 30){
+							m_cached_player.m_buffer_complete_flag = true;
+						}
 					}
 				}
 			}

@@ -57,6 +57,7 @@ public class ConcurrentSongMediaPlayer{
 			m_buffer_complete_flag = other_player.m_buffer_complete_flag;
 			m_alive = other_player.m_alive;
 			m_url = other_player.getUrl();
+			m_num_100_buffer_updates = other_player.m_num_100_buffer_updates;
 		}
 	}
 	
@@ -181,6 +182,16 @@ public class ConcurrentSongMediaPlayer{
 	
 	public boolean isSeeking(){
 		return m_seeking_flag;
+	}
+	
+	public int noBufferUpdatesHack(boolean kill){
+		if (kill){
+			m_num_100_buffer_updates = -1;
+		}
+		else if (m_num_100_buffer_updates != -1){
+			++m_num_100_buffer_updates;
+		}
+		return m_num_100_buffer_updates;
 	}
 	
 	/**
@@ -320,6 +331,7 @@ public class ConcurrentSongMediaPlayer{
 	
 	private Boolean m_alive;	
 	private volatile int m_buffering_counter;
+	private volatile int m_num_100_buffer_updates = 0;
 	private volatile boolean m_seeking_flag;
 	private volatile Song m_song;
 	private volatile PandoraAudioUrl m_url;
