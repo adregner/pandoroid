@@ -3,7 +3,7 @@ package com.pandoroid.playback;
 import java.util.LinkedList;
 
 public class TurboTimer {
-	public static final int TURBO_TRIGGER_SIZE = 3; //Rebuffer's 3 times before it triggers.
+	public static final int TURBO_TRIGGER_SIZE = 2; //Rebuffer's 2 times before it triggers.
 	public static final int TURBO_TRIGGER_TIME_LENGTH = 10 * 60 * 1000; //10 minutes
 	
 	public boolean isTurbo(){
