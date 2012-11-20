@@ -491,13 +491,21 @@ public class MediaPlaybackController implements Runnable{
 					if (buffer_tmp.m_session_id == active_song_id){
 						if (m_active_player.noBufferUpdatesHack(false) == 30){
 							m_active_player.m_buffer_complete_flag = true;
+							Log.d("Pandoroid", "Media Id " + buffer_tmp.m_session_id +
+							           " is not sending buffer updates. We " + 
+							           " have presumed it's finished downloading.");
 						}
 					}
 					else if (buffer_tmp.m_session_id == cached_song_id){
 						if (m_cached_player.noBufferUpdatesHack(false) == 30){
 							m_cached_player.m_buffer_complete_flag = true;
+							Log.d("Pandoroid", "Media Id " + buffer_tmp.m_session_id +
+							           " is not sending buffer updates. We " + 
+							           " have presumed it's finished downloading.");
 						}
 					}
+
+							           
 				}
 			}
 			
