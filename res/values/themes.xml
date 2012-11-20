@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+    <color name="black">#FF000000</color>
+    <style name="PandoroidStartUpTheme">
+        <item name="android:windowBackground">@color/black</item>
+    </style>    
+    <style name="PandoroidBlackBgTheme">
+        <item name="android:background">@color/black</item>
+    </style>
+</resources>

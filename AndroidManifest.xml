@@ -1,22 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="com.aregner.android.pandoid"
-      android:versionCode="2" android:versionName="0.2">
-    <uses-sdk android:minSdkVersion="8" />
-    <uses-permission android:name="android.permission.INTERNET"></uses-permission>
-    <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
+    package="com.pandoroid"
+    android:versionCode="14"
+    android:versionName="1.0.0-Pre-8" >
 
-    <application android:icon="@drawable/icon" android:label="@string/app_name">
-        <activity android:name="PandoidPlayer" android:label="@string/app_name" android:clearTaskOnLaunch="true">
+    <uses-sdk
+        android:minSdkVersion="10"
+        android:targetSdkVersion="16" />
+
+    <uses-permission android:name="android.permission.INTERNET" ></uses-permission>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"></uses-permission>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" ></uses-permission>
+
+    <application
+        android:icon="@drawable/icon"
+        android:label="@string/app_name" >
+        <activity
+            android:name="com.pandoroid.PandoroidLogin"
+            android:label="@string/app_name"
+            android:noHistory="false" >
+        </activity>
+        <activity
+            android:name="com.pandoroid.PandoroidPlayer"
+            android:label="@string/app_name"
+            android:screenOrientation="fullSensor"
+            android:theme="@style/PandoroidStartUpTheme" 
+            android:launchMode="singleTop">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"></action>
-                <category android:name="android.intent.category.LAUNCHER"></category>
+                <action android:name="android.intent.action.MAIN" >
+                </action>
+                <category android:name="android.intent.category.LAUNCHER" >
+                </category>
             </intent-filter>
         </activity>
-        <activity android:name="PandoidStationSelect" android:noHistory="true"></activity>
-        <activity android:name="PandoidSettings" android:noHistory="true"></activity>
-        <service android:name="PandoraRadioService" android:enabled="true" android:exported="false"></service>
-        <activity android:name="PandoidLogin" android:noHistory="true"></activity>
-
+        <activity
+            android:name="com.pandoroid.PandoroidStationSelect"
+            android:noHistory="false" >
+        </activity>
+        <activity
+            android:name="com.pandoroid.PandoroidSettings"
+            android:noHistory="false" >
+        </activity>
+        <service
+            android:name="com.pandoroid.PandoraRadioService"
+            android:enabled="true"
+            android:exported="false" >
+        </service>
+        <activity
+            android:name="com.pandoroid.AboutDialog"
+            android:theme="@style/Theme.Sherlock.Dialog" >
+        </activity>
     </application>
+
 </manifest>

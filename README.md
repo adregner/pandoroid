@@ -1,8 +1,20 @@
-Pandoroid Radio
+Pandoroid 
 ===============
+Project Page: https://github.com/dylanPowers/pandoroid/wiki
 
-This is eventually going to be a full-featured [Pandora Radio](http://www.pandora.com/) client for Android-based devices.  Due to failings in the proprietary application provided by Pandora Radio themselves, this application is being designed with three focuses in mind: _stability_, _intuitiveness_, and _configurability_ (in that order). At this stage, those are more "goals" then an actual reality.
+Pandoroid is an open-sourced Pandora client for Android started by 
+[Andrew Regner](https://github.com/adregner). It is licensed under the GPLv2+, and code contributions are highly appreciated!
+View the [project's homepage](https://github.com/dylanPowers/pandoroid/wiki) for the most up-to-date information.
+For historical purposes the original homepage by [Andrew Regner](https://github.com/adregner) can be found 
+at [http://aregner.com/android/pandoroid/](http://aregner.com/android/pandoroid/).
 
-I work on this project in my spare time with [Bazaar](http://bazaar.canonical.com/) but push it to here for the added visibility.  Check out the project's home page (http://aregner.com/android/pandoroid/) for full details and its current status.
+## Note about Using the Code
+This version uses the [ActionBarSherlock](http://actionbarsherlock.com/) compatibility library to give the Android 4.0 styling to the older Android versions.  
+To edit and compile the source, check out the [usage](http://actionbarsherlock.com/usage.html) page, under Including In Your Project.
+For help with project setup in eclipse, feel free to contact [dylanPowers](https://github.com/dylanPowers).
 
-At the moment, the application is just about completely functional, with a few manageable bugs.  It is however not complete enough based on where I want to go with it nor properly tested.  Feedback is welcome and encouraged.
+## Other Open-Sourced Pandora Projects
+A big thanks to the folks at:
+* [pianobar](https://github.com/PromyLOPh/pianobar/)
+* [Pithos](https://github.com/kevinmehall/pithos)
+* ...and others

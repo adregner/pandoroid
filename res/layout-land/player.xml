@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/PandoroidBlackBgTheme"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="horizontal" >
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_alignParentTop="false"
+        android:orientation="vertical" >
+
+        <TextView
+            android:id="@+id/player_topText"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:gravity="center"
+            android:paddingTop="5dip"
+            android:text="@string/loading" >
+        </TextView>
+
+        <ImageView
+            android:id="@+id/player_image"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/player_topText"
+            android:layout_alignRight="@+id/player_topText"
+            android:layout_below="@+id/player_topText"
+            android:paddingTop="5dip"
+            android:src="@drawable/transparent" >
+        </ImageView>
+
+        <TextView
+            android:id="@+id/player_bottomText"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/player_image"
+            android:layout_alignRight="@+id/player_image"
+            android:layout_below="@+id/player_image"
+            android:gravity="center"
+            android:paddingTop="14dip"
+            android:text=""
+            android:visibility="gone" >
+        </TextView>
+
+    </RelativeLayout>
+
+    <LinearLayout
+        android:id="@+id/progressUpdate"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="158dp"
+        android:layout_marginRight="158dp"
+        android:layout_marginTop="100dp"
+        android:background="#C0000000"
+        android:paddingBottom="10dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="10dp"
+        android:visibility="invisible" >
+
+        <ProgressBar
+            android:id="@+id/progressSpinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/progressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="15dp"
+            android:text="@string/loading"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textSize="16dp" />
+
+    </LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/player_buttons"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="center|right" >
+        
+        <ImageView
+            android:id="@+id/player_next"
+            android:src="@drawable/ic_menu_forward"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="controlButtonPressed"
+            android:padding="10dip"
+            android:width="75dip" >
+        </ImageView>
+        
+        <ImageView
+            android:id="@+id/player_pause"
+            android:src="@drawable/ic_menu_play_clip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="controlButtonPressed"
+            android:layout_alignLeft="@+id/player_next"
+            android:layout_alignRight="@+id/player_next"
+            android:layout_below="@+id/player_next"
+            android:padding="10dip"
+            android:width="75dip" >
+        </ImageView>
+
+        <ImageView
+            android:id="@+id/player_love"
+            android:src="@drawable/ic_menu_star"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/player_pause"
+            android:layout_alignRight="@+id/player_pause"
+            android:layout_below="@+id/player_pause"
+            android:onClick="controlButtonPressed"
+            android:padding="10dip"
+            android:width="75dip" >
+        </ImageView>
+        
+        <ImageView
+            android:id="@+id/player_ban"
+            android:src="@drawable/ic_menu_block"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="controlButtonPressed"
+            android:layout_alignLeft="@+id/player_love"
+            android:layout_alignRight="@+id/player_love"
+            android:layout_below="@+id/player_love"
+            android:padding="10dip"
+            android:width="75dip" >
+        </ImageView>
+        
+    </RelativeLayout>
+
+</RelativeLayout>

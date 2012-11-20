@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/PandoroidBlackBgTheme"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:orientation="horizontal">
-    <ImageView android:layout_height="wrap_content" android:src="@drawable/transparent" android:layout_width="wrap_content" android:id="@+id/stations_icon"></ImageView>
-	<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-	    android:layout_width="fill_parent"
-	    android:layout_height="fill_parent"
-	    android:padding="10dp"
-	    android:textSize="16sp" android:id="@+id/stations_name">
-	</TextView>
+    android:orientation="horizontal" >
+
+    <ImageView
+        android:id="@+id/stations_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/transparent" >
+    </ImageView>
+
+    <TextView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/stations_name"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:padding="10dp"
+        android:textSize="16sp" >
+    </TextView>
+
 </LinearLayout>
