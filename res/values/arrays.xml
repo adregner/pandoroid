@@ -10,4 +10,19 @@
         <item>mp3</item>
         <item>mp3-hifi</item>
     </string-array>
+    <string-array name="pandora_albumRes_values">
+    	<item>0</item>
+    	<item>1</item>
+    	<item>2</item>
+    </string-array>
+    <string-array name="pandora_albumRes_text">
+    	<item>Low</item>
+    	<item>Normal</item>
+    	<item>High</item>
+    </string-array>
+    <string-array name="query_types">
+    	<item>Song</item>
+    	<item>Artist</item>
+    </string-array>
+
 </resources>

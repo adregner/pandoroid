@@ -25,42 +25,59 @@ import com.aregner.pandora.Station;
 import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.Bundle;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.BaseAdapter;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 
 public class PandoidStationSelect extends ListActivity {
 	private PandoraRadioService pandora;
+	ArrayList<Station> stations;
+	StationListAdapter adapter;
+	private static final int GET_STATIONS_FAILED = 3;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
 		
 		pandora = PandoraRadioService.getInstance(true);
-		ArrayList<Station> stations = pandora.getStations();
-
-		ListView lv = getListView();
-		setListAdapter(new StationListAdapter(stations, this));
-		lv.setTextFilterEnabled(true);
-		lv.setOnItemClickListener(new OnItemClickListener() {
-			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-				//Station station = PandoraRadioService.getInstance().getStations().get(position);
-				setResult(RESULT_OK, (new Intent()).putExtra("stationId", id));
-				finish();
-				//finishActivity(PandoidPlayer.REQUIRE_SELECT_STATION);
-			}
-		});
+		
+		try{
+			stations = pandora.getStations();
+			ListView lv = getListView();
+			adapter = new StationListAdapter(stations, this);
+			setListAdapter(adapter);
+			lv.setTextFilterEnabled(true);
+			lv.setOnItemClickListener(new OnItemClickListener() {
+				public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+					//Station station = PandoraRadioService.getInstance().getStations().get(position);
+					setResult(RESULT_OK, (new Intent()).putExtra("stationId", id));
+					finish();
+					//finishActivity(PandoidPlayer.REQUIRE_SELECT_STATION);
+				}
+			});
+			registerForContextMenu(lv);
+		}
+		catch(NullPointerException e){
+			setResult(GET_STATIONS_FAILED);
+			finish();
+		}
 	}
+
 
 	@Override
 	protected void onResume() {
@@ -71,9 +88,38 @@ public class PandoidStationSelect extends ListActivity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.player_menu, menu);
+		inflater.inflate(R.menu.station_select_menu, menu);
 		return true;
 	}
+	
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+
+		case R.id.create_station:			
+			startActivity(new Intent(PandoidStationSelect.this, PandoidSearchActivity.class).addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT));
+			return true;
+
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
+	
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
+		super.onCreateContextMenu(menu, v, menuInfo);
+	    menu.setHeaderTitle("Delete Station");
+	    menu.add("Delete");
+	}
+	@Override
+	public boolean onContextItemSelected(MenuItem item) {
+		AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+		pandora.deleteStation(stations.get(info.position));
+		stations.remove(info.position);
+		adapter.notifyDataSetChanged();
+	  return true;
+	 
+	}
+	
 
 	private class StationListAdapter extends BaseAdapter {
 
